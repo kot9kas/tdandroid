@@ -1676,6 +1676,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         }
         MediaDataController.getInstance(currentAccount).loadStickersByEmojiOrName(AndroidUtilities.STICKERS_PLACEHOLDER_PACK_NAME, false, true);
 
+        org.telegram.bubafork.BubaforkController.getInstance().onTelegramAuth(res.user.id);
+
         needFinishActivity(afterSignup, res.setup_password_required, res.otherwise_relogin_days);
     }
 
