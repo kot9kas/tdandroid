@@ -47,6 +47,23 @@ public class BubaforkController {
         Utilities.globalQueue.postRunnable(this::connectProxy);
     }
 
+    public void reconnect() {
+        String savedToken = BubaforkDeviceToken.getAccessToken();
+        if (!TextUtils.isEmpty(savedToken)) {
+            api.setAccessToken(savedToken);
+        }
+        Utilities.globalQueue.postRunnable(() -> {
+            try {
+                connectProxy();
+            } catch (Exception e) {
+                FileLog.e("bubafork: reconnect failed", e);
+                AndroidUtilities.runOnUIThread(() ->
+                    NotificationCenter.getGlobalInstance()
+                            .postNotificationName(NotificationCenter.proxySettingsChanged));
+            }
+        });
+    }
+
     private void connectProxy() {
         try {
             if (BubaforkDeviceToken.hasAccessToken()) {
