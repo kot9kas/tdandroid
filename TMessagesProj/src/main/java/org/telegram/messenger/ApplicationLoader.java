@@ -344,7 +344,7 @@ public class ApplicationLoader extends Application {
 
         LauncherIconController.tryFixLauncherIconIfNeeded();
         ProxyRotationController.init();
-        org.telegram.bubafork.BubaforkController.getInstance().init();
+        org.telegram.litegram.LitegramController.getInstance().init();
     }
 
     public static void startPushService() {

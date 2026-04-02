@@ -1,4 +1,4 @@
-package org.telegram.bubafork;
+package org.telegram.litegram;
 
 import android.text.TextUtils;
 
@@ -14,7 +14,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BubaforkApi {
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.HostnameVerifier;
+
+public class LitegramApi {
 
     private String accessToken;
 
@@ -72,7 +78,7 @@ public class BubaforkApi {
         JSONObject body = new JSONObject();
         body.put("telegramId", telegramId);
         body.put("deviceToken", deviceToken);
-        body.put("platform", BubaforkConfig.PLATFORM);
+        body.put("platform", LitegramConfig.PLATFORM);
 
         String response = httpPost("/auth/register", body.toString());
         JSONObject json = new JSONObject(response);
@@ -129,13 +135,25 @@ public class BubaforkApi {
         return servers;
     }
 
+    private void configureFallbackSsl(HttpURLConnection conn) {
+        if (!LitegramConfig.isFallback() || !(conn instanceof HttpsURLConnection)) {
+            return;
+        }
+        try {
+            HttpsURLConnection https = (HttpsURLConnection) conn;
+            https.setHostnameVerifier((hostname, session) -> true);
+            https.setRequestProperty("Host", "test.enderfall.net");
+        } catch (Exception ignored) {}
+    }
+
     private String httpGet(String path) throws Exception {
-        URL url = new URL(BubaforkConfig.apiUrl(path));
+        URL url = new URL(LitegramConfig.apiUrl(path));
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         try {
+            configureFallbackSsl(conn);
             conn.setRequestMethod("GET");
-            conn.setConnectTimeout(BubaforkConfig.CONNECTION_TIMEOUT_MS);
-            conn.setReadTimeout(BubaforkConfig.CONNECTION_TIMEOUT_MS);
+            conn.setConnectTimeout(LitegramConfig.CONNECTION_TIMEOUT_MS);
+            conn.setReadTimeout(LitegramConfig.CONNECTION_TIMEOUT_MS);
             if (!TextUtils.isEmpty(accessToken)) {
                 conn.setRequestProperty("Authorization", "Bearer " + accessToken);
             }
@@ -146,12 +164,13 @@ public class BubaforkApi {
     }
 
     private String httpPost(String path, String jsonBody) throws Exception {
-        URL url = new URL(BubaforkConfig.apiUrl(path));
+        URL url = new URL(LitegramConfig.apiUrl(path));
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         try {
+            configureFallbackSsl(conn);
             conn.setRequestMethod("POST");
-            conn.setConnectTimeout(BubaforkConfig.CONNECTION_TIMEOUT_MS);
-            conn.setReadTimeout(BubaforkConfig.CONNECTION_TIMEOUT_MS);
+            conn.setConnectTimeout(LitegramConfig.CONNECTION_TIMEOUT_MS);
+            conn.setReadTimeout(LitegramConfig.CONNECTION_TIMEOUT_MS);
             conn.setRequestProperty("Content-Type", "application/json");
             if (!TextUtils.isEmpty(accessToken)) {
                 conn.setRequestProperty("Authorization", "Bearer " + accessToken);

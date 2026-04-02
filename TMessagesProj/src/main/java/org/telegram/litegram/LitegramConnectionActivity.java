@@ -1,4 +1,4 @@
-package org.telegram.bubafork;
+package org.telegram.litegram;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -12,6 +12,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import android.widget.Toast;
+
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
@@ -20,14 +22,15 @@ import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.RLottieImageView;
 
-public class BubaforkActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
+public class LitegramConnectionActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
-    public BubaforkActivity() {
+    public LitegramConnectionActivity() {
         super();
     }
 
-    public BubaforkActivity(Bundle args) {
+    public LitegramConnectionActivity(Bundle args) {
         super(args);
     }
 
@@ -36,7 +39,7 @@ public class BubaforkActivity extends BaseFragment implements NotificationCenter
     private TextView serverValue;
     private TextView planValue;
     private TextView actionButton;
-    private View headerView;
+    private RLottieImageView lottieView;
 
     private boolean connected;
     private boolean connecting;
@@ -79,12 +82,9 @@ public class BubaforkActivity extends BaseFragment implements NotificationCenter
 
     @Override
     public View createView(Context context) {
-        boolean isTab = getArguments() != null && getArguments().getBoolean("hasMainTabs", false);
-        if (!isTab) {
-            actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        }
+        actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle("Bubafork");
+        actionBar.setTitle("Litegram Connection");
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -118,16 +118,28 @@ public class BubaforkActivity extends BaseFragment implements NotificationCenter
     private View createHeader(Context context) {
         LinearLayout header = new LinearLayout(context);
         header.setOrientation(LinearLayout.VERTICAL);
-        header.setGravity(Gravity.CENTER);
-        header.setMinimumHeight(AndroidUtilities.dp(170));
+        header.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
+        header.setPadding(0, 0, 0, AndroidUtilities.dp(24));
+        header.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(260)));
 
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(
                 android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
                 new int[]{0xFFAE8BA1, 0xFFF2ECB6});
         header.setBackground(bg);
 
-        header.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(32),
-                AndroidUtilities.dp(16), AndroidUtilities.dp(32));
+        lottieView = new RLottieImageView(context);
+        lottieView.setAnimation(R.raw.utyan_private, 110, 110);
+        lottieView.setAutoRepeat(false);
+        lottieView.playAnimation();
+        lottieView.setOnClickListener(v -> {
+            lottieView.getAnimatedDrawable().setCurrentFrame(0, false);
+            lottieView.playAnimation();
+        });
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                AndroidUtilities.dp(110), AndroidUtilities.dp(110));
+        lp.gravity = Gravity.CENTER_HORIZONTAL;
+        header.addView(lottieView, lp);
 
         statusText = new TextView(context);
         statusText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22);
@@ -136,9 +148,11 @@ public class BubaforkActivity extends BaseFragment implements NotificationCenter
         statusText.setGravity(Gravity.CENTER);
         statusText.setShadowLayer(4, 0, 2, 0x40000000);
         statusText.setText("\u25CB Disconnected");
-        header.addView(statusText, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams stp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        stp.topMargin = AndroidUtilities.dp(12);
+        header.addView(statusText, stp);
 
         subtitleText = new TextView(context);
         subtitleText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
@@ -148,7 +162,7 @@ public class BubaforkActivity extends BaseFragment implements NotificationCenter
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        sp.topMargin = AndroidUtilities.dp(6);
+        sp.topMargin = AndroidUtilities.dp(4);
         header.addView(subtitleText, sp);
 
         return header;
@@ -222,7 +236,14 @@ public class BubaforkActivity extends BaseFragment implements NotificationCenter
                 actionButton.setText("Connecting...");
                 actionButton.setEnabled(false);
                 actionButton.setAlpha(0.6f);
-                BubaforkController.getInstance().reconnect();
+                LitegramController.getInstance().reconnect((success, error) -> {
+                    if (!success && getParentActivity() != null) {
+                        String msg = error != null ? error : "Unknown error";
+                        Toast.makeText(getParentActivity(),
+                                "Connection failed: " + msg, Toast.LENGTH_LONG).show();
+                    }
+                    updateUI();
+                });
             }
         });
 
