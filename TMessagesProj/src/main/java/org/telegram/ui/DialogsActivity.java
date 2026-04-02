@@ -3437,12 +3437,18 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             } else {
                 statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
                 statusDrawable.center = true;
-                logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo_2).mutate();
-                logoDrawable.setBounds(0, dp(2), logoDrawable.getIntrinsicWidth(), dp(2) + logoDrawable.getIntrinsicHeight());
-                logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);
-                SpannableStringBuilder ssb = new SpannableStringBuilder(getString(R.string.AppName));
-                ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                actionBar.setTitle(ssb, statusDrawable);
+                actionBar.setTitle("Litegram", statusDrawable);
+                actionBar.getTitleTextView().setTextSize(22);
+                actionBar.getTitleTextView().post(() -> {
+                    android.text.TextPaint paint = actionBar.getTitleTextView().getTextPaint();
+                    float width = paint.measureText("Litegram");
+                    paint.setShader(new android.graphics.LinearGradient(
+                            0, 0, width, 0,
+                            new int[]{0xFFAE8BA1, 0xFFF2ECB6},
+                            null,
+                            android.graphics.Shader.TileMode.CLAMP));
+                    actionBar.getTitleTextView().invalidate();
+                });
                 updateStatus(UserConfig.getInstance(currentAccount).getCurrentUser(), false);
             }
             if (folderId == 0) {
