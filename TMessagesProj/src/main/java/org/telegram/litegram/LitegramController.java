@@ -45,21 +45,8 @@ public class LitegramController {
             api.setAccessToken(savedToken);
         }
 
-        if (isAlreadyConnectedToLitegramProxy()) {
-            FileLog.d("litegram: proxy already active, skipping reconnect");
-            return;
-        }
-
+        FileLog.d("litegram: fetching proxy config from backend on startup");
         Utilities.globalQueue.postRunnable(this::connectProxy);
-    }
-
-    private boolean isAlreadyConnectedToLitegramProxy() {
-        if (!SharedConfig.isProxyEnabled() || SharedConfig.currentProxy == null) {
-            return false;
-        }
-        int state = ConnectionsManager.getInstance(0).getConnectionState();
-        return state == ConnectionsManager.ConnectionStateConnected
-                || state == ConnectionsManager.ConnectionStateUpdating;
     }
 
     public interface ReconnectCallback {
