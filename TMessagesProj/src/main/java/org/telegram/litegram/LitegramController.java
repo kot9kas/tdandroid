@@ -199,8 +199,7 @@ public class LitegramController {
                     server.secret
             );
 
-            SharedConfig.ProxyInfo existing = SharedConfig.addProxy(proxyInfo);
-            SharedConfig.currentProxy = existing;
+            SharedConfig.replaceProxyListWithSingle(proxyInfo);
 
             SharedPreferences.Editor editor = MessagesController.getGlobalMainSettings().edit();
             editor.putString("proxy_ip", server.host);
