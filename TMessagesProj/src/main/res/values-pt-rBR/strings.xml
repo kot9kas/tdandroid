@@ -1249,4 +1249,11 @@
     <string name="RemindDayAt">\'Lembrar em\' d \'de\' MMM \'às\' HH:mm</string>
     <string name="RemindDayYearAt">\'Lembrar em\' d \'de\' MMM \'de\' yyyy \'às\' HH:mm</string>
     <string name="BotsMenuTitle">Menu</string>
+    <string name="MainTabsLitegram">Litegram</string>
+    <string name="LitegramSaveTrafficBlockTitle">Economia de dados ativada</string>
+    <string name="LitegramSaveTrafficBlockDesc">Enquanto **Economia de dados** estiver ativa, as configurações de dados e armazenamento são gerenciadas pelo Litegram. Toque em **Economia de dados** para alterar.</string>
+    <string name="LitegramSaveTraffic">Economia de dados</string>
+    <string name="LitegramSaveTrafficDesc">Baixar mídia somente ao tocar</string>
+    <string name="LitegramConnection">Litegram Connection</string>
+    <string name="LitegramConnectionDesc">Configurações e status do proxy</string>
 </resources>

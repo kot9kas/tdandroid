@@ -1084,4 +1084,11 @@
     <string name="RemindDayAt">\'Herinner op\' d MMM \'om\' HH:mm</string>
     <string name="RemindDayYearAt">\'Herinner op\' d MMM yyyy \'om\' HH:mm</string>
     <string name="BotsMenuTitle">Menu</string>
+    <string name="MainTabsLitegram">Litegram</string>
+    <string name="LitegramSaveTrafficBlockTitle">Databesparing is ingeschakeld</string>
+    <string name="LitegramSaveTrafficBlockDesc">Zolang **Databesparing** actief is, worden de data- en opslaginstellingen beheerd door Litegram. Tik op **Databesparing** om dit te wijzigen.</string>
+    <string name="LitegramSaveTraffic">Databesparing</string>
+    <string name="LitegramSaveTrafficDesc">Media alleen downloaden bij tikken</string>
+    <string name="LitegramConnection">Litegram Connection</string>
+    <string name="LitegramConnectionDesc">Proxy-instellingen en status</string>
 </resources>

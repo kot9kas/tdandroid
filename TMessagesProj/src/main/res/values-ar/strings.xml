@@ -1243,4 +1243,11 @@
     <string name="RemindTodayAt">\'ذكّرني اليوم عند\' HH:mm</string>
     <string name="RemindDayAt">\'ذكّرني بتاريخ\' d MMM \'عند\' HH:mm</string>
     <string name="RemindDayYearAt">\'ذكّرني بتاريخ\' d MMM yyyy \'عند\' HH:mm</string>
+    <string name="MainTabsLitegram">Litegram</string>
+    <string name="LitegramSaveTrafficBlockTitle">توفير البيانات مفعّل</string>
+    <string name="LitegramSaveTrafficBlockDesc">أثناء تفعيل **توفير البيانات**، تتم إدارة إعدادات البيانات والتخزين بواسطة Litegram. انقر على **توفير البيانات** لتغيير ذلك.</string>
+    <string name="LitegramSaveTraffic">توفير البيانات</string>
+    <string name="LitegramSaveTrafficDesc">تحميل الوسائط فقط عند النقر</string>
+    <string name="LitegramConnection">Litegram Connection</string>
+    <string name="LitegramConnectionDesc">إعدادات وحالة البروكسي</string>
 </resources>

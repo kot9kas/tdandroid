@@ -1316,4 +1316,11 @@
     <string name="RemindDayYearAt">\'Recordar el\' d \'de\' MMM \'de\' yyyy \'a las\' HH:mm</string>
     <string name="BotsMenuTitle">Menu</string>
     <string name="Understood">👍 Entendido</string>
+    <string name="MainTabsLitegram">Litegram</string>
+    <string name="LitegramSaveTrafficBlockTitle">Ahorro de datos activado</string>
+    <string name="LitegramSaveTrafficBlockDesc">Mientras **Ahorro de datos** esté activo, la configuración de datos y almacenamiento es gestionada por Litegram. Toca **Ahorro de datos** para cambiarlo.</string>
+    <string name="LitegramSaveTraffic">Ahorro de datos</string>
+    <string name="LitegramSaveTrafficDesc">Descargar multimedia solo al tocar</string>
+    <string name="LitegramConnection">Litegram Connection</string>
+    <string name="LitegramConnectionDesc">Configuración y estado del proxy</string>
 </resources>

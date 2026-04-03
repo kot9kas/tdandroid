@@ -19,6 +19,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
@@ -31,6 +32,8 @@ import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
 
 public class LitegramActivity extends BaseFragment {
+
+    private View saveTrafficItem;
 
     public LitegramActivity() {
         super();
@@ -74,7 +77,31 @@ public class LitegramActivity extends BaseFragment {
         content.addView(createMenuSection(context));
 
         fragmentView = scrollView;
+
+        boolean shouldHighlight = getArguments() != null
+                && getArguments().getBoolean("highlightSaveTraffic", false);
+        if (shouldHighlight && saveTrafficItem != null) {
+            saveTrafficItem.postDelayed(() -> highlightView(saveTrafficItem), 400);
+        }
+
         return fragmentView;
+    }
+
+    private void highlightView(View view) {
+        android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofFloat(0f, 1f, 0f, 1f, 0f);
+        anim.setDuration(1500);
+        anim.addUpdateListener(animation -> {
+            float v = (float) animation.getAnimatedValue();
+            int alpha = (int) (v * 40);
+            view.setBackgroundColor(android.graphics.Color.argb(alpha, 78, 170, 93));
+        });
+        anim.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                view.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+            }
+        });
+        anim.start();
     }
 
     private View createProfileSection(Context context) {
@@ -156,15 +183,18 @@ public class LitegramActivity extends BaseFragment {
         section.setOrientation(LinearLayout.VERTICAL);
         section.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
 
-        section.addView(createToggleItem(context, R.drawable.msg_download,
-                "Save Traffic", "Download media only on tap",
+        saveTrafficItem = createToggleItem(context, R.drawable.msg_download,
+                LocaleController.getString(R.string.LitegramSaveTraffic),
+                LocaleController.getString(R.string.LitegramSaveTrafficDesc),
                 LitegramConfig.isSaveTrafficEnabled(),
-                (enabled) -> LitegramConfig.setSaveTrafficEnabled(enabled)));
+                (enabled) -> LitegramConfig.setSaveTrafficEnabled(enabled));
+        section.addView(saveTrafficItem);
 
         section.addView(createDivider(context));
 
         section.addView(createMenuItem(context, R.drawable.msg_secret,
-                "Litegram Connection", "Proxy settings and status",
+                LocaleController.getString(R.string.LitegramConnection),
+                LocaleController.getString(R.string.LitegramConnectionDesc),
                 () -> presentFragment(new LitegramConnectionActivity())));
 
         return section;
@@ -267,6 +297,20 @@ public class LitegramActivity extends BaseFragment {
         }
 
         Switch toggle = new Switch(context);
+        toggle.setTrackTintList(new android.content.res.ColorStateList(
+                new int[][]{
+                        new int[]{android.R.attr.state_checked},
+                        new int[]{}
+                },
+                new int[]{0xFF81C784, 0xFF9E9E9E}
+        ));
+        toggle.setThumbTintList(new android.content.res.ColorStateList(
+                new int[][]{
+                        new int[]{android.R.attr.state_checked},
+                        new int[]{}
+                },
+                new int[]{0xFFFFFFFF, 0xFFEEEEEE}
+        ));
         toggle.setChecked(initialState);
         toggle.setOnCheckedChangeListener((buttonView, isChecked) -> callback.onToggle(isChecked));
         item.addView(toggle, LayoutHelper.createFrame(

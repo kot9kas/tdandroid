@@ -1136,4 +1136,11 @@
     <string name="RemindDayAt">MMM d HH:mm\'에 알리기\'</string>
     <string name="RemindDayYearAt">yyyy\'년\' M\'월\' d\'일\' HH:mm\'에 알림\'</string>
     <string name="BotsMenuTitle">메뉴</string>
+    <string name="MainTabsLitegram">Litegram</string>
+    <string name="LitegramSaveTrafficBlockTitle">데이터 절약이 활성화됨</string>
+    <string name="LitegramSaveTrafficBlockDesc">**데이터 절약**이 활성화된 동안 데이터 및 저장 설정은 Litegram에서 관리합니다. **데이터 절약**을 탭하여 변경하세요.</string>
+    <string name="LitegramSaveTraffic">데이터 절약</string>
+    <string name="LitegramSaveTrafficDesc">탭할 때만 미디어 다운로드</string>
+    <string name="LitegramConnection">Litegram Connection</string>
+    <string name="LitegramConnectionDesc">프록시 설정 및 상태</string>
 </resources>

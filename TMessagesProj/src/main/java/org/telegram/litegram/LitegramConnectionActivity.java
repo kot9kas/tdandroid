@@ -129,7 +129,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         header.setBackground(bg);
 
         lottieView = new RLottieImageView(context);
-        lottieView.setAnimation(R.raw.utyan_private, 110, 110);
+        lottieView.setAnimation(R.raw.utyan_passcode, 110, 110);
         lottieView.setAutoRepeat(false);
         lottieView.playAnimation();
         lottieView.setOnClickListener(v -> {

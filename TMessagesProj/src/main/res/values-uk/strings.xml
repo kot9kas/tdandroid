@@ -276,4 +276,11 @@
     <string name="RemindTodayAt">\'Нагадати сьогодні,\' HH:mm</string>
     <string name="RemindDayAt">\'Нагадати\' d MMM\',\' HH:mm</string>
     <string name="RemindDayYearAt">\'Нагадати\' d MMM yyyy\',\' HH:mm</string>
+    <string name="MainTabsLitegram">Litegram</string>
+    <string name="LitegramSaveTrafficBlockTitle">Економію трафіку увімкнено</string>
+    <string name="LitegramSaveTrafficBlockDesc">Поки **Економія трафіку** активна, налаштування даних і пам\'яті керуються Litegram. Натисніть **Економія трафіку**, щоб змінити це.</string>
+    <string name="LitegramSaveTraffic">Економія трафіку</string>
+    <string name="LitegramSaveTrafficDesc">Завантаження медіа лише при натисканні</string>
+    <string name="LitegramConnection">Litegram Connection</string>
+    <string name="LitegramConnectionDesc">Налаштування та статус проксі</string>
 </resources>

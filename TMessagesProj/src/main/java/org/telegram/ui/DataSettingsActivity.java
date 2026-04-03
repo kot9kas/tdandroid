@@ -276,6 +276,10 @@ public class DataSettingsActivity extends BaseFragment {
             }
         });
 
+        if (org.telegram.litegram.LitegramConfig.isSaveTrafficEnabled()) {
+            return createSaveTrafficBlockView(context);
+        }
+
         listAdapter = new ListAdapter(context);
 
         fragmentView = new FrameLayout(context);
@@ -986,7 +990,106 @@ public class DataSettingsActivity extends BaseFragment {
     }
     @Override
     public void onInsets(int left, int top, int right, int bottom) {
-        listView.setPadding(0, 0, 0, bottom);
-        listView.setClipToPadding(false);
+        if (listView != null) {
+            listView.setPadding(0, 0, 0, bottom);
+            listView.setClipToPadding(false);
+        }
+    }
+
+    private View createSaveTrafficBlockView(Context context) {
+        FrameLayout root = new FrameLayout(context);
+        root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
+
+        LinearLayout container = new LinearLayout(context);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setGravity(Gravity.CENTER_HORIZONTAL);
+        container.setPadding(AndroidUtilities.dp(32), AndroidUtilities.dp(60), AndroidUtilities.dp(32), AndroidUtilities.dp(32));
+
+        org.telegram.ui.Components.RLottieImageView lottieView = new org.telegram.ui.Components.RLottieImageView(context);
+        lottieView.setAnimation(R.raw.utyan_empty, 120, 120);
+        lottieView.setAutoRepeat(true);
+        lottieView.playAnimation();
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                AndroidUtilities.dp(120), AndroidUtilities.dp(120));
+        lp.gravity = Gravity.CENTER_HORIZONTAL;
+        container.addView(lottieView, lp);
+
+        TextView titleView = new TextView(context);
+        titleView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 20);
+        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.setTypeface(AndroidUtilities.bold());
+        titleView.setGravity(Gravity.CENTER);
+        titleView.setText(LocaleController.getString(R.string.LitegramSaveTrafficBlockTitle));
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tp.topMargin = AndroidUtilities.dp(20);
+        container.addView(titleView, tp);
+
+        TextView descView = new TextView(context);
+        descView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14);
+        descView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        descView.setGravity(Gravity.CENTER);
+        descView.setLineSpacing(AndroidUtilities.dp(2), 1f);
+
+        String raw = LocaleController.getString(R.string.LitegramSaveTrafficBlockDesc);
+        android.text.SpannableStringBuilder ssb = new android.text.SpannableStringBuilder();
+        boolean inBold = false;
+        int boldStart = 0;
+        int clickableIndex = 0;
+        for (int i = 0; i < raw.length(); i++) {
+            if (i + 1 < raw.length() && raw.charAt(i) == '*' && raw.charAt(i + 1) == '*') {
+                if (!inBold) {
+                    boldStart = ssb.length();
+                    inBold = true;
+                } else {
+                    ssb.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                            boldStart, ssb.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    if (clickableIndex == 1) {
+                        final int start = boldStart;
+                        final int end = ssb.length();
+                        ssb.setSpan(new android.text.style.ClickableSpan() {
+                            @Override
+                            public void onClick(android.view.View widget) {
+                                navigateToLitegramTab();
+                            }
+                            @Override
+                            public void updateDrawState(android.text.TextPaint ds) {
+                                super.updateDrawState(ds);
+                                ds.setColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText2));
+                                ds.setUnderlineText(false);
+                            }
+                        }, start, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    clickableIndex++;
+                    inBold = false;
+                }
+                i++;
+            } else {
+                ssb.append(raw.charAt(i));
+            }
+        }
+        descView.setText(ssb);
+        descView.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
+
+        LinearLayout.LayoutParams dp2 = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        dp2.topMargin = AndroidUtilities.dp(10);
+        container.addView(descView, dp2);
+
+        root.addView(container, LayoutHelper.createFrame(
+                LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+
+        fragmentView = root;
+        return fragmentView;
+    }
+
+    private void navigateToLitegramTab() {
+        if (getParentActivity() instanceof org.telegram.ui.LaunchActivity) {
+            org.telegram.ui.LaunchActivity la = (org.telegram.ui.LaunchActivity) getParentActivity();
+            Bundle args = new Bundle();
+            args.putBoolean("highlightSaveTraffic", true);
+            org.telegram.litegram.LitegramActivity litegramFragment = new org.telegram.litegram.LitegramActivity(args);
+            la.presentFragment(litegramFragment, true, false);
+        }
     }
 }

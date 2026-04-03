@@ -1880,6 +1880,8 @@
     <string name="LinkCopiedPrivateInfo">This link will only work for members of this chat.</string>
     <string name="LinkNotFound">Unfortunately, you can\'t access this message. You are not a member of the chat where it was posted.</string>
     <string name="PhoneCopied">Phone copied to clipboard</string>
+    <string name="IdCopied">ID copied to clipboard</string>
+    <string name="ProfileCopyId">Copy ID</string>
     <string name="EmailCopied">Email copied to clipboard</string>
     <string name="InviteToGroupByLink">Invite to Group via Link</string>
     <string name="InviteLink">Invite Link</string>
@@ -10289,6 +10291,12 @@
     <string name="MainTabsChats">Chats</string>
     <string name="MainTabsProfile">Profile</string>
     <string name="MainTabsLitegram">Litegram</string>
+    <string name="LitegramSaveTraffic">Save Traffic</string>
+    <string name="LitegramSaveTrafficDesc">Download media only on tap</string>
+    <string name="LitegramConnection">Litegram Connection</string>
+    <string name="LitegramConnectionDesc">Proxy settings and status</string>
+    <string name="LitegramSaveTrafficBlockTitle">Save Traffic is enabled</string>
+    <string name="LitegramSaveTrafficBlockDesc">While **Save Traffic** is active, data and storage settings are managed by Litegram. Tap **Save Traffic** to change this.</string>
     <string name="MainTabsSettings">Settings</string>
     <string name="SwitchThemeToDay">Day Mode</string>
     <string name="SwitchThemeToNight">Night Mode</string>

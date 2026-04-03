@@ -1537,4 +1537,11 @@
     <string name="RemindDayAt">\'Ricorda il\' d MMM \'alle\' HH:mm</string>
     <string name="RemindDayYearAt">\'Ricorda il\' d MMM yyyy \'alle\' HH:mm</string>
     <string name="BotsMenuTitle">Menu</string>
+    <string name="MainTabsLitegram">Litegram</string>
+    <string name="LitegramSaveTrafficBlockTitle">Risparmio dati attivato</string>
+    <string name="LitegramSaveTrafficBlockDesc">Mentre **Risparmio dati** è attivo, le impostazioni di dati e archiviazione sono gestite da Litegram. Tocca **Risparmio dati** per modificare.</string>
+    <string name="LitegramSaveTraffic">Risparmio dati</string>
+    <string name="LitegramSaveTrafficDesc">Scarica media solo al tocco</string>
+    <string name="LitegramConnection">Litegram Connection</string>
+    <string name="LitegramConnectionDesc">Impostazioni proxy e stato</string>
 </resources>

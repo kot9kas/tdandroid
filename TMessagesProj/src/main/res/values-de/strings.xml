@@ -1375,4 +1375,11 @@
     <string name="RemindTodayAt">\'Heute um\' HH:mm \'erinnern\'</string>
     <string name="RemindDayAt">\'Am\' d MMM \'um\' HH:mm \'erinnern\'</string>
     <string name="RemindDayYearAt">\'Am\' d\'.\' MMM yyyy \'um\' HH:mm \'erinnern\'</string>
+    <string name="MainTabsLitegram">Litegram</string>
+    <string name="LitegramSaveTrafficBlockTitle">Datensparen ist aktiviert</string>
+    <string name="LitegramSaveTrafficBlockDesc">Solange **Datensparen** aktiv ist, werden die Daten- und Speichereinstellungen von Litegram verwaltet. Tippen Sie auf **Datensparen**, um dies zu ändern.</string>
+    <string name="LitegramSaveTraffic">Datensparen</string>
+    <string name="LitegramSaveTrafficDesc">Medien nur bei Tippen laden</string>
+    <string name="LitegramConnection">Litegram Connection</string>
+    <string name="LitegramConnectionDesc">Proxy-Einstellungen und Status</string>
 </resources>

@@ -3439,15 +3439,23 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 statusDrawable.center = true;
                 actionBar.setTitle("Litegram", statusDrawable);
                 actionBar.getTitleTextView().setTextSize(22);
-                actionBar.getTitleTextView().post(() -> {
+                final android.graphics.LinearGradient[] cachedGradient = {null};
+                final float[] cachedWidth = {0};
+                actionBar.getTitleTextView().getViewTreeObserver().addOnPreDrawListener(() -> {
                     android.text.TextPaint paint = actionBar.getTitleTextView().getTextPaint();
                     float width = paint.measureText("Litegram");
-                    paint.setShader(new android.graphics.LinearGradient(
-                            0, 0, width, 0,
-                            new int[]{0xFFAE8BA1, 0xFFF2ECB6},
-                            null,
-                            android.graphics.Shader.TileMode.CLAMP));
-                    actionBar.getTitleTextView().invalidate();
+                    if (width > 0) {
+                        if (cachedGradient[0] == null || cachedWidth[0] != width) {
+                            cachedGradient[0] = new android.graphics.LinearGradient(
+                                    0, 0, width, 0,
+                                    new int[]{0xFFAE8BA1, 0xFFF2ECB6},
+                                    null,
+                                    android.graphics.Shader.TileMode.CLAMP);
+                            cachedWidth[0] = width;
+                        }
+                        paint.setShader(cachedGradient[0]);
+                    }
+                    return true;
                 });
                 updateStatus(UserConfig.getInstance(currentAccount).getCurrentUser(), false);
             }
@@ -13118,20 +13126,20 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
                 switchingTheme = true;
                 SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-                String dayThemeName = preferences.getString("lastDayTheme", "Blue");
+                String dayThemeName = preferences.getString("lastDayTheme", "Purple Breeze");
                 if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                    dayThemeName = "Blue";
+                    dayThemeName = "Purple Breeze";
                 }
-                String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
+                String nightThemeName = preferences.getString("lastDarkTheme", "Purple Breeze");
                 if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                    nightThemeName = "Dark Blue";
+                    nightThemeName = "Purple Breeze";
                 }
                 Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
                 if (dayThemeName.equals(nightThemeName)) {
-                    if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
-                        dayThemeName = "Blue";
+                    if (themeInfo.isDark() || dayThemeName.equals("Purple Breeze")) {
+                        dayThemeName = "Purple Breeze";
                     } else {
-                        nightThemeName = "Dark Blue";
+                        nightThemeName = "Purple Breeze";
                     }
                 }
 

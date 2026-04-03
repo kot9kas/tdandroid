@@ -263,4 +263,13 @@
     <string name="RemindTodayAt">\'Отправить сегодня в\' HH:mm</string>
     <string name="RemindDayAt">\'Отправить\' d MMM \'в\' HH:mm</string>
     <string name="RemindDayYearAt">\'Напомнить\' d MMM yyyy \'в\' HH:mm</string>
+    <string name="MainTabsLitegram">Litegram</string>
+    <string name="LitegramSaveTrafficBlockTitle">Экономия трафика включена</string>
+    <string name="LitegramSaveTrafficBlockDesc">Пока **Экономия трафика** активна, настройки данных и памяти управляются Litegram. Нажмите **Экономия трафика**, чтобы изменить это.</string>
+    <string name="LitegramSaveTraffic">Экономия трафика</string>
+    <string name="IdCopied">ID скопирован в буфер обмена</string>
+    <string name="ProfileCopyId">Копировать ID</string>
+    <string name="LitegramSaveTrafficDesc">Загрузка медиа только по нажатию</string>
+    <string name="LitegramConnection">Litegram Connection</string>
+    <string name="LitegramConnectionDesc">Настройки и статус прокси</string>
 </resources>
