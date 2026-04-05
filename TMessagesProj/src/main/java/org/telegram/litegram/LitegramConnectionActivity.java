@@ -354,7 +354,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         if (lottieView == null) {
             return;
         }
-        int want = connected ? R.raw.utyan_streaming : R.raw.utyan_private;
+        int want = connected ? R.raw.utyan_streaming : R.raw.media_forbidden;
         if (want == headerLottieRes) {
             return;
         }
