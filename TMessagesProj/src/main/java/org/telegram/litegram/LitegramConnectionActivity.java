@@ -229,6 +229,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                         .postNotificationName(NotificationCenter.proxySettingsChanged);
                 updateUI();
             } else {
+                actionButton.setText("Connecting...");
                 actionButton.setEnabled(false);
                 actionButton.setAlpha(0.6f);
                 LitegramController.getInstance().reconnect((success, error) -> {
