@@ -21,9 +21,12 @@ public final class LitegramConfig {
     private static final String KEY_PROXY_ENABLED = "litegram_proxy_enabled";
     private static final String KEY_PROXY_NAME = "litegram_proxy_name";
     private static final String KEY_PROXY_COUNTRY = "litegram_proxy_country";
+    private static final String KEY_SUB_STATUS = "litegram_sub_status";
+    private static final String KEY_SUB_EXPIRES = "litegram_sub_expires";
 
     private static volatile boolean useFallback;
     private static volatile Boolean saveTrafficCached;
+    private static volatile String subStatusCached;
 
     public static String apiUrl(String path) {
         String base = useFallback ? API_FALLBACK_URL : API_BASE_URL;
@@ -113,6 +116,33 @@ public final class LitegramConfig {
     public static boolean hasProxy() {
         String host = getProxyHost();
         return host != null && !host.isEmpty();
+    }
+
+    public static void saveSubscription(String status, String expiresAt) {
+        subStatusCached = status;
+        SharedPreferences.Editor editor = getPrefs().edit()
+                .putString(KEY_SUB_STATUS, status != null ? status : "none");
+        if (expiresAt != null) {
+            editor.putString(KEY_SUB_EXPIRES, expiresAt);
+        } else {
+            editor.remove(KEY_SUB_EXPIRES);
+        }
+        editor.apply();
+    }
+
+    public static String getSubscriptionStatus() {
+        if (subStatusCached == null) {
+            subStatusCached = getPrefs().getString(KEY_SUB_STATUS, "none");
+        }
+        return subStatusCached;
+    }
+
+    public static String getSubscriptionExpires() {
+        return getPrefs().getString(KEY_SUB_EXPIRES, null);
+    }
+
+    public static boolean isSubscriptionActive() {
+        return "active".equals(getSubscriptionStatus());
     }
 
     private static SharedPreferences getPrefs() {

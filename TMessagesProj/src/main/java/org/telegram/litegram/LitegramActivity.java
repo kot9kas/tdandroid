@@ -159,14 +159,14 @@ public class LitegramActivity extends BaseFragment {
         idParams.topMargin = AndroidUtilities.dp(4);
         section.addView(idView, idParams);
 
-        boolean isPremium = user != null && user.premium;
+        boolean hasSubscription = LitegramConfig.isSubscriptionActive();
         TextView statusView = new TextView(context);
         statusView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         statusView.setTypeface(AndroidUtilities.bold());
         statusView.setGravity(Gravity.CENTER);
         statusView.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(4),
                 AndroidUtilities.dp(12), AndroidUtilities.dp(4));
-        if (isPremium) {
+        if (hasSubscription) {
             statusView.setText("\u2B50 Premium");
             statusView.setTextColor(0xFFFFF3D0);
             statusView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(

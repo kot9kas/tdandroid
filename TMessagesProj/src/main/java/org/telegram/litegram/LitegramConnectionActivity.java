@@ -477,7 +477,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         }
 
         if (planValue != null) {
-            planValue.setText("Free");
+            planValue.setText(LitegramConfig.isSubscriptionActive() ? "Premium" : "Free");
         }
 
         if (actionButton != null) {

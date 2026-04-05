@@ -51,10 +51,26 @@ public class LitegramApi {
     public static class AuthResult {
         public final String accessToken;
         public final String userId;
+        public final String subscriptionStatus;
+        public final String subscriptionExpiresAt;
 
-        public AuthResult(String accessToken, String userId) {
+        public AuthResult(String accessToken, String userId, String subscriptionStatus, String subscriptionExpiresAt) {
             this.accessToken = accessToken;
             this.userId = userId;
+            this.subscriptionStatus = subscriptionStatus;
+            this.subscriptionExpiresAt = subscriptionExpiresAt;
+        }
+    }
+
+    public static class SubscriptionInfo {
+        public final String status;
+        public final String expiresAt;
+        public final String productId;
+
+        public SubscriptionInfo(String status, String expiresAt, String productId) {
+            this.status = status;
+            this.expiresAt = expiresAt;
+            this.productId = productId;
         }
     }
 
@@ -103,12 +119,18 @@ public class LitegramApi {
         this.accessToken = token;
 
         String userId = "";
+        String subStatus = "none";
+        String subExpires = null;
         JSONObject user = json.optJSONObject("user");
         if (user != null) {
             userId = user.optString("id", "");
+            subStatus = user.optString("subscriptionStatus", "none");
+            subExpires = user.has("subscriptionExpiresAt") && !user.isNull("subscriptionExpiresAt")
+                    ? user.optString("subscriptionExpiresAt", null)
+                    : null;
         }
 
-        return new AuthResult(token, userId);
+        return new AuthResult(token, userId, subStatus, subExpires);
     }
 
     /**
@@ -149,6 +171,35 @@ public class LitegramApi {
         }
 
         return servers;
+    }
+
+    /**
+     * GET /subscription/status — get current subscription status
+     */
+    public SubscriptionInfo getSubscriptionStatus() throws Exception {
+        String response = httpGet("/subscription/status");
+        JSONObject json = new JSONObject(response);
+        return new SubscriptionInfo(
+                json.optString("status", "none"),
+                json.has("expiresAt") && !json.isNull("expiresAt")
+                        ? json.optString("expiresAt", null) : null,
+                json.has("productId") && !json.isNull("productId")
+                        ? json.optString("productId", null) : null
+        );
+    }
+
+    /**
+     * GET /user/me — get current user profile
+     */
+    public SubscriptionInfo getUserProfile() throws Exception {
+        String response = httpGet("/user/me");
+        JSONObject json = new JSONObject(response);
+        return new SubscriptionInfo(
+                json.optString("subscriptionStatus", "none"),
+                json.has("subscriptionExpiresAt") && !json.isNull("subscriptionExpiresAt")
+                        ? json.optString("subscriptionExpiresAt", null) : null,
+                null
+        );
     }
 
     private void configureFallbackSsl(HttpURLConnection conn) {

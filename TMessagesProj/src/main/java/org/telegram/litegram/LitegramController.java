@@ -61,7 +61,10 @@ public class LitegramController {
         clearSharedConfigProxy();
 
         FileLog.d("litegram: fetching proxy config from backend on startup");
-        Utilities.globalQueue.postRunnable(this::connectProxy);
+        Utilities.globalQueue.postRunnable(() -> {
+            refreshSubscriptionStatus();
+            connectProxy();
+        });
         scheduleConnectionWatcher();
     }
 
@@ -296,7 +299,9 @@ public class LitegramController {
                 );
 
                 LitegramDeviceToken.saveAccessToken(result.accessToken);
-                FileLog.d("litegram: registered, userId=" + result.userId);
+                LitegramConfig.saveSubscription(result.subscriptionStatus, result.subscriptionExpiresAt);
+                FileLog.d("litegram: registered, userId=" + result.userId
+                        + ", sub=" + result.subscriptionStatus);
 
                 List<LitegramApi.ServerInfo> servers = api.getProxyServers();
                 if (!servers.isEmpty()) {
@@ -308,6 +313,21 @@ public class LitegramController {
 
             AndroidUtilities.runOnUIThread(() -> sendBotStart(account));
         });
+    }
+
+    private void refreshSubscriptionStatus() {
+        if (!LitegramDeviceToken.hasAccessToken()) return;
+        try {
+            LitegramApi.SubscriptionInfo info = api.getSubscriptionStatus();
+            LitegramConfig.saveSubscription(info.status, info.expiresAt);
+            FileLog.d("litegram: subscription refreshed, status=" + info.status);
+        } catch (Exception e) {
+            FileLog.e("litegram: refreshSubscriptionStatus failed", e);
+        }
+    }
+
+    public void refreshSubscription() {
+        Utilities.globalQueue.postRunnable(this::refreshSubscriptionStatus);
     }
 
     private static final String BOT_USERNAME = "Buba_Top_Robot";
