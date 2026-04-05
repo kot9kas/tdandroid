@@ -107,6 +107,40 @@ public class LitegramController {
         void onResult(boolean success, String error);
     }
 
+    public interface ServersCallback {
+        void onResult(List<LitegramApi.ServerInfo> servers, String error);
+    }
+
+    public void fetchServers(ServersCallback callback) {
+        String savedToken = LitegramDeviceToken.getAccessToken();
+        if (!TextUtils.isEmpty(savedToken)) {
+            api.setAccessToken(savedToken);
+        }
+        Utilities.globalQueue.postRunnable(() -> {
+            try {
+                List<LitegramApi.ServerInfo> servers = api.getProxyServers();
+                AndroidUtilities.runOnUIThread(() -> callback.onResult(servers, null));
+            } catch (Exception e) {
+                FileLog.e("litegram: fetchServers failed", e);
+                AndroidUtilities.runOnUIThread(() -> callback.onResult(null, e.getMessage()));
+            }
+        });
+    }
+
+    public void connectToServer(LitegramApi.ServerInfo server, ReconnectCallback callback) {
+        forceApply = true;
+        AndroidUtilities.runOnUIThread(() -> {
+            LitegramConfig.saveProxy(server.host, server.port, server.secret, server.name, server.country);
+            ConnectionsManager.setProxySettings(true, server.host, server.port, "", "", server.secret);
+            NotificationCenter.getGlobalInstance()
+                    .postNotificationName(NotificationCenter.proxySettingsChanged);
+            forceApply = false;
+            if (callback != null) {
+                waitForProxyConnection(callback);
+            }
+        });
+    }
+
     public void reconnect() {
         reconnect(null);
     }
@@ -230,7 +264,7 @@ public class LitegramController {
                 }
             }
 
-            LitegramConfig.saveProxy(server.host, server.port, server.secret, server.name);
+            LitegramConfig.saveProxy(server.host, server.port, server.secret, server.name, server.country);
 
             ConnectionsManager.setProxySettings(
                     true,

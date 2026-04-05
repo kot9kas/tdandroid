@@ -2,12 +2,16 @@ package org.telegram.litegram;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -21,7 +25,12 @@ import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.ActionBar.BottomSheet;
+import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RLottieImageView;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class LitegramConnectionActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
@@ -44,6 +53,8 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private boolean connected;
     private boolean connecting;
     private Runnable pollRunnable;
+    private List<LitegramApi.ServerInfo> availableServers = new ArrayList<>();
+    private FrameLayout serverRow;
 
     @Override
     public boolean onFragmentCreate() {
@@ -174,8 +185,52 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         section.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(16),
                 AndroidUtilities.dp(22), AndroidUtilities.dp(8));
 
-        serverValue = addInfoRow(context, section, "Server");
+        serverRow = new FrameLayout(context);
+        serverRow.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
+        serverRow.setBackground(Theme.createSelectorDrawable(
+                Theme.getColor(Theme.key_listSelector), 2));
+        serverRow.setOnClickListener(v -> showServerPicker());
+
+        TextView serverLabel = new TextView(context);
+        serverLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        serverLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        serverLabel.setText("Server");
+        serverRow.addView(serverLabel, LayoutHelper.createFrame(
+                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+                Gravity.START | Gravity.CENTER_VERTICAL));
+
+        LinearLayout serverRight = new LinearLayout(context);
+        serverRight.setOrientation(LinearLayout.HORIZONTAL);
+        serverRight.setGravity(Gravity.CENTER_VERTICAL);
+
+        serverValue = new TextView(context);
+        serverValue.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        serverValue.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText));
+        serverValue.setGravity(Gravity.END);
+
+        ImageView serverArrow = new ImageView(context);
+        serverArrow.setScaleType(ImageView.ScaleType.CENTER);
+        Drawable arrowD = context.getResources().getDrawable(R.drawable.msg_arrowright).mutate();
+        arrowD.setColorFilter(new PorterDuffColorFilter(
+                Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2), PorterDuff.Mode.SRC_IN));
+        serverArrow.setImageDrawable(arrowD);
+
+        serverRight.addView(serverValue);
+        LinearLayout.LayoutParams arrowLp = new LinearLayout.LayoutParams(
+                AndroidUtilities.dp(20), AndroidUtilities.dp(20));
+        arrowLp.leftMargin = AndroidUtilities.dp(4);
+        serverRight.addView(serverArrow, arrowLp);
+
+        serverRow.addView(serverRight, LayoutHelper.createFrame(
+                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+                Gravity.END | Gravity.CENTER_VERTICAL));
+
+        section.addView(serverRow, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
         planValue = addInfoRow(context, section, "Plan");
+
+        loadServers();
 
         return section;
     }
@@ -309,6 +364,87 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
+    private String findCurrentServerFlag() {
+        String currentHost = LitegramConfig.getProxyHost();
+        for (LitegramApi.ServerInfo s : availableServers) {
+            if (s.host.equals(currentHost)) {
+                return s.getFlagEmoji();
+            }
+        }
+        return LitegramConfig.getProxyFlagEmoji();
+    }
+
+    private void loadServers() {
+        LitegramController.getInstance().fetchServers((servers, error) -> {
+            if (servers != null && !servers.isEmpty()) {
+                availableServers.clear();
+                availableServers.addAll(servers);
+            }
+        });
+    }
+
+    private void showServerPicker() {
+        if (availableServers.isEmpty()) {
+            if (getParentActivity() != null) {
+                Toast.makeText(getParentActivity(),
+                        "Loading servers...", Toast.LENGTH_SHORT).show();
+            }
+            loadServers();
+            return;
+        }
+
+        Context ctx = getParentActivity();
+        if (ctx == null) return;
+
+        String currentHost = LitegramConfig.getProxyHost();
+
+        BottomSheet.Builder builder = new BottomSheet.Builder(ctx);
+        builder.setTitle("Select Server");
+
+        LinearLayout list = new LinearLayout(ctx);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
+
+        for (int i = 0; i < availableServers.size(); i++) {
+            LitegramApi.ServerInfo server = availableServers.get(i);
+            String baseName = server.name != null ? server.name : server.host;
+            String flag = server.getFlagEmoji();
+            String displayName = flag.isEmpty() ? baseName : flag + " " + baseName;
+            boolean isCurrent = server.host.equals(currentHost);
+
+            TextView item = new TextView(ctx);
+            item.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+            item.setTextColor(isCurrent
+                    ? Theme.getColor(Theme.key_windowBackgroundWhiteValueText)
+                    : Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            item.setTypeface(isCurrent ? AndroidUtilities.bold() : null);
+            item.setText(isCurrent ? "\u2713 " + displayName : "    " + displayName);
+            item.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(14),
+                    AndroidUtilities.dp(22), AndroidUtilities.dp(14));
+            item.setBackground(Theme.createSelectorDrawable(
+                    Theme.getColor(Theme.key_listSelector), 2));
+
+            item.setOnClickListener(v -> {
+                builder.getDismissRunnable().run();
+                actionButton.setText("Connecting...");
+                LitegramController.getInstance().connectToServer(server, (success, err) -> {
+                    if (!success && getParentActivity() != null) {
+                        String msg = err != null ? err : "Unknown error";
+                        Toast.makeText(getParentActivity(),
+                                "Connection failed: " + msg, Toast.LENGTH_LONG).show();
+                    }
+                    updateUI();
+                });
+            });
+
+            list.addView(item, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+
+        builder.setCustomView(list);
+        showDialog(builder.create());
+    }
+
     private void updateUI() {
         int connectionState = ConnectionsManager.getInstance(currentAccount).getConnectionState();
         boolean proxyEnabled = LitegramConfig.isProxyEnabled();
@@ -332,7 +468,9 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         if (serverValue != null) {
             if ((connected || connecting) && LitegramConfig.hasProxy()) {
                 String name = LitegramConfig.getProxyName();
-                serverValue.setText(name != null ? name : LitegramConfig.getProxyHost());
+                String display = name != null ? name : LitegramConfig.getProxyHost();
+                String flag = findCurrentServerFlag();
+                serverValue.setText(flag.isEmpty() ? display : flag + " " + display);
             } else {
                 serverValue.setText("Not connected");
             }

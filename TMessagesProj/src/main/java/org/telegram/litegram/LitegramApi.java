@@ -29,12 +29,22 @@ public class LitegramApi {
         public final int port;
         public final String secret;
         public final String name;
+        public final String country;
 
-        public ServerInfo(String host, int port, String secret, String name) {
+        public ServerInfo(String host, int port, String secret, String name, String country) {
             this.host = host;
             this.port = port;
             this.secret = secret;
             this.name = name;
+            this.country = country;
+        }
+
+        public String getFlagEmoji() {
+            if (country == null || country.length() != 2) return "";
+            String cc = country.toUpperCase();
+            int first = Character.toCodePoint('\uD83C', (char) ('\uDDE6' + cc.charAt(0) - 'A'));
+            int second = Character.toCodePoint('\uD83C', (char) ('\uDDE6' + cc.charAt(1) - 'A'));
+            return new String(Character.toChars(first)) + new String(Character.toChars(second));
         }
     }
 
@@ -118,7 +128,8 @@ public class LitegramApi {
                         s.getString("host"),
                         s.optInt("port", 443),
                         s.getString("secret"),
-                        s.optString("name", null)
+                        s.optString("name", null),
+                        s.optString("country", null)
                 ));
             }
         }
@@ -131,7 +142,8 @@ public class LitegramApi {
                         s.getString("host"),
                         s.optInt("port", 443),
                         s.getString("secret"),
-                        s.optString("name", null)
+                        s.optString("name", null),
+                        s.optString("country", null)
                 ));
             }
         }
@@ -218,7 +230,8 @@ public class LitegramApi {
                     s.getString("host"),
                     s.optInt("port", 443),
                     s.getString("secret"),
-                    s.optString("name", null)
+                    s.optString("name", null),
+                    s.optString("country", null)
             );
         }
 
@@ -229,7 +242,8 @@ public class LitegramApi {
                     s.getString("host"),
                     s.optInt("port", 443),
                     s.getString("secret"),
-                    s.optString("name", null)
+                    s.optString("name", null),
+                    s.optString("country", null)
             );
         }
 
@@ -238,7 +252,8 @@ public class LitegramApi {
                     json.getString("host"),
                     json.optInt("port", 443),
                     json.getString("secret"),
-                    json.optString("name", null)
+                    json.optString("name", null),
+                    json.optString("country", null)
             );
         }
 
