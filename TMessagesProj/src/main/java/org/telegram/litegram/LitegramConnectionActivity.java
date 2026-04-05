@@ -39,7 +39,6 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private TextView planValue;
     private TextView actionButton;
     private RLottieImageView lottieView;
-    /** Avoid resetting Lottie on every poll tick when resource unchanged */
     private int headerLottieRes;
 
     private boolean connected;
@@ -357,14 +356,13 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         updateHeaderLottie();
     }
 
-    /**
-     * Disconnected: {@link R.raw#media_forbidden}. Connecting or connected: {@link R.raw#utyan_passcode}.
-     */
     private void updateHeaderLottie() {
         if (lottieView == null) {
             return;
         }
-        int want = (connected || connecting) ? R.raw.utyan_passcode : R.raw.media_forbidden;
+        int want = connected ? R.raw.utyan_streaming
+                : connecting ? R.raw.utyan_passcode
+                : R.raw.utyan_private;
         if (want == headerLottieRes) {
             return;
         }
