@@ -40,6 +40,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private TextView actionButton;
     private RLottieImageView lottieView;
     private int headerLottieRes;
+    private int pendingAnimRes;
 
     private boolean connected;
     private boolean connecting;
@@ -363,11 +364,24 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         int want = connected ? R.raw.utyan_streaming
                 : connecting ? R.raw.utyan_passcode
                 : R.raw.utyan_private;
+        pendingAnimRes = want;
         if (want == headerLottieRes) {
             return;
         }
-        headerLottieRes = want;
-        lottieView.setAnimation(want, 110, 110);
+        if (lottieView.isPlaying()) {
+            lottieView.setOnAnimationEndListener(() ->
+                    AndroidUtilities.runOnUIThread(this::applyPendingAnim));
+        } else {
+            applyPendingAnim();
+        }
+    }
+
+    private void applyPendingAnim() {
+        if (lottieView == null || pendingAnimRes == headerLottieRes) {
+            return;
+        }
+        headerLottieRes = pendingAnimRes;
+        lottieView.setAnimation(pendingAnimRes, 110, 110);
         lottieView.setAutoRepeat(false);
         lottieView.playAnimation();
     }
