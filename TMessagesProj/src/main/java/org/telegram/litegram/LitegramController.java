@@ -60,6 +60,13 @@ public class LitegramController {
 
         clearSharedConfigProxy();
 
+        if (!LitegramDeviceToken.hasTelegramId()) {
+            long tgId = org.telegram.messenger.UserConfig.getInstance(0).getClientUserId();
+            if (tgId != 0) {
+                LitegramDeviceToken.saveTelegramId(String.valueOf(tgId));
+            }
+        }
+
         FileLog.d("litegram: fetching proxy config from backend on startup");
         Utilities.globalQueue.postRunnable(() -> {
             refreshSubscriptionStatus();
@@ -123,6 +130,18 @@ public class LitegramController {
             try {
                 List<LitegramApi.ServerInfo> servers = api.getProxyServers();
                 AndroidUtilities.runOnUIThread(() -> callback.onResult(servers, null));
+            } catch (LitegramApi.AuthExpiredException e) {
+                FileLog.d("litegram: token expired during fetchServers, re-authenticating");
+                if (reAuthenticate()) {
+                    try {
+                        List<LitegramApi.ServerInfo> servers = api.getProxyServers();
+                        AndroidUtilities.runOnUIThread(() -> callback.onResult(servers, null));
+                        return;
+                    } catch (Exception retryErr) {
+                        FileLog.e("litegram: fetchServers retry failed", retryErr);
+                    }
+                }
+                AndroidUtilities.runOnUIThread(() -> callback.onResult(null, "Auth expired"));
             } catch (Exception e) {
                 FileLog.e("litegram: fetchServers failed", e);
                 AndroidUtilities.runOnUIThread(() -> callback.onResult(null, e.getMessage()));
@@ -232,6 +251,20 @@ public class LitegramController {
                 applyProxy(servers.get(0));
                 return null;
             }
+        } catch (LitegramApi.AuthExpiredException e) {
+            FileLog.d("litegram: token expired during connectAuthenticated, re-authenticating");
+            if (reAuthenticate()) {
+                try {
+                    List<LitegramApi.ServerInfo> servers = api.getProxyServers();
+                    if (!servers.isEmpty()) {
+                        applyProxy(servers.get(0));
+                        return null;
+                    }
+                } catch (Exception retryErr) {
+                    FileLog.e("litegram: connectAuthenticated retry failed", retryErr);
+                    lastError = retryErr;
+                }
+            }
         } catch (Exception e) {
             FileLog.e("litegram: getProxyServers failed, falling back to claim", e);
             lastError = e;
@@ -290,6 +323,7 @@ public class LitegramController {
      * Registers the device with the backend and switches to a permanent proxy.
      */
     public void onTelegramAuth(long telegramId, int account) {
+        LitegramDeviceToken.saveTelegramId(String.valueOf(telegramId));
         Utilities.globalQueue.postRunnable(() -> {
             try {
                 String deviceToken = LitegramDeviceToken.getDeviceToken();
@@ -315,12 +349,33 @@ public class LitegramController {
         });
     }
 
+    private boolean reAuthenticate() {
+        String tgId = LitegramDeviceToken.getTelegramId();
+        if (TextUtils.isEmpty(tgId)) return false;
+        try {
+            String deviceToken = LitegramDeviceToken.getDeviceToken();
+            LitegramApi.AuthResult result = api.register(tgId, deviceToken);
+            LitegramDeviceToken.saveAccessToken(result.accessToken);
+            LitegramConfig.saveSubscription(result.subscriptionStatus, result.subscriptionExpiresAt);
+            FileLog.d("litegram: re-authenticated, sub=" + result.subscriptionStatus);
+            return true;
+        } catch (Exception e) {
+            FileLog.e("litegram: reAuthenticate failed", e);
+            return false;
+        }
+    }
+
     private void refreshSubscriptionStatus() {
         if (!LitegramDeviceToken.hasAccessToken()) return;
         try {
             LitegramApi.SubscriptionInfo info = api.getSubscriptionStatus();
             LitegramConfig.saveSubscription(info.status, info.expiresAt);
             FileLog.d("litegram: subscription refreshed, status=" + info.status);
+        } catch (LitegramApi.AuthExpiredException e) {
+            FileLog.d("litegram: token expired during subscription refresh, re-authenticating");
+            if (reAuthenticate()) {
+                FileLog.d("litegram: re-auth successful, subscription already updated");
+            }
         } catch (Exception e) {
             FileLog.e("litegram: refreshSubscriptionStatus failed", e);
         }

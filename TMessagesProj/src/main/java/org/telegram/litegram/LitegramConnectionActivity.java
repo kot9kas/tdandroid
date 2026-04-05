@@ -379,8 +379,10 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
             if (servers != null && !servers.isEmpty()) {
                 availableServers.clear();
                 availableServers.addAll(servers);
+                updateUI();
             }
         });
+        LitegramController.getInstance().refreshSubscription();
     }
 
     private void showServerPicker() {

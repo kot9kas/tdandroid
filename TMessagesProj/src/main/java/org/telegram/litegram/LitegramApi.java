@@ -252,6 +252,12 @@ public class LitegramApi {
         }
     }
 
+    public static class AuthExpiredException extends Exception {
+        public AuthExpiredException() {
+            super("JWT token expired (401)");
+        }
+    }
+
     private String readResponse(HttpURLConnection conn) throws Exception {
         int code = conn.getResponseCode();
         BufferedReader reader;
@@ -267,6 +273,9 @@ public class LitegramApi {
         }
         reader.close();
 
+        if (code == 401) {
+            throw new AuthExpiredException();
+        }
         if (code < 200 || code >= 300) {
             throw new Exception("HTTP " + code + ": " + sb);
         }
