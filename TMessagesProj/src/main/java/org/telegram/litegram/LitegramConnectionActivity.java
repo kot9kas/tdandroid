@@ -40,6 +40,8 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private TextView planValue;
     private TextView actionButton;
     private RLottieImageView lottieView;
+    /** Avoid resetting Lottie on every poll tick when resource unchanged */
+    private int headerLottieRes;
 
     private boolean connected;
     private boolean connecting;
@@ -129,11 +131,11 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         header.setBackground(bg);
 
         lottieView = new RLottieImageView(context);
-        lottieView.setAnimation(R.raw.utyan_passcode, 110, 110);
         lottieView.setAutoRepeat(false);
-        lottieView.playAnimation();
         lottieView.setOnClickListener(v -> {
-            lottieView.getAnimatedDrawable().setCurrentFrame(0, false);
+            if (lottieView.getAnimatedDrawable() != null) {
+                lottieView.getAnimatedDrawable().setCurrentFrame(0, false);
+            }
             lottieView.playAnimation();
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -355,6 +357,25 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 actionButton.setAlpha(1f);
             }
         }
+
+        updateHeaderLottie();
+    }
+
+    /**
+     * Disconnected: {@link R.raw#media_forbidden}. Connecting or connected: {@link R.raw#utyan_passcode}.
+     */
+    private void updateHeaderLottie() {
+        if (lottieView == null) {
+            return;
+        }
+        int want = (connected || connecting) ? R.raw.utyan_passcode : R.raw.media_forbidden;
+        if (want == headerLottieRes) {
+            return;
+        }
+        headerLottieRes = want;
+        lottieView.setAnimation(want, 110, 110);
+        lottieView.setAutoRepeat(false);
+        lottieView.playAnimation();
     }
 
     @Override
