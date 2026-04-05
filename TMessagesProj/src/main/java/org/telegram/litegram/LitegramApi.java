@@ -28,11 +28,13 @@ public class LitegramApi {
         public final String host;
         public final int port;
         public final String secret;
+        public final String name;
 
-        public ServerInfo(String host, int port, String secret) {
+        public ServerInfo(String host, int port, String secret, String name) {
             this.host = host;
             this.port = port;
             this.secret = secret;
+            this.name = name;
         }
     }
 
@@ -115,7 +117,8 @@ public class LitegramApi {
                 servers.add(new ServerInfo(
                         s.getString("host"),
                         s.optInt("port", 443),
-                        s.getString("secret")
+                        s.getString("secret"),
+                        s.optString("name", null)
                 ));
             }
         }
@@ -127,7 +130,8 @@ public class LitegramApi {
                 servers.add(new ServerInfo(
                         s.getString("host"),
                         s.optInt("port", 443),
-                        s.getString("secret")
+                        s.getString("secret"),
+                        s.optString("name", null)
                 ));
             }
         }
@@ -213,7 +217,8 @@ public class LitegramApi {
             return new ServerInfo(
                     s.getString("host"),
                     s.optInt("port", 443),
-                    s.getString("secret")
+                    s.getString("secret"),
+                    s.optString("name", null)
             );
         }
 
@@ -223,7 +228,8 @@ public class LitegramApi {
             return new ServerInfo(
                     s.getString("host"),
                     s.optInt("port", 443),
-                    s.getString("secret")
+                    s.getString("secret"),
+                    s.optString("name", null)
             );
         }
 
@@ -231,7 +237,8 @@ public class LitegramApi {
             return new ServerInfo(
                     json.getString("host"),
                     json.optInt("port", 443),
-                    json.getString("secret")
+                    json.getString("secret"),
+                    json.optString("name", null)
             );
         }
 

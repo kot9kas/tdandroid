@@ -19,6 +19,7 @@ public final class LitegramConfig {
     private static final String KEY_PROXY_PORT = "litegram_proxy_port";
     private static final String KEY_PROXY_SECRET = "litegram_proxy_secret";
     private static final String KEY_PROXY_ENABLED = "litegram_proxy_enabled";
+    private static final String KEY_PROXY_NAME = "litegram_proxy_name";
 
     private static volatile boolean useFallback;
     private static volatile Boolean saveTrafficCached;
@@ -48,13 +49,18 @@ public final class LitegramConfig {
         getPrefs().edit().putBoolean(KEY_SAVE_TRAFFIC, enabled).apply();
     }
 
-    public static void saveProxy(String host, int port, String secret) {
-        getPrefs().edit()
+    public static void saveProxy(String host, int port, String secret, String name) {
+        SharedPreferences.Editor editor = getPrefs().edit()
                 .putString(KEY_PROXY_HOST, host)
                 .putInt(KEY_PROXY_PORT, port)
                 .putString(KEY_PROXY_SECRET, secret)
-                .putBoolean(KEY_PROXY_ENABLED, true)
-                .apply();
+                .putBoolean(KEY_PROXY_ENABLED, true);
+        if (name != null) {
+            editor.putString(KEY_PROXY_NAME, name);
+        } else {
+            editor.remove(KEY_PROXY_NAME);
+        }
+        editor.apply();
     }
 
     public static String getProxyHost() {
@@ -67,6 +73,10 @@ public final class LitegramConfig {
 
     public static String getProxySecret() {
         return getPrefs().getString(KEY_PROXY_SECRET, "");
+    }
+
+    public static String getProxyName() {
+        return getPrefs().getString(KEY_PROXY_NAME, null);
     }
 
     public static boolean isProxyEnabled() {

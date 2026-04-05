@@ -324,7 +324,8 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
         if (serverValue != null) {
             if (connected && LitegramConfig.hasProxy()) {
-                serverValue.setText(LitegramConfig.getProxyHost());
+                String name = LitegramConfig.getProxyName();
+                serverValue.setText(name != null ? name : LitegramConfig.getProxyHost());
             } else {
                 serverValue.setText("Not connected");
             }

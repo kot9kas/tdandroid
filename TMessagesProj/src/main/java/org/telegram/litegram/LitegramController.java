@@ -230,7 +230,7 @@ public class LitegramController {
                 }
             }
 
-            LitegramConfig.saveProxy(server.host, server.port, server.secret);
+            LitegramConfig.saveProxy(server.host, server.port, server.secret, server.name);
 
             ConnectionsManager.setProxySettings(
                     true,
