@@ -3437,7 +3437,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             } else {
                 statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
                 statusDrawable.center = true;
-                actionBar.setTitle("Litegram", statusDrawable);
+                actionBar.setTitle(LocaleController.getString(R.string.AppName), statusDrawable);
                 actionBar.getTitleTextView().setTextSize(22);
                 final android.graphics.LinearGradient[] cachedGradient = {null};
                 final float[] cachedWidth = {0};

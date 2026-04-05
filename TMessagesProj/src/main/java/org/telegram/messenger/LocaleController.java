@@ -1413,6 +1413,19 @@ public class LocaleController {
     }
 
     private String getStringInternal(String key, String fallback, int fallbackRes, int res) {
+        // Cloud language packs from Telegram servers still contain "Telegram" for AppName; always use bundled strings for app branding.
+        if ("AppName".equals(key) || "AppNameBeta".equals(key)) {
+            try {
+                return ApplicationLoader.applicationContext.getString(res);
+            } catch (Exception e) {
+                if (fallbackRes != 0) {
+                    try {
+                        return ApplicationLoader.applicationContext.getString(fallbackRes);
+                    } catch (Exception ignored) {}
+                }
+                FileLog.e(e);
+            }
+        }
         String value = BuildVars.USE_CLOUD_STRINGS ? localeValues.get(key) : null;
         if (value == null) {
             if (BuildVars.USE_CLOUD_STRINGS && fallback != null) {
