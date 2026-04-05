@@ -38,6 +38,7 @@ import org.telegram.ui.Components.LayoutHelper;
 public class LitegramActivity extends BaseFragment {
 
     private View saveTrafficItem;
+    private TextView statusView;
 
     public LitegramActivity() {
         super();
@@ -159,14 +160,27 @@ public class LitegramActivity extends BaseFragment {
         idParams.topMargin = AndroidUtilities.dp(4);
         section.addView(idView, idParams);
 
-        boolean hasSubscription = LitegramConfig.isSubscriptionActive();
-        TextView statusView = new TextView(context);
+        statusView = new TextView(context);
         statusView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         statusView.setTypeface(AndroidUtilities.bold());
         statusView.setGravity(Gravity.CENTER);
         statusView.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(4),
                 AndroidUtilities.dp(12), AndroidUtilities.dp(4));
-        if (hasSubscription) {
+        applySubscriptionBadge();
+        LinearLayout.LayoutParams statusParams = LayoutHelper.createLinear(
+                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL);
+        statusParams.topMargin = AndroidUtilities.dp(10);
+        section.addView(statusView, statusParams);
+
+        LitegramController.getInstance().refreshSubscription(() ->
+                AndroidUtilities.runOnUIThread(this::applySubscriptionBadge));
+
+        return section;
+    }
+
+    private void applySubscriptionBadge() {
+        if (statusView == null) return;
+        if (LitegramConfig.isSubscriptionActive()) {
             statusView.setText("\u2B50 Premium");
             statusView.setTextColor(0xFFFFF3D0);
             statusView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
@@ -177,12 +191,6 @@ public class LitegramActivity extends BaseFragment {
             statusView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                     AndroidUtilities.dp(12), 0x88000000, 0xAA000000));
         }
-        LinearLayout.LayoutParams statusParams = LayoutHelper.createLinear(
-                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL);
-        statusParams.topMargin = AndroidUtilities.dp(10);
-        section.addView(statusView, statusParams);
-
-        return section;
     }
 
     private View createMenuSection(Context context) {

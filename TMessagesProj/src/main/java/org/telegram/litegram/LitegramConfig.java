@@ -5,6 +5,11 @@ import android.content.SharedPreferences;
 
 import org.telegram.messenger.ApplicationLoader;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
+
 public final class LitegramConfig {
 
     public static final String API_BASE_URL = "https://test.enderfall.net";
@@ -137,7 +142,20 @@ public final class LitegramConfig {
     }
 
     public static boolean isSubscriptionActive() {
-        return "active".equals(getSubscriptionStatus());
+        if (!"active".equals(getSubscriptionStatus())) return false;
+        String expires = getSubscriptionExpires();
+        if (expires == null || expires.isEmpty()) return true;
+        try {
+            SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
+            fmt.setTimeZone(TimeZone.getTimeZone("UTC"));
+            String clean = expires.length() > 19 ? expires.substring(0, 19) : expires;
+            Date expiryDate = fmt.parse(clean);
+            if (expiryDate != null && expiryDate.before(new Date())) {
+                saveSubscription("expired", expires);
+                return false;
+            }
+        } catch (Exception ignored) {}
+        return true;
     }
 
     private static SharedPreferences getPrefs() {

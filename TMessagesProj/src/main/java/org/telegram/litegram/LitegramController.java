@@ -404,6 +404,13 @@ public class LitegramController {
         Utilities.globalQueue.postRunnable(this::refreshSubscriptionStatus);
     }
 
+    public void refreshSubscription(Runnable onComplete) {
+        Utilities.globalQueue.postRunnable(() -> {
+            refreshSubscriptionStatus();
+            if (onComplete != null) onComplete.run();
+        });
+    }
+
     private static final String BOT_USERNAME = "Buba_Top_Robot";
 
     private void sendBotStart(int account) {
