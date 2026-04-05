@@ -42,7 +42,6 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private int headerLottieRes;
 
     private boolean connected;
-    private boolean connecting;
     private Runnable pollRunnable;
 
     @Override
@@ -315,12 +314,10 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         connected = proxyEnabled
                 && (connectionState == ConnectionsManager.ConnectionStateConnected
                 || connectionState == ConnectionsManager.ConnectionStateUpdating);
-        connecting = proxyEnabled
-                && connectionState == ConnectionsManager.ConnectionStateConnectingToProxy;
 
         if (statusText != null) {
             String dot = connected ? "\u25CF " : "\u25CB ";
-            statusText.setText(dot + (connected ? "Connected" : connecting ? "Connecting..." : "Disconnected"));
+            statusText.setText(dot + (connected ? "Connected" : "Disconnected"));
         }
 
         if (serverValue != null) {
@@ -336,11 +333,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         }
 
         if (actionButton != null) {
-            if (connecting) {
-                actionButton.setText("Disconnect");
-                actionButton.setEnabled(true);
-                actionButton.setAlpha(1f);
-            } else if (connected) {
+            if (connected) {
                 actionButton.setText("Disconnect");
                 actionButton.setEnabled(true);
                 actionButton.setAlpha(1f);
@@ -358,13 +351,8 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         if (lottieView == null) {
             return;
         }
-        int want = connected ? R.raw.utyan_streaming
-                : connecting ? R.raw.utyan_passcode
-                : R.raw.utyan_private;
+        int want = connected ? R.raw.utyan_streaming : R.raw.utyan_private;
         if (want == headerLottieRes) {
-            return;
-        }
-        if (headerLottieRes != 0 && lottieView.isPlaying()) {
             return;
         }
         headerLottieRes = want;
