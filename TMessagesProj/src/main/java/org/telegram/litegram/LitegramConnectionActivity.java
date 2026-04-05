@@ -17,7 +17,6 @@ import android.widget.Toast;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
-import org.telegram.messenger.SharedConfig;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -227,10 +226,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         actionButton.setOnClickListener(v -> {
             if (connecting) return;
             if (connected) {
-                SharedConfig.currentProxy = null;
-                org.telegram.messenger.MessagesController.getGlobalMainSettings().edit()
-                        .putBoolean("proxy_enabled", false).commit();
-                SharedConfig.saveProxyList();
+                LitegramConfig.setProxyEnabled(false);
                 ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
                 NotificationCenter.getGlobalInstance()
                         .postNotificationName(NotificationCenter.proxySettingsChanged);
@@ -318,7 +314,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
     private void updateUI() {
         int connectionState = ConnectionsManager.getInstance(currentAccount).getConnectionState();
-        boolean proxyEnabled = SharedConfig.isProxyEnabled();
+        boolean proxyEnabled = LitegramConfig.isProxyEnabled();
         connected = proxyEnabled
                 && (connectionState == ConnectionsManager.ConnectionStateConnected
                 || connectionState == ConnectionsManager.ConnectionStateUpdating);
@@ -331,8 +327,8 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         }
 
         if (serverValue != null) {
-            if (connected && SharedConfig.currentProxy != null) {
-                serverValue.setText(SharedConfig.currentProxy.address);
+            if (connected && LitegramConfig.hasProxy()) {
+                serverValue.setText(LitegramConfig.getProxyHost());
             } else {
                 serverValue.setText("Not connected");
             }
