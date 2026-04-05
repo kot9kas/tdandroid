@@ -223,16 +223,14 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
 
         actionButton.setOnClickListener(v -> {
-            if (connecting) return;
-            if (connected) {
+            if (connected || connecting) {
                 LitegramConfig.setProxyEnabled(false);
                 ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
                 NotificationCenter.getGlobalInstance()
                         .postNotificationName(NotificationCenter.proxySettingsChanged);
+                updateUI();
             } else {
                 actionButton.setText("Connecting...");
-                actionButton.setEnabled(false);
-                actionButton.setAlpha(0.6f);
                 LitegramController.getInstance().reconnect((success, error) -> {
                     if (!success && getParentActivity() != null) {
                         String msg = error != null ? error : "Unknown error";
@@ -339,9 +337,9 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
         if (actionButton != null) {
             if (connecting) {
-                actionButton.setText("Connecting...");
-                actionButton.setEnabled(false);
-                actionButton.setAlpha(0.6f);
+                actionButton.setText("Disconnect");
+                actionButton.setEnabled(true);
+                actionButton.setAlpha(1f);
             } else if (connected) {
                 actionButton.setText("Disconnect");
                 actionButton.setEnabled(true);
