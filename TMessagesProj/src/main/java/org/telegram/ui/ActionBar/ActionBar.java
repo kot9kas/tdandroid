@@ -22,8 +22,10 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
+import android.graphics.Shader;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
@@ -121,6 +123,8 @@ public class ActionBar extends FrameLayout implements Theme.Colorable {
     private int titleRightMargin;
 
     private boolean allowOverlayTitle;
+    private LinearGradient litegramTitleGradient;
+    private float litegramTitleGradientWidth;
     private CharSequence lastTitle;
     private Drawable lastRightDrawable;
     private OnClickListener rightDrawableOnClickListener;
@@ -434,6 +438,25 @@ public class ActionBar extends FrameLayout implements Theme.Colorable {
         titleTextView[i].setDrawablePadding(dp(4));
         titleTextView[i].setPadding(0, dp(8), 0, dp(8));
         titleTextView[i].setRightDrawableTopPadding(-dp(1));
+        titleTextView[i].getViewTreeObserver().addOnPreDrawListener(() -> {
+            if (titleTextView[i] == null) return true;
+            android.text.TextPaint paint = titleTextView[i].getTextPaint();
+            CharSequence displayed = titleTextView[i].getText();
+            if (displayed != null && displayed.length() > 0) {
+                float w = paint.measureText(displayed.toString());
+                if (w > 0) {
+                    if (litegramTitleGradient == null || litegramTitleGradientWidth != w) {
+                        litegramTitleGradient = new LinearGradient(
+                                0, 0, w, 0,
+                                new int[]{0xFFAE8BA1, 0xFFF2ECB6},
+                                null, Shader.TileMode.CLAMP);
+                        litegramTitleGradientWidth = w;
+                    }
+                    paint.setShader(litegramTitleGradient);
+                }
+            }
+            return true;
+        });
         if (useContainerForTitles) {
             titlesContainer.addView(titleTextView[i], 0, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP));
         } else {

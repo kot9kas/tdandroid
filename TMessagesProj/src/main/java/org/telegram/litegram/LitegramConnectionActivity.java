@@ -42,6 +42,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private int headerLottieRes;
 
     private boolean connected;
+    private boolean connecting;
     private Runnable pollRunnable;
 
     @Override
@@ -222,7 +223,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
 
         actionButton.setOnClickListener(v -> {
-            if (connected) {
+            if (connected || connecting) {
                 LitegramConfig.setProxyEnabled(false);
                 ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
                 NotificationCenter.getGlobalInstance()
@@ -230,8 +231,6 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 updateUI();
             } else {
                 actionButton.setText("Connecting...");
-                actionButton.setEnabled(false);
-                actionButton.setAlpha(0.6f);
                 LitegramController.getInstance().reconnect((success, error) -> {
                     if (!success && getParentActivity() != null) {
                         String msg = error != null ? error : "Unknown error";
@@ -316,14 +315,22 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         connected = proxyEnabled
                 && (connectionState == ConnectionsManager.ConnectionStateConnected
                 || connectionState == ConnectionsManager.ConnectionStateUpdating);
+        connecting = proxyEnabled
+                && (connectionState == ConnectionsManager.ConnectionStateConnectingToProxy
+                || connectionState == ConnectionsManager.ConnectionStateConnecting);
 
         if (statusText != null) {
-            String dot = connected ? "\u25CF " : "\u25CB ";
-            statusText.setText(dot + (connected ? "Connected" : "Disconnected"));
+            if (connected) {
+                statusText.setText("\u25CF Connected");
+            } else if (connecting) {
+                statusText.setText("\u25CB Connecting...");
+            } else {
+                statusText.setText("\u25CB Disconnected");
+            }
         }
 
         if (serverValue != null) {
-            if (connected && LitegramConfig.hasProxy()) {
+            if ((connected || connecting) && LitegramConfig.hasProxy()) {
                 String name = LitegramConfig.getProxyName();
                 serverValue.setText(name != null ? name : LitegramConfig.getProxyHost());
             } else {
@@ -336,7 +343,11 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         }
 
         if (actionButton != null) {
-            if (connected) {
+            if (connecting) {
+                actionButton.setText("Disconnect");
+                actionButton.setEnabled(true);
+                actionButton.setAlpha(1f);
+            } else if (connected) {
                 actionButton.setText("Disconnect");
                 actionButton.setEnabled(true);
                 actionButton.setAlpha(1f);
