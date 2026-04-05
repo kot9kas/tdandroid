@@ -60,12 +60,7 @@ public class LitegramController {
 
         clearSharedConfigProxy();
 
-        if (!LitegramDeviceToken.hasTelegramId()) {
-            long tgId = org.telegram.messenger.UserConfig.getInstance(0).getClientUserId();
-            if (tgId != 0) {
-                LitegramDeviceToken.saveTelegramId(String.valueOf(tgId));
-            }
-        }
+        resolveTelegramId();
 
         FileLog.d("litegram: fetching proxy config from backend on startup");
         Utilities.globalQueue.postRunnable(() -> {
@@ -349,13 +344,37 @@ public class LitegramController {
         });
     }
 
+    private String resolveTelegramId() {
+        String saved = LitegramDeviceToken.getTelegramId();
+        if (!TextUtils.isEmpty(saved)) return saved;
+
+        for (int i = 0; i < 4; i++) {
+            try {
+                long id = org.telegram.messenger.UserConfig.getInstance(i).getClientUserId();
+                if (id != 0) {
+                    String tgId = String.valueOf(id);
+                    LitegramDeviceToken.saveTelegramId(tgId);
+                    FileLog.d("litegram: resolved telegramId=" + tgId + " from account " + i);
+                    return tgId;
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
     private boolean reAuthenticate() {
-        String tgId = LitegramDeviceToken.getTelegramId();
-        if (TextUtils.isEmpty(tgId)) return false;
+        String tgId = resolveTelegramId();
+        if (TextUtils.isEmpty(tgId)) {
+            FileLog.d("litegram: no telegramId available, clearing expired token");
+            LitegramDeviceToken.saveAccessToken("");
+            api.setAccessToken(null);
+            return false;
+        }
         try {
             String deviceToken = LitegramDeviceToken.getDeviceToken();
             LitegramApi.AuthResult result = api.register(tgId, deviceToken);
             LitegramDeviceToken.saveAccessToken(result.accessToken);
+            api.setAccessToken(result.accessToken);
             LitegramConfig.saveSubscription(result.subscriptionStatus, result.subscriptionExpiresAt);
             FileLog.d("litegram: re-authenticated, sub=" + result.subscriptionStatus);
             return true;
