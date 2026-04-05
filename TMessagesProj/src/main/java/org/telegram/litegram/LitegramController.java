@@ -1,6 +1,5 @@
 package org.telegram.litegram;
 
-import android.content.SharedPreferences;
 import android.text.TextUtils;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -48,16 +47,43 @@ public class LitegramController {
             api.setAccessToken(savedToken);
         }
 
+        if (LitegramConfig.isProxyEnabled()) {
+            ConnectionsManager.setProxySettings(
+                    true,
+                    LitegramConfig.getProxyHost(),
+                    LitegramConfig.getProxyPort(),
+                    "", "",
+                    LitegramConfig.getProxySecret()
+            );
+            FileLog.d("litegram: restored saved proxy " + LitegramConfig.getProxyHost());
+        }
+
+        clearSharedConfigProxy();
+
         FileLog.d("litegram: fetching proxy config from backend on startup");
         Utilities.globalQueue.postRunnable(this::connectProxy);
         scheduleConnectionWatcher();
+    }
+
+    private void clearSharedConfigProxy() {
+        SharedConfig.currentProxy = null;
+        SharedConfig.proxyList.clear();
+        SharedConfig.saveProxyList();
+        MessagesController.getGlobalMainSettings().edit()
+                .putBoolean("proxy_enabled", false)
+                .remove("proxy_ip")
+                .remove("proxy_port")
+                .remove("proxy_user")
+                .remove("proxy_pass")
+                .remove("proxy_secret")
+                .commit();
     }
 
     private void scheduleConnectionWatcher() {
         AndroidUtilities.runOnUIThread(new Runnable() {
             @Override
             public void run() {
-                if (!SharedConfig.isProxyEnabled() || SharedConfig.currentProxy == null) {
+                if (!LitegramConfig.isProxyEnabled()) {
                     AndroidUtilities.runOnUIThread(this, RECLAIM_DELAY_MS);
                     return;
                 }
@@ -120,8 +146,8 @@ public class LitegramController {
                     || state == ConnectionsManager.ConnectionStateUpdating) {
                 callback.onResult(true, null);
             } else if (System.currentTimeMillis() >= deadline) {
-                String proxyAddr = SharedConfig.currentProxy != null
-                        ? SharedConfig.currentProxy.address + ":" + SharedConfig.currentProxy.port
+                String proxyAddr = LitegramConfig.hasProxy()
+                        ? LitegramConfig.getProxyHost() + ":" + LitegramConfig.getProxyPort()
                         : "unknown";
                 callback.onResult(false, "Proxy server " + proxyAddr + " is not responding");
             } else {
@@ -195,35 +221,16 @@ public class LitegramController {
     private void applyProxy(LitegramApi.ServerInfo server) {
         AndroidUtilities.runOnUIThread(() -> {
             if (!forceApply) {
-                SharedConfig.ProxyInfo current = SharedConfig.currentProxy;
-                if (current != null
-                        && SharedConfig.isProxyEnabled()
-                        && server.host.equals(current.address)
-                        && server.port == current.port
-                        && server.secret.equals(current.secret)) {
+                if (LitegramConfig.isProxyEnabled()
+                        && server.host.equals(LitegramConfig.getProxyHost())
+                        && server.port == LitegramConfig.getProxyPort()
+                        && server.secret.equals(LitegramConfig.getProxySecret())) {
                     FileLog.d("litegram: proxy already set to " + server.host + ":" + server.port + ", skipping");
                     return;
                 }
             }
 
-            SharedConfig.ProxyInfo proxyInfo = new SharedConfig.ProxyInfo(
-                    server.host,
-                    server.port,
-                    "",
-                    "",
-                    server.secret
-            );
-
-            SharedConfig.replaceProxyListWithSingle(proxyInfo);
-
-            SharedPreferences.Editor editor = MessagesController.getGlobalMainSettings().edit();
-            editor.putString("proxy_ip", server.host);
-            editor.putInt("proxy_port", server.port);
-            editor.putString("proxy_user", "");
-            editor.putString("proxy_pass", "");
-            editor.putString("proxy_secret", server.secret);
-            editor.putBoolean("proxy_enabled", true);
-            editor.commit();
+            LitegramConfig.saveProxy(server.host, server.port, server.secret);
 
             ConnectionsManager.setProxySettings(
                     true,
