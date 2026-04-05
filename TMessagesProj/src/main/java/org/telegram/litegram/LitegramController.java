@@ -34,6 +34,9 @@ public class LitegramController {
 
     private LitegramController() {}
 
+    private static final long RECLAIM_DELAY_MS = 30_000;
+    private volatile boolean reclaimScheduled;
+
     public void init() {
         if (initialized) {
             return;
@@ -47,6 +50,31 @@ public class LitegramController {
 
         FileLog.d("litegram: fetching proxy config from backend on startup");
         Utilities.globalQueue.postRunnable(this::connectProxy);
+        scheduleConnectionWatcher();
+    }
+
+    private void scheduleConnectionWatcher() {
+        AndroidUtilities.runOnUIThread(new Runnable() {
+            @Override
+            public void run() {
+                if (!SharedConfig.isProxyEnabled() || SharedConfig.currentProxy == null) {
+                    AndroidUtilities.runOnUIThread(this, RECLAIM_DELAY_MS);
+                    return;
+                }
+                int state = ConnectionsManager.getInstance(0).getConnectionState();
+                boolean connected = state == ConnectionsManager.ConnectionStateConnected
+                        || state == ConnectionsManager.ConnectionStateUpdating;
+                if (!connected && !reclaimScheduled) {
+                    reclaimScheduled = true;
+                    FileLog.d("litegram: proxy disconnected, scheduling re-claim");
+                    Utilities.globalQueue.postRunnable(() -> {
+                        connectProxy();
+                        reclaimScheduled = false;
+                    });
+                }
+                AndroidUtilities.runOnUIThread(this, RECLAIM_DELAY_MS);
+            }
+        }, RECLAIM_DELAY_MS);
     }
 
     public interface ReconnectCallback {
