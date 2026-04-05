@@ -222,14 +222,15 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
 
         actionButton.setOnClickListener(v -> {
-            if (connected || connecting) {
+            if (connected) {
                 LitegramConfig.setProxyEnabled(false);
                 ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
                 NotificationCenter.getGlobalInstance()
                         .postNotificationName(NotificationCenter.proxySettingsChanged);
                 updateUI();
             } else {
-                actionButton.setText("Connecting...");
+                actionButton.setEnabled(false);
+                actionButton.setAlpha(0.6f);
                 LitegramController.getInstance().reconnect((success, error) -> {
                     if (!success && getParentActivity() != null) {
                         String msg = error != null ? error : "Unknown error";
