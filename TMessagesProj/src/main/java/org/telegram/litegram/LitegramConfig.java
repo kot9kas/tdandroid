@@ -97,12 +97,7 @@ public final class LitegramConfig {
     }
 
     public static String getProxyFlagEmoji() {
-        String cc = getProxyCountry();
-        if (cc == null || cc.length() != 2) return "";
-        cc = cc.toUpperCase();
-        int first = Character.toCodePoint('\uD83C', (char) ('\uDDE6' + cc.charAt(0) - 'A'));
-        int second = Character.toCodePoint('\uD83C', (char) ('\uDDE6' + cc.charAt(1) - 'A'));
-        return new String(Character.toChars(first)) + new String(Character.toChars(second));
+        return LitegramApi.isoCountryToFlagEmoji(getProxyCountry());
     }
 
     public static boolean isProxyEnabled() {

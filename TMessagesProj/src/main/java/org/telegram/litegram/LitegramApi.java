@@ -13,6 +13,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -23,6 +24,18 @@ import javax.net.ssl.HostnameVerifier;
 public class LitegramApi {
 
     private String accessToken;
+
+    /** ISO 3166-1 alpha-2 (e.g. "NL") → regional indicator flag emoji. */
+    public static String isoCountryToFlagEmoji(String countryCode) {
+        if (countryCode == null || countryCode.length() != 2) return "";
+        String cc = countryCode.toUpperCase(Locale.US);
+        char c1 = cc.charAt(0);
+        char c2 = cc.charAt(1);
+        if (c1 < 'A' || c1 > 'Z' || c2 < 'A' || c2 > 'Z') return "";
+        int cp1 = 0x1F1E6 + (c1 - 'A');
+        int cp2 = 0x1F1E6 + (c2 - 'A');
+        return new String(Character.toChars(cp1)) + new String(Character.toChars(cp2));
+    }
 
     public static class ServerInfo {
         public final String host;
@@ -40,11 +53,7 @@ public class LitegramApi {
         }
 
         public String getFlagEmoji() {
-            if (country == null || country.length() != 2) return "";
-            String cc = country.toUpperCase();
-            int first = Character.toCodePoint('\uD83C', (char) ('\uDDE6' + cc.charAt(0) - 'A'));
-            int second = Character.toCodePoint('\uD83C', (char) ('\uDDE6' + cc.charAt(1) - 'A'));
-            return new String(Character.toChars(first)) + new String(Character.toChars(second));
+            return isoCountryToFlagEmoji(country);
         }
     }
 

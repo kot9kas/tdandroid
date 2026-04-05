@@ -420,7 +420,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                     ? Theme.getColor(Theme.key_windowBackgroundWhiteValueText)
                     : Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
             item.setTypeface(isCurrent ? AndroidUtilities.bold() : null);
-            item.setText(isCurrent ? "\u2713 " + displayName : "    " + displayName);
+            item.setText(isCurrent ? "\u2713 " + displayName : "\u2007\u2007 " + displayName);
             item.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(14),
                     AndroidUtilities.dp(22), AndroidUtilities.dp(14));
             item.setBackground(Theme.createSelectorDrawable(
