@@ -3443,17 +3443,20 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 final float[] cachedWidth = {0};
                 actionBar.getTitleTextView().getViewTreeObserver().addOnPreDrawListener(() -> {
                     android.text.TextPaint paint = actionBar.getTitleTextView().getTextPaint();
-                    float width = paint.measureText("Litegram");
-                    if (width > 0) {
-                        if (cachedGradient[0] == null || cachedWidth[0] != width) {
-                            cachedGradient[0] = new android.graphics.LinearGradient(
-                                    0, 0, width, 0,
-                                    new int[]{0xFFAE8BA1, 0xFFF2ECB6},
-                                    null,
-                                    android.graphics.Shader.TileMode.CLAMP);
-                            cachedWidth[0] = width;
+                    CharSequence displayed = actionBar.getTitleTextView().getText();
+                    if (displayed != null && displayed.length() > 0) {
+                        float width = paint.measureText(displayed.toString());
+                        if (width > 0) {
+                            if (cachedGradient[0] == null || cachedWidth[0] != width) {
+                                cachedGradient[0] = new android.graphics.LinearGradient(
+                                        0, 0, width, 0,
+                                        new int[]{0xFFAE8BA1, 0xFFF2ECB6},
+                                        null,
+                                        android.graphics.Shader.TileMode.CLAMP);
+                                cachedWidth[0] = width;
+                            }
+                            paint.setShader(cachedGradient[0]);
                         }
-                        paint.setShader(cachedGradient[0]);
                     }
                     return true;
                 });

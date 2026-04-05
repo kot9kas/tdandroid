@@ -19,14 +19,18 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
@@ -75,6 +79,9 @@ public class LitegramActivity extends BaseFragment {
         content.addView(createProfileSection(context));
         content.addView(createSpacer(context, 12));
         content.addView(createMenuSection(context));
+        content.addView(createSpacer(context, 24));
+        content.addView(createTryAllButton(context));
+        content.addView(createSpacer(context, 24));
 
         fragmentView = scrollView;
 
@@ -320,6 +327,59 @@ public class LitegramActivity extends BaseFragment {
         item.setOnClickListener(v -> toggle.toggle());
 
         return item;
+    }
+
+    private static final String LITEGRAM_BOT_USERNAME = "Litegram_robot";
+
+    private View createTryAllButton(Context context) {
+        FrameLayout container = new FrameLayout(context);
+        container.setPadding(AndroidUtilities.dp(32), 0, AndroidUtilities.dp(32), 0);
+
+        TextView button = new TextView(context);
+        button.setText(LocaleController.getString(R.string.LitegramTryAllFeatures));
+        button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        button.setTextColor(Color.WHITE);
+        button.setTypeface(AndroidUtilities.bold());
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(14),
+                AndroidUtilities.dp(24), AndroidUtilities.dp(14));
+
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{0xFFAE8BA1, 0xFFF2ECB6});
+        bg.setCornerRadius(AndroidUtilities.dp(14));
+        button.setBackground(bg);
+
+        button.setOnClickListener(v -> openBotChat());
+
+        container.addView(button, LayoutHelper.createFrame(
+                LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+
+        return container;
+    }
+
+    private void openBotChat() {
+        try {
+            MessagesController.getInstance(currentAccount).getUserNameResolver().resolve(
+                    LITEGRAM_BOT_USERNAME, null, peerId -> {
+                        if (peerId == null || peerId == 0) {
+                            FileLog.e("litegram: failed to resolve bot @" + LITEGRAM_BOT_USERNAME);
+                            return;
+                        }
+                        AndroidUtilities.runOnUIThread(() -> {
+                            Bundle args = new Bundle();
+                            args.putLong("user_id", peerId);
+                            ChatActivity chatActivity = new ChatActivity(args);
+                            presentFragment(chatActivity);
+
+                            SendMessagesHelper.getInstance(currentAccount).sendMessage(
+                                    SendMessagesHelper.SendMessageParams.of("/start", peerId)
+                            );
+                        });
+                    });
+        } catch (Exception e) {
+            FileLog.e("litegram: openBotChat failed", e);
+        }
     }
 
     private View createDivider(Context context) {

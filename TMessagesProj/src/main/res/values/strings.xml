@@ -184,8 +184,8 @@
     <string name="Checking">Checking...</string>
     <string name="Available">Available</string>
     <string name="Unavailable">Unavailable</string>
-    <string name="ConnectingToProxy">Connecting to proxy</string>
-    <string name="ConnectingToProxyWithDots">Connecting to proxy...</string>
+    <string name="ConnectingToProxy">Connecting to Litegram</string>
+    <string name="ConnectingToProxyWithDots">Connecting to Litegram...</string>
     <string name="MenuProxyTitle">Proxy</string>
     <string name="MenuProxyConnecting">Connecting</string>
     <string name="MenuProxyConnected">Connected</string>
@@ -8656,7 +8656,7 @@
     <string name="Gift2MessageStarsInfo">Your balance is ⭐️%s</string>
     <string name="Gift2MessageStarsInfoTON">Your balance is ⭐️**%s**</string>
     <string name="Gift2MessageStarsInfoLink">**Get More Stars >**</string>
-    <string name="TitleSetupProxy">set up proxy ></string>
+    <string name="TitleSetupProxy">configure ></string>
     <string name="Gift2Hide">Hide My Name</string>
     <string name="Gift2HideInfo">You can hide your name and message from visitors to %1$s`s profile. %1$s will still see your name and message.</string>
     <string name="Gift2HideChannelInfo">You can hide your name and message from all visitors of this channel except its admins.</string>
@@ -10297,6 +10297,7 @@
     <string name="LitegramConnectionDesc">Proxy settings and status</string>
     <string name="LitegramSaveTrafficBlockTitle">Save Traffic is enabled</string>
     <string name="LitegramSaveTrafficBlockDesc">While **Save Traffic** is active, data and storage settings are managed by Litegram. Tap **Save Traffic** to change this.</string>
+    <string name="LitegramTryAllFeatures">Try all features</string>
     <string name="MainTabsSettings">Settings</string>
     <string name="SwitchThemeToDay">Day Mode</string>
     <string name="SwitchThemeToNight">Night Mode</string>

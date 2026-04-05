@@ -266,10 +266,17 @@
     <string name="MainTabsLitegram">Litegram</string>
     <string name="LitegramSaveTrafficBlockTitle">Экономия трафика включена</string>
     <string name="LitegramSaveTrafficBlockDesc">Пока **Экономия трафика** активна, настройки данных и памяти управляются Litegram. Нажмите **Экономия трафика**, чтобы изменить это.</string>
+    <string name="LitegramTryAllFeatures">Попробовать все функции</string>
     <string name="LitegramSaveTraffic">Экономия трафика</string>
     <string name="IdCopied">ID скопирован в буфер обмена</string>
     <string name="ProfileCopyId">Копировать ID</string>
     <string name="LitegramSaveTrafficDesc">Загрузка медиа только по нажатию</string>
     <string name="LitegramConnection">Litegram Connection</string>
+    <string name="ConnectingToProxy">Подключение к Litegram</string>
+    <string name="ConnectingToProxyWithDots">Подключение к Litegram...</string>
+    <string name="TitleSetupProxy">настроить ></string>
+    <string name="MenuProxyTitle">Прокси</string>
+    <string name="MenuProxyConnecting">Подключение</string>
+    <string name="MenuProxyConnected">Подключено</string>
     <string name="LitegramConnectionDesc">Настройки и статус прокси</string>
 </resources>
