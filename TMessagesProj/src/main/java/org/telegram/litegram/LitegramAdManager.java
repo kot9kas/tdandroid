@@ -1,30 +1,32 @@
 package org.telegram.litegram;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.BaseFragment;
-import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
 
 import java.io.InputStream;
@@ -35,12 +37,12 @@ public class LitegramAdManager {
 
     private static volatile LitegramAdManager instance;
 
-    private static final long SHOW_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-    private static final String KEY_LAST_AD_SHOWN = "litegram_last_ad_shown";
-    private static final String KEY_LAST_AD_ID = "litegram_last_ad_id";
-
     private final LitegramApi api = new LitegramApi();
     private volatile boolean fetching;
+    private volatile boolean adShownThisSession;
+
+    private volatile LitegramApi.AdInfo pendingAd;
+    private volatile Bitmap pendingBitmap;
 
     public static LitegramAdManager getInstance() {
         if (instance == null) {
@@ -55,27 +57,60 @@ public class LitegramAdManager {
 
     private LitegramAdManager() {}
 
-    private static SharedPreferences getPrefs() {
-        return ApplicationLoader.applicationContext
-                .getSharedPreferences("litegram_prefs", Context.MODE_PRIVATE);
-    }
-
-    private boolean shouldShow() {
-        long lastShown = getPrefs().getLong(KEY_LAST_AD_SHOWN, 0);
-        return System.currentTimeMillis() - lastShown >= SHOW_INTERVAL_MS;
-    }
-
-    private void markShown(String adId) {
-        getPrefs().edit()
-                .putLong(KEY_LAST_AD_SHOWN, System.currentTimeMillis())
-                .putString(KEY_LAST_AD_ID, adId)
-                .apply();
-    }
-
-    public void tryShowAd(BaseFragment fragment) {
-        if (!shouldShow() || fetching) return;
+    /**
+     * Called from LitegramController.init() to pre-fetch the ad in background.
+     */
+    public void prefetch() {
+        if (fetching) return;
         fetching = true;
 
+        String savedToken = LitegramDeviceToken.getAccessToken();
+        if (!TextUtils.isEmpty(savedToken)) {
+            api.setAccessToken(savedToken);
+        }
+
+        Utilities.globalQueue.postRunnable(() -> {
+            try {
+                LitegramApi.AdInfo ad = api.getActiveAd();
+                if (ad != null) {
+                    Bitmap bitmap = null;
+                    if (!TextUtils.isEmpty(ad.imageUrl)) {
+                        bitmap = downloadBitmap(ad.imageUrl);
+                    }
+                    pendingAd = ad;
+                    pendingBitmap = bitmap;
+                    FileLog.d("litegram: ad prefetched, id=" + ad.id);
+                }
+            } catch (Exception e) {
+                FileLog.e("litegram: ad prefetch failed", e);
+            } finally {
+                fetching = false;
+            }
+        });
+    }
+
+    /**
+     * Shows the ad if one was prefetched and not yet shown this session.
+     */
+    public void tryShowAd(BaseFragment fragment) {
+        if (adShownThisSession) return;
+
+        if (pendingAd != null) {
+            LitegramApi.AdInfo ad = pendingAd;
+            Bitmap bitmap = pendingBitmap;
+            pendingAd = null;
+            pendingBitmap = null;
+            adShownThisSession = true;
+            AndroidUtilities.runOnUIThread(() -> showAdDialog(fragment, ad, bitmap));
+            return;
+        }
+
+        if (fetching) {
+            AndroidUtilities.runOnUIThread(() -> tryShowAd(fragment), 500);
+            return;
+        }
+
+        fetching = true;
         String savedToken = LitegramDeviceToken.getAccessToken();
         if (!TextUtils.isEmpty(savedToken)) {
             api.setAccessToken(savedToken);
@@ -93,6 +128,7 @@ public class LitegramAdManager {
                     bitmap = downloadBitmap(ad.imageUrl);
                 }
                 final Bitmap finalBitmap = bitmap;
+                adShownThisSession = true;
                 AndroidUtilities.runOnUIThread(() -> {
                     fetching = false;
                     showAdDialog(fragment, ad, finalBitmap);
@@ -111,9 +147,7 @@ public class LitegramAdManager {
             conn.setConnectTimeout(10_000);
             conn.setReadTimeout(10_000);
             try (InputStream is = conn.getInputStream()) {
-                BitmapFactory.Options opts = new BitmapFactory.Options();
-                opts.inSampleSize = 1;
-                return BitmapFactory.decodeStream(is, null, opts);
+                return BitmapFactory.decodeStream(is);
             } finally {
                 conn.disconnect();
             }
@@ -128,27 +162,40 @@ public class LitegramAdManager {
         if (activity == null || activity.isFinishing()) return;
 
         Context ctx = activity;
-        BottomSheet.Builder builder = new BottomSheet.Builder(ctx);
+        Dialog dialog = new Dialog(ctx);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setCanceledOnTouchOutside(true);
 
-        LinearLayout container = new LinearLayout(ctx);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(
+        FrameLayout root = new FrameLayout(ctx);
+
+        LinearLayout card = new LinearLayout(ctx);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(
                 AndroidUtilities.dp(20), AndroidUtilities.dp(16),
                 AndroidUtilities.dp(20), AndroidUtilities.dp(20));
 
-        // Close button row
+        android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
+        cardBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        cardBg.setCornerRadius(AndroidUtilities.dp(16));
+        card.setBackground(cardBg);
+        card.setElevation(AndroidUtilities.dp(8));
+
+        // X close button
         FrameLayout topBar = new FrameLayout(ctx);
-        TextView closeBtn = new TextView(ctx);
-        closeBtn.setText("\u2715");
-        closeBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
-        closeBtn.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-        closeBtn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(4),
-                AndroidUtilities.dp(8), AndroidUtilities.dp(4));
+        ImageView closeBtn = new ImageView(ctx);
+        closeBtn.setScaleType(ImageView.ScaleType.CENTER);
+        closeBtn.setImageResource(R.drawable.ic_close_white);
+        closeBtn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        closeBtn.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(4),
+                AndroidUtilities.dp(4), AndroidUtilities.dp(4));
+        closeBtn.setBackground(Theme.createSelectorDrawable(
+                Theme.getColor(Theme.key_listSelector), 1,
+                AndroidUtilities.dp(16)));
+        closeBtn.setOnClickListener(v -> dialog.dismiss());
         topBar.addView(closeBtn, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                AndroidUtilities.dp(32), AndroidUtilities.dp(32),
                 Gravity.END | Gravity.TOP));
-        container.addView(topBar, new LinearLayout.LayoutParams(
+        card.addView(topBar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         // Image
@@ -156,10 +203,6 @@ public class LitegramAdManager {
             ImageView imageView = new ImageView(ctx);
             imageView.setImageBitmap(image);
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            imageView.setAdjustViewBounds(true);
-
-            GradientDrawable imgBg = new GradientDrawable();
-            imgBg.setCornerRadius(AndroidUtilities.dp(12));
             imageView.setClipToOutline(true);
             imageView.setOutlineProvider(new android.view.ViewOutlineProvider() {
                 @Override
@@ -170,9 +213,9 @@ public class LitegramAdManager {
             });
 
             LinearLayout.LayoutParams imgParams = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(200));
+                    ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(180));
             imgParams.topMargin = AndroidUtilities.dp(4);
-            container.addView(imageView, imgParams);
+            card.addView(imageView, imgParams);
         }
 
         // Title
@@ -184,8 +227,8 @@ public class LitegramAdManager {
         titleView.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        titleParams.topMargin = AndroidUtilities.dp(16);
-        container.addView(titleView, titleParams);
+        titleParams.topMargin = AndroidUtilities.dp(14);
+        card.addView(titleView, titleParams);
 
         // Description
         if (!TextUtils.isEmpty(ad.description)) {
@@ -198,7 +241,7 @@ public class LitegramAdManager {
             LinearLayout.LayoutParams descParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             descParams.topMargin = AndroidUtilities.dp(8);
-            container.addView(descView, descParams);
+            card.addView(descView, descParams);
         }
 
         // Link button
@@ -225,29 +268,26 @@ public class LitegramAdManager {
             LinearLayout.LayoutParams linkParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             linkParams.topMargin = AndroidUtilities.dp(16);
-            container.addView(linkButton, linkParams);
+            card.addView(linkButton, linkParams);
         }
 
-        // Close text button
-        TextView dismissButton = new TextView(ctx);
-        dismissButton.setText("Close");
-        dismissButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        dismissButton.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
-        dismissButton.setGravity(Gravity.CENTER);
-        dismissButton.setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(4));
-        LinearLayout.LayoutParams dismissParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        dismissParams.topMargin = AndroidUtilities.dp(8);
-        container.addView(dismissButton, dismissParams);
+        int maxWidth = Math.min(AndroidUtilities.displaySize.x - AndroidUtilities.dp(48),
+                AndroidUtilities.dp(340));
+        FrameLayout.LayoutParams cardParams = new FrameLayout.LayoutParams(
+                maxWidth, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+        root.addView(card, cardParams);
 
-        builder.setCustomView(container);
-        BottomSheet sheet = builder.create();
+        dialog.setContentView(root);
 
-        closeBtn.setOnClickListener(v -> sheet.dismiss());
-        dismissButton.setOnClickListener(v -> sheet.dismiss());
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(0x66000000));
+            window.setLayout(WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.MATCH_PARENT);
+            window.setGravity(Gravity.CENTER);
+        }
 
-        fragment.showDialog(sheet);
-        markShown(ad.id);
+        fragment.showDialog(dialog);
         FileLog.d("litegram: ad shown, id=" + ad.id);
     }
 }

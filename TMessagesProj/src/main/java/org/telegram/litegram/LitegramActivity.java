@@ -93,7 +93,7 @@ public class LitegramActivity extends BaseFragment {
         }
 
         AndroidUtilities.runOnUIThread(() ->
-                LitegramAdManager.getInstance().tryShowAd(LitegramActivity.this), 1500);
+                LitegramAdManager.getInstance().tryShowAd(LitegramActivity.this), 800);
 
         return fragmentView;
     }
