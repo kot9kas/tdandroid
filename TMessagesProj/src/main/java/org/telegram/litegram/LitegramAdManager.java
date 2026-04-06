@@ -248,10 +248,11 @@ public class LitegramAdManager {
             linkButton.setGravity(Gravity.CENTER);
             linkButton.setTypeface(AndroidUtilities.bold());
             linkButton.setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(12));
-            linkButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(8),
-                    Theme.getColor(Theme.key_featuredStickers_addButton),
-                    Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
+            android.graphics.drawable.GradientDrawable linkBg = new android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                    new int[]{0xFF5B2D8E, 0xFF9E84B6});
+            linkBg.setCornerRadius(AndroidUtilities.dp(8));
+            linkButton.setBackground(linkBg);
             linkButton.setOnClickListener(v -> {
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(ad.linkUrl));

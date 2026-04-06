@@ -1,10 +1,15 @@
 package org.telegram.litegram;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -19,6 +24,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.tgnet.ConnectionsManager;
@@ -34,6 +40,17 @@ import java.util.List;
 
 public class LitegramConnectionActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
+    private static final int COLOR_HEADER_START = 0xFF0D0618;
+    private static final int COLOR_HEADER_END = 0xFF2D1654;
+    private static final int COLOR_ACCENT = 0xFF7B5EA7;
+    private static final int COLOR_ACCENT_LIGHT = 0xFF9E84B6;
+    private static final int COLOR_BTN_START = 0xFF5B2D8E;
+    private static final int COLOR_BTN_END = 0xFF9E84B6;
+    private static final int COLOR_DISCONNECT = 0xFF8B3A3A;
+    private static final int COLOR_DISCONNECT_END = 0xFFB85454;
+    private static final int COLOR_CONNECTED_DOT = 0xFF66BB6A;
+    private static final int COLOR_FEATURE_BULLET = 0xFF9E84B6;
+
     public LitegramConnectionActivity() {
         super();
     }
@@ -47,7 +64,9 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private TextView serverValue;
     private TextView planValue;
     private TextView actionButton;
+    private GradientDrawable actionBtnBg;
     private RLottieImageView lottieView;
+    private View headerView;
     private int headerLottieRes;
 
     private boolean connected;
@@ -95,7 +114,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle("Litegram Connection");
+        actionBar.setTitle(LocaleController.getString(R.string.LitegramConnection));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -130,14 +149,15 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         LinearLayout header = new LinearLayout(context);
         header.setOrientation(LinearLayout.VERTICAL);
         header.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
-        header.setPadding(0, 0, 0, AndroidUtilities.dp(24));
+        header.setPadding(0, 0, 0, AndroidUtilities.dp(28));
         header.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(260)));
 
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                new int[]{0xFFAE8BA1, 0xFFF2ECB6});
+        GradientDrawable bg = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{COLOR_HEADER_START, COLOR_HEADER_END});
         header.setBackground(bg);
+        headerView = header;
 
         lottieView = new RLottieImageView(context);
         lottieView.setAutoRepeat(false);
@@ -148,7 +168,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
             lottieView.playAnimation();
         });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                AndroidUtilities.dp(110), AndroidUtilities.dp(110));
+                AndroidUtilities.dp(100), AndroidUtilities.dp(100));
         lp.gravity = Gravity.CENTER_HORIZONTAL;
         header.addView(lottieView, lp);
 
@@ -157,19 +177,18 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         statusText.setTextColor(Color.WHITE);
         statusText.setTypeface(AndroidUtilities.bold());
         statusText.setGravity(Gravity.CENTER);
-        statusText.setShadowLayer(4, 0, 2, 0x40000000);
-        statusText.setText("\u25CB Disconnected");
+        statusText.setText("\u25CB " + LocaleController.getString(R.string.LitegramConnStatusDisconnected));
         LinearLayout.LayoutParams stp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        stp.topMargin = AndroidUtilities.dp(12);
+        stp.topMargin = AndroidUtilities.dp(14);
         header.addView(statusText, stp);
 
         subtitleText = new TextView(context);
-        subtitleText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        subtitleText.setTextColor(0xCCFFFFFF);
+        subtitleText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        subtitleText.setTextColor(0x99FFFFFF);
         subtitleText.setGravity(Gravity.CENTER);
-        subtitleText.setText("Secure proxy for unrestricted access");
+        subtitleText.setText(LocaleController.getString(R.string.LitegramConnSubtitle));
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -182,11 +201,11 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private View createInfoSection(Context context) {
         LinearLayout section = new LinearLayout(context);
         section.setOrientation(LinearLayout.VERTICAL);
-        section.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(16),
+        section.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(18),
                 AndroidUtilities.dp(22), AndroidUtilities.dp(8));
 
         serverRow = new FrameLayout(context);
-        serverRow.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
+        serverRow.setPadding(0, AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10));
         serverRow.setBackground(Theme.createSelectorDrawable(
                 Theme.getColor(Theme.key_listSelector), 2));
         serverRow.setOnClickListener(v -> showServerPicker());
@@ -194,7 +213,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         TextView serverLabel = new TextView(context);
         serverLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         serverLabel.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-        serverLabel.setText("Server");
+        serverLabel.setText(LocaleController.getString(R.string.LitegramConnServer));
         serverRow.addView(serverLabel, LayoutHelper.createFrame(
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
                 Gravity.START | Gravity.CENTER_VERTICAL));
@@ -204,15 +223,14 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         serverRight.setGravity(Gravity.CENTER_VERTICAL);
 
         serverValue = new TextView(context);
-        serverValue.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        serverValue.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText));
+        serverValue.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        serverValue.setTextColor(COLOR_ACCENT);
         serverValue.setGravity(Gravity.END);
 
         ImageView serverArrow = new ImageView(context);
         serverArrow.setScaleType(ImageView.ScaleType.CENTER);
         Drawable arrowD = context.getResources().getDrawable(R.drawable.msg_arrowright).mutate();
-        arrowD.setColorFilter(new PorterDuffColorFilter(
-                Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2), PorterDuff.Mode.SRC_IN));
+        arrowD.setColorFilter(new PorterDuffColorFilter(COLOR_ACCENT_LIGHT, PorterDuff.Mode.SRC_IN));
         serverArrow.setImageDrawable(arrowD);
 
         serverRight.addView(serverValue);
@@ -228,7 +246,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         section.addView(serverRow, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        planValue = addInfoRow(context, section, "Plan");
+        planValue = addInfoRow(context, section, LocaleController.getString(R.string.LitegramConnPlan));
 
         loadServers();
 
@@ -238,7 +256,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private TextView addInfoRow(Context context, LinearLayout parent, String label) {
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
+        row.setPadding(0, AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10));
 
         TextView labelView = new TextView(context);
         labelView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
@@ -248,7 +266,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView valueView = new TextView(context);
-        valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         valueView.setGravity(Gravity.END);
         row.addView(valueView, new LinearLayout.LayoutParams(
@@ -264,18 +282,21 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
     private View createActionButton(Context context) {
         FrameLayout buttonContainer = new FrameLayout(context);
-        buttonContainer.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(8),
-                AndroidUtilities.dp(22), AndroidUtilities.dp(8));
+        buttonContainer.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(12),
+                AndroidUtilities.dp(22), AndroidUtilities.dp(12));
 
         actionButton = new TextView(context);
         actionButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         actionButton.setTextColor(Color.WHITE);
+        actionButton.setTypeface(AndroidUtilities.bold());
         actionButton.setGravity(Gravity.CENTER);
-        actionButton.setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(12));
-        actionButton.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                AndroidUtilities.dp(8),
-                Theme.getColor(Theme.key_featuredStickers_addButton),
-                Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
+        actionButton.setPadding(0, AndroidUtilities.dp(13), 0, AndroidUtilities.dp(13));
+
+        actionBtnBg = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{COLOR_BTN_START, COLOR_BTN_END});
+        actionBtnBg.setCornerRadius(AndroidUtilities.dp(10));
+        actionButton.setBackground(actionBtnBg);
 
         actionButton.setOnClickListener(v -> {
             if (connected || connecting) {
@@ -285,12 +306,12 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                         .postNotificationName(NotificationCenter.proxySettingsChanged);
                 updateUI();
             } else {
-                actionButton.setText("Connecting...");
+                actionButton.setText(LocaleController.getString(R.string.LitegramConnConnecting));
                 LitegramController.getInstance().reconnect((success, error) -> {
                     if (!success && getParentActivity() != null) {
-                        String msg = error != null ? error : "Unknown error";
+                        String msg = error != null ? error : LocaleController.getString(R.string.LitegramConnUnknownError);
                         Toast.makeText(getParentActivity(),
-                                "Connection failed: " + msg, Toast.LENGTH_LONG).show();
+                                LocaleController.formatString(R.string.LitegramConnFailed, msg), Toast.LENGTH_LONG).show();
                     }
                     updateUI();
                 });
@@ -309,8 +330,10 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         divider.setBackgroundColor(Theme.getColor(Theme.key_divider));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 1);
-        params.topMargin = AndroidUtilities.dp(8);
-        params.bottomMargin = AndroidUtilities.dp(8);
+        params.topMargin = AndroidUtilities.dp(4);
+        params.bottomMargin = AndroidUtilities.dp(4);
+        params.leftMargin = AndroidUtilities.dp(22);
+        params.rightMargin = AndroidUtilities.dp(22);
         divider.setLayoutParams(params);
         return divider;
     }
@@ -319,45 +342,70 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         LinearLayout section = new LinearLayout(context);
         section.setOrientation(LinearLayout.VERTICAL);
         section.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(8),
-                AndroidUtilities.dp(22), AndroidUtilities.dp(16));
+                AndroidUtilities.dp(22), AndroidUtilities.dp(24));
 
-        addFeatureRow(context, section,
-                "Auto-Connect",
-                "Connects to the best proxy on every launch.");
-        addFeatureRow(context, section,
-                "Encrypted Tunnels",
-                "Traffic routed through MTProto encrypted proxy.");
-        addFeatureRow(context, section,
-                "Bypass Restrictions",
-                "Access Telegram in censored regions.");
-        addFeatureRow(context, section,
-                "No Logs",
-                "No connection logs or activity tracking.");
-        addFeatureRow(context, section,
-                "Device Binding",
-                "Unique proxy assigned per device for security.");
+        TextView sectionTitle = new TextView(context);
+        sectionTitle.setText(LocaleController.getString(R.string.LitegramConnFeatures));
+        sectionTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        sectionTitle.setTypeface(AndroidUtilities.bold());
+        sectionTitle.setTextColor(COLOR_ACCENT);
+        sectionTitle.setAllCaps(true);
+        sectionTitle.setLetterSpacing(0.08f);
+        sectionTitle.setPadding(0, 0, 0, AndroidUtilities.dp(8));
+        section.addView(sectionTitle);
+
+        addFeatureRow(context, section, "\uD83D\uDD12",
+                LocaleController.getString(R.string.LitegramConnFeatEncrypted),
+                LocaleController.getString(R.string.LitegramConnFeatEncryptedDesc));
+        addFeatureRow(context, section, "\u26A1",
+                LocaleController.getString(R.string.LitegramConnFeatAutoConnect),
+                LocaleController.getString(R.string.LitegramConnFeatAutoConnectDesc));
+        addFeatureRow(context, section, "\uD83C\uDF0D",
+                LocaleController.getString(R.string.LitegramConnFeatBypass),
+                LocaleController.getString(R.string.LitegramConnFeatBypassDesc));
+        addFeatureRow(context, section, "\uD83D\uDEE1\uFE0F",
+                LocaleController.getString(R.string.LitegramConnFeatNoLogs),
+                LocaleController.getString(R.string.LitegramConnFeatNoLogsDesc));
+        addFeatureRow(context, section, "\uD83D\uDD17",
+                LocaleController.getString(R.string.LitegramConnFeatBinding),
+                LocaleController.getString(R.string.LitegramConnFeatBindingDesc));
 
         return section;
     }
 
-    private void addFeatureRow(Context context, LinearLayout parent, String title, String description) {
+    private void addFeatureRow(Context context, LinearLayout parent,
+                               String emoji, String title, String description) {
         LinearLayout row = new LinearLayout(context);
-        row.setOrientation(LinearLayout.VERTICAL);
+        row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(0, AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10));
+        row.setGravity(Gravity.TOP);
+
+        TextView emojiView = new TextView(context);
+        emojiView.setText(emoji);
+        emojiView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        LinearLayout.LayoutParams emojiLp = new LinearLayout.LayoutParams(
+                AndroidUtilities.dp(32), ViewGroup.LayoutParams.WRAP_CONTENT);
+        row.addView(emojiView, emojiLp);
+
+        LinearLayout textCol = new LinearLayout(context);
+        textCol.setOrientation(LinearLayout.VERTICAL);
 
         TextView titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         titleView.setTypeface(AndroidUtilities.bold());
         titleView.setText(title);
-        row.addView(titleView);
+        textCol.addView(titleView);
 
         TextView descView = new TextView(context);
         descView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         descView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
         descView.setText(description);
         descView.setPadding(0, AndroidUtilities.dp(2), 0, 0);
-        row.addView(descView);
+        textCol.addView(descView);
+
+        row.addView(textCol, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         parent.addView(row, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -375,6 +423,11 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     }
 
     private void loadServers() {
+        List<LitegramApi.ServerInfo> cached = LitegramConfig.loadServersCache();
+        if (!cached.isEmpty() && availableServers.isEmpty()) {
+            availableServers.addAll(cached);
+            updateUI();
+        }
         LitegramController.getInstance().fetchServers((servers, error) -> {
             if (servers != null && !servers.isEmpty()) {
                 availableServers.clear();
@@ -389,7 +442,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         if (availableServers.isEmpty()) {
             if (getParentActivity() != null) {
                 Toast.makeText(getParentActivity(),
-                        "Loading servers...", Toast.LENGTH_SHORT).show();
+                        LocaleController.getString(R.string.LitegramConnLoadingServers), Toast.LENGTH_SHORT).show();
             }
             loadServers();
             return;
@@ -401,49 +454,107 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         String currentHost = LitegramConfig.getProxyHost();
 
         BottomSheet.Builder builder = new BottomSheet.Builder(ctx);
-        builder.setTitle("Select Server");
 
-        LinearLayout list = new LinearLayout(ctx);
-        list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
+        LinearLayout root = new LinearLayout(ctx);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(16));
+
+        TextView title = new TextView(ctx);
+        title.setText(LocaleController.getString(R.string.LitegramConnSelectServer));
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        title.setTypeface(AndroidUtilities.bold());
+        title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        title.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(8),
+                AndroidUtilities.dp(22), AndroidUtilities.dp(16));
+        root.addView(title);
 
         for (int i = 0; i < availableServers.size(); i++) {
             LitegramApi.ServerInfo server = availableServers.get(i);
-            String baseName = server.name != null ? server.name : server.host;
-            String flag = server.getFlagEmoji();
-            String displayName = flag.isEmpty() ? baseName : flag + " " + baseName;
             boolean isCurrent = server.host.equals(currentHost);
 
-            TextView item = new TextView(ctx);
-            item.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-            item.setTextColor(isCurrent
-                    ? Theme.getColor(Theme.key_windowBackgroundWhiteValueText)
-                    : Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-            item.setTypeface(isCurrent ? AndroidUtilities.bold() : null);
-            item.setText(isCurrent ? "\u2713 " + displayName : "\u2007\u2007 " + displayName);
-            item.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(14),
+            FrameLayout row = new FrameLayout(ctx);
+            row.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(14),
                     AndroidUtilities.dp(22), AndroidUtilities.dp(14));
-            item.setBackground(Theme.createSelectorDrawable(
+            row.setBackground(Theme.createSelectorDrawable(
                     Theme.getColor(Theme.key_listSelector), 2));
 
-            item.setOnClickListener(v -> {
+            LinearLayout leftPart = new LinearLayout(ctx);
+            leftPart.setOrientation(LinearLayout.HORIZONTAL);
+            leftPart.setGravity(Gravity.CENTER_VERTICAL);
+
+            String flag = server.getFlagEmoji();
+            if (!flag.isEmpty()) {
+                TextView flagView = new TextView(ctx);
+                flagView.setText(flag);
+                flagView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22);
+                LinearLayout.LayoutParams flp = new LinearLayout.LayoutParams(
+                        AndroidUtilities.dp(36), ViewGroup.LayoutParams.WRAP_CONTENT);
+                leftPart.addView(flagView, flp);
+            }
+
+            String baseName = server.name != null ? server.name : server.host;
+            TextView nameView = new TextView(ctx);
+            nameView.setText(baseName);
+            nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+            nameView.setTextColor(isCurrent
+                    ? COLOR_ACCENT
+                    : Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            if (isCurrent) {
+                nameView.setTypeface(AndroidUtilities.bold());
+            }
+            leftPart.addView(nameView, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            row.addView(leftPart, LayoutHelper.createFrame(
+                    LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+                    Gravity.START | Gravity.CENTER_VERTICAL));
+
+            if (isCurrent) {
+                View checkCircle = new View(ctx) {
+                    private final Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                    private final Paint checkPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                    {
+                        circlePaint.setColor(COLOR_ACCENT);
+                        circlePaint.setStyle(Paint.Style.FILL);
+                        checkPaint.setColor(Color.WHITE);
+                        checkPaint.setStyle(Paint.Style.STROKE);
+                        checkPaint.setStrokeWidth(AndroidUtilities.dp(2));
+                        checkPaint.setStrokeCap(Paint.Cap.ROUND);
+                        checkPaint.setStrokeJoin(Paint.Join.ROUND);
+                    }
+                    @Override
+                    protected void onDraw(Canvas canvas) {
+                        float cx = getWidth() / 2f;
+                        float cy = getHeight() / 2f;
+                        float r = Math.min(cx, cy);
+                        canvas.drawCircle(cx, cy, r, circlePaint);
+                        float s = r * 0.45f;
+                        canvas.drawLine(cx - s * 0.6f, cy, cx - s * 0.05f, cy + s * 0.5f, checkPaint);
+                        canvas.drawLine(cx - s * 0.05f, cy + s * 0.5f, cx + s * 0.7f, cy - s * 0.5f, checkPaint);
+                    }
+                };
+                row.addView(checkCircle, LayoutHelper.createFrame(
+                        24, 24, Gravity.END | Gravity.CENTER_VERTICAL));
+            }
+
+            row.setOnClickListener(v -> {
                 builder.getDismissRunnable().run();
-                actionButton.setText("Connecting...");
+                actionButton.setText(LocaleController.getString(R.string.LitegramConnConnecting));
                 LitegramController.getInstance().connectToServer(server, (success, err) -> {
                     if (!success && getParentActivity() != null) {
-                        String msg = err != null ? err : "Unknown error";
+                        String msg = err != null ? err : LocaleController.getString(R.string.LitegramConnUnknownError);
                         Toast.makeText(getParentActivity(),
-                                "Connection failed: " + msg, Toast.LENGTH_LONG).show();
+                                LocaleController.formatString(R.string.LitegramConnFailed, msg), Toast.LENGTH_LONG).show();
                     }
                     updateUI();
                 });
             });
 
-            list.addView(item, new LinearLayout.LayoutParams(
+            root.addView(row, new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         }
 
-        builder.setCustomView(list);
+        builder.setCustomView(root);
         showDialog(builder.create());
     }
 
@@ -459,11 +570,14 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
         if (statusText != null) {
             if (connected) {
-                statusText.setText("\u25CF Connected");
+                statusText.setText("\u25CF " + LocaleController.getString(R.string.LitegramConnStatusConnected));
+                statusText.setTextColor(COLOR_CONNECTED_DOT);
             } else if (connecting) {
-                statusText.setText("\u25CB Connecting...");
+                statusText.setText("\u25CB " + LocaleController.getString(R.string.LitegramConnStatusConnecting));
+                statusText.setTextColor(COLOR_ACCENT_LIGHT);
             } else {
-                statusText.setText("\u25CB Disconnected");
+                statusText.setText("\u25CB " + LocaleController.getString(R.string.LitegramConnStatusDisconnected));
+                statusText.setTextColor(0xAAFFFFFF);
             }
         }
 
@@ -474,28 +588,32 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 String flag = findCurrentServerFlag();
                 serverValue.setText(flag.isEmpty() ? display : flag + " " + display);
             } else {
-                serverValue.setText("Not connected");
+                serverValue.setText(LocaleController.getString(R.string.LitegramConnNotConnected));
             }
         }
 
         if (planValue != null) {
-            planValue.setText(LitegramConfig.isSubscriptionActive() ? "Premium" : "Free");
+            if (LitegramConfig.isSubscriptionActive()) {
+                planValue.setText("\u2B50 " + LocaleController.getString(R.string.LitegramConnPremium));
+                planValue.setTextColor(COLOR_ACCENT);
+            } else {
+                planValue.setText(LocaleController.getString(R.string.LitegramConnFree));
+                planValue.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+            }
         }
 
-        if (actionButton != null) {
-            if (connecting) {
-                actionButton.setText("Disconnect");
-                actionButton.setEnabled(true);
-                actionButton.setAlpha(1f);
-            } else if (connected) {
-                actionButton.setText("Disconnect");
-                actionButton.setEnabled(true);
-                actionButton.setAlpha(1f);
+        if (actionButton != null && actionBtnBg != null) {
+            if (connected || connecting) {
+                actionButton.setText(LocaleController.getString(R.string.LitegramConnDisconnect));
+                actionBtnBg.setColors(new int[]{COLOR_DISCONNECT, COLOR_DISCONNECT_END});
+                actionBtnBg.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);
             } else {
-                actionButton.setText("Connect");
-                actionButton.setEnabled(true);
-                actionButton.setAlpha(1f);
+                actionButton.setText(LocaleController.getString(R.string.LitegramConnConnect));
+                actionBtnBg.setColors(new int[]{COLOR_BTN_START, COLOR_BTN_END});
+                actionBtnBg.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);
             }
+            actionButton.setEnabled(true);
+            actionButton.setAlpha(1f);
         }
 
         updateHeaderLottie();
@@ -510,7 +628,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
             return;
         }
         headerLottieRes = want;
-        lottieView.setAnimation(want, 110, 110);
+        lottieView.setAnimation(want, 100, 100);
         lottieView.setAutoRepeat(false);
         lottieView.playAnimation();
     }

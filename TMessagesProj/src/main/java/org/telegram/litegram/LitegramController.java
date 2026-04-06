@@ -35,6 +35,7 @@ public class LitegramController {
 
     private static final long RECLAIM_DELAY_MS = 30_000;
     private volatile boolean reclaimScheduled;
+    private volatile boolean startupConnect = true;
 
     public void init() {
         if (initialized) {
@@ -124,22 +125,38 @@ public class LitegramController {
         Utilities.globalQueue.postRunnable(() -> {
             try {
                 List<LitegramApi.ServerInfo> servers = api.getProxyServers();
+                LitegramConfig.saveServersCache(servers);
                 AndroidUtilities.runOnUIThread(() -> callback.onResult(servers, null));
             } catch (LitegramApi.AuthExpiredException e) {
                 FileLog.d("litegram: token expired during fetchServers, re-authenticating");
                 if (reAuthenticate()) {
                     try {
                         List<LitegramApi.ServerInfo> servers = api.getProxyServers();
+                        LitegramConfig.saveServersCache(servers);
                         AndroidUtilities.runOnUIThread(() -> callback.onResult(servers, null));
                         return;
                     } catch (Exception retryErr) {
                         FileLog.e("litegram: fetchServers retry failed", retryErr);
                     }
                 }
-                AndroidUtilities.runOnUIThread(() -> callback.onResult(null, "Auth expired"));
+                List<LitegramApi.ServerInfo> cached = LitegramConfig.loadServersCache();
+                AndroidUtilities.runOnUIThread(() -> {
+                    if (!cached.isEmpty()) {
+                        callback.onResult(cached, null);
+                    } else {
+                        callback.onResult(null, "Auth expired");
+                    }
+                });
             } catch (Exception e) {
                 FileLog.e("litegram: fetchServers failed", e);
-                AndroidUtilities.runOnUIThread(() -> callback.onResult(null, e.getMessage()));
+                List<LitegramApi.ServerInfo> cached = LitegramConfig.loadServersCache();
+                AndroidUtilities.runOnUIThread(() -> {
+                    if (!cached.isEmpty()) {
+                        callback.onResult(cached, null);
+                    } else {
+                        callback.onResult(null, e.getMessage());
+                    }
+                });
             }
         });
     }
@@ -238,6 +255,22 @@ public class LitegramController {
         }
     }
 
+    private static final String DEFAULT_COUNTRY = "RU";
+
+    private LitegramApi.ServerInfo pickServerForContext(List<LitegramApi.ServerInfo> servers) {
+        if (startupConnect) {
+            startupConnect = false;
+            for (LitegramApi.ServerInfo s : servers) {
+                if (DEFAULT_COUNTRY.equalsIgnoreCase(s.country)) {
+                    FileLog.d("litegram: startup — forcing default country server " + s.host);
+                    return s;
+                }
+            }
+            return servers.get(0);
+        }
+        return pickPreferredServer(servers);
+    }
+
     private LitegramApi.ServerInfo pickPreferredServer(List<LitegramApi.ServerInfo> servers) {
         String savedHost = LitegramConfig.getProxyHost();
         if (!TextUtils.isEmpty(savedHost)) {
@@ -248,6 +281,12 @@ public class LitegramController {
                 }
             }
         }
+        for (LitegramApi.ServerInfo s : servers) {
+            if (DEFAULT_COUNTRY.equalsIgnoreCase(s.country)) {
+                FileLog.d("litegram: using default country server " + s.host);
+                return s;
+            }
+        }
         return servers.get(0);
     }
 
@@ -256,7 +295,7 @@ public class LitegramController {
         try {
             List<LitegramApi.ServerInfo> servers = api.getProxyServers();
             if (!servers.isEmpty()) {
-                applyProxy(pickPreferredServer(servers));
+                applyProxy(pickServerForContext(servers));
                 return null;
             }
         } catch (LitegramApi.AuthExpiredException e) {
@@ -265,7 +304,7 @@ public class LitegramController {
                 try {
                     List<LitegramApi.ServerInfo> servers = api.getProxyServers();
                     if (!servers.isEmpty()) {
-                        applyProxy(pickPreferredServer(servers));
+                        applyProxy(pickServerForContext(servers));
                         return null;
                     }
                 } catch (Exception retryErr) {
@@ -352,8 +391,6 @@ public class LitegramController {
             } catch (Exception e) {
                 FileLog.e("litegram: onTelegramAuth failed", e);
             }
-
-            AndroidUtilities.runOnUIThread(() -> sendBotStart(account));
         });
     }
 

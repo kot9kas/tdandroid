@@ -113,7 +113,7 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
             }
         });
 
-        startMessagingButtonBackground = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFF4A3D7A, 0xFF9E84B6});
+        startMessagingButtonBackground = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFF5B2D8E, 0xFF9E84B6});
         startMessagingButton = new TextView(context) {
             private final CellFlickerDrawable cellFlickerDrawable = new CellFlickerDrawable();
             {

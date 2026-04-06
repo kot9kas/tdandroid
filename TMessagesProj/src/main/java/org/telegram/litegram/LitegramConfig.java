@@ -5,8 +5,13 @@ import android.content.SharedPreferences;
 
 import org.telegram.messenger.ApplicationLoader;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -28,6 +33,7 @@ public final class LitegramConfig {
     private static final String KEY_PROXY_COUNTRY = "litegram_proxy_country";
     private static final String KEY_SUB_STATUS = "litegram_sub_status";
     private static final String KEY_SUB_EXPIRES = "litegram_sub_expires";
+    private static final String KEY_SERVERS_CACHE = "litegram_servers_cache";
 
     private static volatile boolean useFallback;
     private static volatile Boolean saveTrafficCached;
@@ -156,6 +162,42 @@ public final class LitegramConfig {
             }
         } catch (Exception ignored) {}
         return true;
+    }
+
+    public static void saveServersCache(List<LitegramApi.ServerInfo> servers) {
+        try {
+            JSONArray arr = new JSONArray();
+            for (LitegramApi.ServerInfo s : servers) {
+                JSONObject obj = new JSONObject();
+                obj.put("host", s.host);
+                obj.put("port", s.port);
+                obj.put("secret", s.secret);
+                if (s.name != null) obj.put("name", s.name);
+                if (s.country != null) obj.put("country", s.country);
+                arr.put(obj);
+            }
+            getPrefs().edit().putString(KEY_SERVERS_CACHE, arr.toString()).apply();
+        } catch (Exception ignored) {}
+    }
+
+    public static List<LitegramApi.ServerInfo> loadServersCache() {
+        List<LitegramApi.ServerInfo> result = new ArrayList<>();
+        try {
+            String json = getPrefs().getString(KEY_SERVERS_CACHE, null);
+            if (json == null || json.isEmpty()) return result;
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject obj = arr.getJSONObject(i);
+                result.add(new LitegramApi.ServerInfo(
+                        obj.getString("host"),
+                        obj.optInt("port", 443),
+                        obj.getString("secret"),
+                        obj.optString("name", null),
+                        obj.optString("country", null)
+                ));
+            }
+        } catch (Exception ignored) {}
+        return result;
     }
 
     private static SharedPreferences getPrefs() {
