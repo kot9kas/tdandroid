@@ -68,8 +68,6 @@ public class LitegramController {
             connectProxy();
         });
         scheduleConnectionWatcher();
-
-        LitegramAdManager.getInstance().prefetch();
     }
 
     private void clearSharedConfigProxy() {

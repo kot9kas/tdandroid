@@ -1,32 +1,29 @@
 package org.telegram.litegram;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
+import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
 
 import java.io.InputStream;
@@ -37,12 +34,13 @@ public class LitegramAdManager {
 
     private static volatile LitegramAdManager instance;
 
+    private static final int MAX_WAIT_MS = 30_000;
+    private static final int POLL_INTERVAL_MS = 2_000;
+    private static final int INITIAL_DELAY_MS = 3_000;
+
     private final LitegramApi api = new LitegramApi();
     private volatile boolean fetching;
-    private volatile boolean adShownThisSession;
-
-    private volatile LitegramApi.AdInfo pendingAd;
-    private volatile Bitmap pendingBitmap;
+    private volatile boolean showing;
 
     public static LitegramAdManager getInstance() {
         if (instance == null) {
@@ -57,60 +55,59 @@ public class LitegramAdManager {
 
     private LitegramAdManager() {}
 
-    /**
-     * Called from LitegramController.init() to pre-fetch the ad in background.
-     */
-    public void prefetch() {
-        if (fetching) return;
-        fetching = true;
-
-        String savedToken = LitegramDeviceToken.getAccessToken();
-        if (!TextUtils.isEmpty(savedToken)) {
-            api.setAccessToken(savedToken);
-        }
-
-        Utilities.globalQueue.postRunnable(() -> {
-            try {
-                LitegramApi.AdInfo ad = api.getActiveAd();
-                if (ad != null) {
-                    Bitmap bitmap = null;
-                    if (!TextUtils.isEmpty(ad.imageUrl)) {
-                        bitmap = downloadBitmap(ad.imageUrl);
-                    }
-                    pendingAd = ad;
-                    pendingBitmap = bitmap;
-                    FileLog.d("litegram: ad prefetched, id=" + ad.id);
-                }
-            } catch (Exception e) {
-                FileLog.e("litegram: ad prefetch failed", e);
-            } finally {
-                fetching = false;
-            }
-        });
+    private boolean isUserLoggedIn() {
+        boolean hasToken = LitegramDeviceToken.hasAccessToken();
+        boolean hasTgId = !TextUtils.isEmpty(LitegramDeviceToken.getTelegramId());
+        FileLog.d("litegram-ad: login check hasToken=" + hasToken + " hasTgId=" + hasTgId);
+        return hasToken && hasTgId;
     }
 
-    /**
-     * Shows the ad if one was prefetched and not yet shown this session.
-     */
+    private boolean isConnected() {
+        int state = ConnectionsManager.getInstance(0).getConnectionState();
+        return state == ConnectionsManager.ConnectionStateConnected
+                || state == ConnectionsManager.ConnectionStateUpdating;
+    }
+
     public void tryShowAd(BaseFragment fragment) {
-        if (adShownThisSession) return;
-
-        if (pendingAd != null) {
-            LitegramApi.AdInfo ad = pendingAd;
-            Bitmap bitmap = pendingBitmap;
-            pendingAd = null;
-            pendingBitmap = null;
-            adShownThisSession = true;
-            AndroidUtilities.runOnUIThread(() -> showAdDialog(fragment, ad, bitmap));
+        FileLog.d("litegram-ad: tryShowAd called, showing=" + showing + " fetching=" + fetching);
+        if (showing || fetching) return;
+        if (!isUserLoggedIn()) {
+            FileLog.d("litegram-ad: user not logged in, skipping");
             return;
         }
 
-        if (fetching) {
-            AndroidUtilities.runOnUIThread(() -> tryShowAd(fragment), 500);
-            return;
-        }
+        AndroidUtilities.runOnUIThread(() -> {
+            if (showing || fetching) return;
+            if (isConnected()) {
+                FileLog.d("litegram-ad: connected, fetching ad");
+                fetchAndShow(fragment);
+            } else {
+                FileLog.d("litegram-ad: not connected, starting poll");
+                waitForConnectionThenShow(fragment, System.currentTimeMillis() + MAX_WAIT_MS);
+            }
+        }, INITIAL_DELAY_MS);
+    }
 
+    private void waitForConnectionThenShow(BaseFragment fragment, long deadline) {
+        if (showing || fetching) return;
+        AndroidUtilities.runOnUIThread(() -> {
+            if (showing || fetching) return;
+            if (isConnected()) {
+                FileLog.d("litegram-ad: connected after wait, fetching ad");
+                fetchAndShow(fragment);
+            } else if (System.currentTimeMillis() < deadline) {
+                waitForConnectionThenShow(fragment, deadline);
+            } else {
+                FileLog.d("litegram-ad: timeout, trying fetch anyway");
+                fetchAndShow(fragment);
+            }
+        }, POLL_INTERVAL_MS);
+    }
+
+    private void fetchAndShow(BaseFragment fragment) {
+        if (showing || fetching) return;
         fetching = true;
+
         String savedToken = LitegramDeviceToken.getAccessToken();
         if (!TextUtils.isEmpty(savedToken)) {
             api.setAccessToken(savedToken);
@@ -118,23 +115,26 @@ public class LitegramAdManager {
 
         Utilities.globalQueue.postRunnable(() -> {
             try {
+                FileLog.d("litegram-ad: fetching from " + LitegramConfig.apiUrl("/advertising/active"));
                 LitegramApi.AdInfo ad = api.getActiveAd();
                 if (ad == null) {
+                    FileLog.d("litegram-ad: no active ad returned");
                     fetching = false;
                     return;
                 }
+                FileLog.d("litegram-ad: got ad id=" + ad.id + " title=" + ad.title);
                 Bitmap bitmap = null;
                 if (!TextUtils.isEmpty(ad.imageUrl)) {
                     bitmap = downloadBitmap(ad.imageUrl);
+                    FileLog.d("litegram-ad: image downloaded=" + (bitmap != null));
                 }
                 final Bitmap finalBitmap = bitmap;
-                adShownThisSession = true;
                 AndroidUtilities.runOnUIThread(() -> {
                     fetching = false;
-                    showAdDialog(fragment, ad, finalBitmap);
+                    showAdBottomSheet(fragment, ad, finalBitmap);
                 });
             } catch (Exception e) {
-                FileLog.e("litegram: ad fetch failed", e);
+                FileLog.e("litegram-ad: fetch failed: " + e.getMessage());
                 fetching = false;
             }
         });
@@ -152,33 +152,30 @@ public class LitegramAdManager {
                 conn.disconnect();
             }
         } catch (Exception e) {
-            FileLog.e("litegram: ad image download failed", e);
+            FileLog.e("litegram-ad: image download failed: " + e.getMessage());
             return null;
         }
     }
 
-    private void showAdDialog(BaseFragment fragment, LitegramApi.AdInfo ad, Bitmap image) {
+    private void showAdBottomSheet(BaseFragment fragment, LitegramApi.AdInfo ad, Bitmap image) {
         Activity activity = fragment.getParentActivity();
-        if (activity == null || activity.isFinishing()) return;
+        if (activity == null || activity.isFinishing()) {
+            FileLog.d("litegram-ad: activity null/finishing");
+            return;
+        }
 
+        showing = true;
         Context ctx = activity;
-        Dialog dialog = new Dialog(ctx);
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setCanceledOnTouchOutside(true);
 
-        FrameLayout root = new FrameLayout(ctx);
+        BottomSheet.Builder builder = new BottomSheet.Builder(ctx);
+        builder.setApplyBottomPadding(false);
+        builder.setApplyTopPadding(false);
 
-        LinearLayout card = new LinearLayout(ctx);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(
-                AndroidUtilities.dp(20), AndroidUtilities.dp(16),
-                AndroidUtilities.dp(20), AndroidUtilities.dp(20));
-
-        android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
-        cardBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        cardBg.setCornerRadius(AndroidUtilities.dp(16));
-        card.setBackground(cardBg);
-        card.setElevation(AndroidUtilities.dp(8));
+        LinearLayout container = new LinearLayout(ctx);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(
+                AndroidUtilities.dp(20), AndroidUtilities.dp(12),
+                AndroidUtilities.dp(20), AndroidUtilities.dp(24));
 
         // X close button
         FrameLayout topBar = new FrameLayout(ctx);
@@ -191,11 +188,10 @@ public class LitegramAdManager {
         closeBtn.setBackground(Theme.createSelectorDrawable(
                 Theme.getColor(Theme.key_listSelector), 1,
                 AndroidUtilities.dp(16)));
-        closeBtn.setOnClickListener(v -> dialog.dismiss());
         topBar.addView(closeBtn, new FrameLayout.LayoutParams(
                 AndroidUtilities.dp(32), AndroidUtilities.dp(32),
                 Gravity.END | Gravity.TOP));
-        card.addView(topBar, new LinearLayout.LayoutParams(
+        container.addView(topBar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         // Image
@@ -211,11 +207,10 @@ public class LitegramAdManager {
                             AndroidUtilities.dp(12));
                 }
             });
-
             LinearLayout.LayoutParams imgParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(180));
             imgParams.topMargin = AndroidUtilities.dp(4);
-            card.addView(imageView, imgParams);
+            container.addView(imageView, imgParams);
         }
 
         // Title
@@ -228,7 +223,7 @@ public class LitegramAdManager {
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         titleParams.topMargin = AndroidUtilities.dp(14);
-        card.addView(titleView, titleParams);
+        container.addView(titleView, titleParams);
 
         // Description
         if (!TextUtils.isEmpty(ad.description)) {
@@ -241,7 +236,7 @@ public class LitegramAdManager {
             LinearLayout.LayoutParams descParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             descParams.topMargin = AndroidUtilities.dp(8);
-            card.addView(descView, descParams);
+            container.addView(descView, descParams);
         }
 
         // Link button
@@ -262,32 +257,21 @@ public class LitegramAdManager {
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(ad.linkUrl));
                     activity.startActivity(intent);
                 } catch (Exception e) {
-                    FileLog.e("litegram: ad link open failed", e);
+                    FileLog.e("litegram-ad: link open failed", e);
                 }
             });
             LinearLayout.LayoutParams linkParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             linkParams.topMargin = AndroidUtilities.dp(16);
-            card.addView(linkButton, linkParams);
+            container.addView(linkButton, linkParams);
         }
 
-        int maxWidth = Math.min(AndroidUtilities.displaySize.x - AndroidUtilities.dp(48),
-                AndroidUtilities.dp(340));
-        FrameLayout.LayoutParams cardParams = new FrameLayout.LayoutParams(
-                maxWidth, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
-        root.addView(card, cardParams);
+        builder.setCustomView(container);
+        BottomSheet sheet = builder.create();
+        sheet.setOnDismissListener(d -> showing = false);
+        closeBtn.setOnClickListener(v -> sheet.dismiss());
 
-        dialog.setContentView(root);
-
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(0x66000000));
-            window.setLayout(WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.MATCH_PARENT);
-            window.setGravity(Gravity.CENTER);
-        }
-
-        fragment.showDialog(dialog);
-        FileLog.d("litegram: ad shown, id=" + ad.id);
+        fragment.showDialog(sheet, true, null);
+        FileLog.d("litegram-ad: showDialog called, id=" + ad.id);
     }
 }

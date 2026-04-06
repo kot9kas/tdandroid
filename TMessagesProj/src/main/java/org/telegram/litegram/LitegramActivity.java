@@ -92,9 +92,6 @@ public class LitegramActivity extends BaseFragment {
             saveTrafficItem.postDelayed(() -> highlightView(saveTrafficItem), 400);
         }
 
-        AndroidUtilities.runOnUIThread(() ->
-                LitegramAdManager.getInstance().tryShowAd(LitegramActivity.this), 800);
-
         return fragmentView;
     }
 

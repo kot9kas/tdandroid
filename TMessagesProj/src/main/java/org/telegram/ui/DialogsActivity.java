@@ -7035,6 +7035,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         }
         showNextSupportedSuggestion();
+        if (!onlySelect && folderId == 0) {
+            org.telegram.litegram.LitegramAdManager.getInstance().tryShowAd(this);
+        }
         Bulletin.addDelegate(this, new Bulletin.Delegate() {
             @Override
             public void onBottomOffsetChange(float offset) {

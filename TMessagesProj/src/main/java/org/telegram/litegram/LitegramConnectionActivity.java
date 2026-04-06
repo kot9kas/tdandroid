@@ -62,8 +62,6 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.proxySettingsChanged);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.didUpdateConnectionState);
         startPolling();
-        AndroidUtilities.runOnUIThread(() ->
-                LitegramAdManager.getInstance().tryShowAd(LitegramConnectionActivity.this), 800);
         return true;
     }
 
