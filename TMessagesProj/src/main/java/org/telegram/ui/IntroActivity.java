@@ -45,13 +45,12 @@ import static org.telegram.messenger.AndroidUtilities.dp;
 
 public class IntroActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
-    private static final int PAGES_COUNT = 4;
+    private static final int PAGES_COUNT = 3;
 
     private static final int[] SLIDE_IMAGES = {
             R.drawable.litegram_slide_1,
             R.drawable.litegram_slide_2,
-            R.drawable.litegram_slide_3,
-            R.drawable.litegram_slide_4
+            R.drawable.litegram_slide_3
     };
 
     private final int currentAccount = UserConfig.selectedAccount;
@@ -366,7 +365,9 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
         @Override
         public Object instantiateItem(ViewGroup container, int position) {
             ImageView imageView = new ImageView(container.getContext());
-            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            imageView.setAdjustViewBounds(true);
+            imageView.setPadding(0, 0, 0, dp(160));
             imageView.setImageResource(SLIDE_IMAGES[position]);
             container.addView(imageView, new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,

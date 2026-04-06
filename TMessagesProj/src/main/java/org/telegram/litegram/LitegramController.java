@@ -238,12 +238,25 @@ public class LitegramController {
         }
     }
 
+    private LitegramApi.ServerInfo pickPreferredServer(List<LitegramApi.ServerInfo> servers) {
+        String savedHost = LitegramConfig.getProxyHost();
+        if (!TextUtils.isEmpty(savedHost)) {
+            for (LitegramApi.ServerInfo s : servers) {
+                if (savedHost.equals(s.host)) {
+                    FileLog.d("litegram: restoring previously selected server " + s.host);
+                    return s;
+                }
+            }
+        }
+        return servers.get(0);
+    }
+
     private String connectAuthenticated() {
         Exception lastError = null;
         try {
             List<LitegramApi.ServerInfo> servers = api.getProxyServers();
             if (!servers.isEmpty()) {
-                applyProxy(servers.get(0));
+                applyProxy(pickPreferredServer(servers));
                 return null;
             }
         } catch (LitegramApi.AuthExpiredException e) {
@@ -252,7 +265,7 @@ public class LitegramController {
                 try {
                     List<LitegramApi.ServerInfo> servers = api.getProxyServers();
                     if (!servers.isEmpty()) {
-                        applyProxy(servers.get(0));
+                        applyProxy(pickPreferredServer(servers));
                         return null;
                     }
                 } catch (Exception retryErr) {
@@ -334,7 +347,7 @@ public class LitegramController {
 
                 List<LitegramApi.ServerInfo> servers = api.getProxyServers();
                 if (!servers.isEmpty()) {
-                    applyProxy(servers.get(0));
+                    applyProxy(pickPreferredServer(servers));
                 }
             } catch (Exception e) {
                 FileLog.e("litegram: onTelegramAuth failed", e);
