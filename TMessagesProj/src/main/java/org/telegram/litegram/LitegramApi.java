@@ -83,6 +83,22 @@ public class LitegramApi {
         }
     }
 
+    public static class AdInfo {
+        public final String id;
+        public final String title;
+        public final String description;
+        public final String imageUrl;
+        public final String linkUrl;
+
+        public AdInfo(String id, String title, String description, String imageUrl, String linkUrl) {
+            this.id = id;
+            this.title = title;
+            this.description = description;
+            this.imageUrl = imageUrl;
+            this.linkUrl = linkUrl;
+        }
+    }
+
     public void setAccessToken(String token) {
         this.accessToken = token;
     }
@@ -208,6 +224,27 @@ public class LitegramApi {
                 json.has("subscriptionExpiresAt") && !json.isNull("subscriptionExpiresAt")
                         ? json.optString("subscriptionExpiresAt", null) : null,
                 null
+        );
+    }
+
+    /**
+     * GET /advertising/active — get the currently active advertisement
+     */
+    public AdInfo getActiveAd() throws Exception {
+        String response = httpGet("/advertising/active");
+        if (response == null || response.isEmpty() || "null".equals(response)) {
+            return null;
+        }
+        JSONObject json = new JSONObject(response);
+        if (!json.has("id")) {
+            return null;
+        }
+        return new AdInfo(
+                json.getString("id"),
+                json.optString("title", ""),
+                json.optString("description", ""),
+                json.optString("imageUrl", null),
+                json.optString("linkUrl", null)
         );
     }
 
