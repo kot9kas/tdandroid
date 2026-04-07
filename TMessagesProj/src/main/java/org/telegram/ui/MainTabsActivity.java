@@ -257,7 +257,7 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
         tabs[INDEX_CONTACTS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CONTACTS, R.string.MainTabsContacts);
         tabs[INDEX_SETTINGS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.SETTINGS, R.string.Settings);
         tabs[INDEX_CALLS] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.CALLS, R.string.MainTabsCalls);
-        tabs[INDEX_LITEGRAM] = GlassTabView.createMainTab(context, resourceProvider, GlassTabView.TabAnimation.WALLET, R.string.MainTabsLitegram);
+        tabs[INDEX_LITEGRAM] = GlassTabView.createLitegramMainTab(context, resourceProvider, R.string.MainTabsLitegram);
         tabs[INDEX_PROFILE] = GlassTabView.createAvatar(context, resourceProvider, currentAccount, R.string.MainTabsProfile);
         tabs[INDEX_PROFILE].setOnLongClickListener(v -> {
             openAccountSelector(v);
