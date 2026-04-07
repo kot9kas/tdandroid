@@ -2,7 +2,6 @@ package org.telegram.litegram;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.net.Uri;
 import android.graphics.PorterDuff;
@@ -18,9 +17,10 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.graphics.ColorUtils;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.FileLog;
@@ -39,19 +39,9 @@ import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.Switch;
 
 public class LitegramActivity extends BaseFragment {
-
-    private static final int COLOR_HEADER_START = 0xFF0D0618;
-    private static final int COLOR_HEADER_END = 0xFF2D1654;
-    private static final int COLOR_ACCENT = 0xFF7B5EA7;
-    private static final int COLOR_ACCENT_LIGHT = 0xFF9E84B6;
-    private static final int COLOR_BTN_START = 0xFF5B2D8E;
-    private static final int COLOR_BTN_END = 0xFF9E84B6;
-    private static final int COLOR_TOGGLE_ON_TRACK = 0xFF7B5EA7;
-    private static final int COLOR_TOGGLE_ON_THUMB = 0xFFFFFFFF;
-    private static final int COLOR_TOGGLE_OFF_TRACK = 0xFF555555;
-    private static final int COLOR_TOGGLE_OFF_THUMB = 0xFFCCCCCC;
 
     private View saveTrafficItem;
     private TextView statusView;
@@ -64,15 +54,21 @@ public class LitegramActivity extends BaseFragment {
         super(args);
     }
 
+    /** Цвета из текущей темы Telegram (на момент создания экрана). */
+    private int c(int key) {
+        return getThemedColor(key);
+    }
+
     @Override
     public View createView(Context context) {
         boolean isTab = getArguments() != null && getArguments().getBoolean("hasMainTabs", false);
         if (isTab) {
             actionBar.setVisibility(View.GONE);
         } else {
+            applyLitegramActionBar();
             actionBar.setBackButtonImage(R.drawable.ic_ab_back);
             actionBar.setAllowOverlayTitle(true);
-            actionBar.setTitle("Litegram");
+            actionBar.setTitle(LocaleController.getString(R.string.MainTabsLitegram));
         }
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
@@ -85,7 +81,7 @@ public class LitegramActivity extends BaseFragment {
 
         ScrollView scrollView = new ScrollView(context);
         scrollView.setFillViewport(true);
-        scrollView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
+        scrollView.setBackgroundColor(c(Theme.key_windowBackgroundGray));
 
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -93,11 +89,14 @@ public class LitegramActivity extends BaseFragment {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        content.addView(createProfileSection(context));
+        if (isTab) {
+            content.addView(createTabTitle(context));
+        }
+        content.addView(wrapWithSideMargin(context, createProfileSection(context), 16));
         content.addView(createSpacer(context, 12));
-        content.addView(createMenuSection(context));
-        content.addView(createSpacer(context, 24));
-        content.addView(createTryAllButton(context));
+        content.addView(wrapWithSideMargin(context, createMenuSection(context), 16));
+        content.addView(createSpacer(context, 20));
+        content.addView(wrapWithSideMargin(context, createTryAllButton(context), 16));
         content.addView(createSpacer(context, 24));
 
         fragmentView = scrollView;
@@ -111,36 +110,71 @@ public class LitegramActivity extends BaseFragment {
         return fragmentView;
     }
 
+    private void applyLitegramActionBar() {
+        actionBar.setBackgroundColor(c(Theme.key_actionBarDefault));
+        actionBar.setTitleColor(c(Theme.key_actionBarDefaultTitle));
+        actionBar.setItemsColor(c(Theme.key_actionBarDefaultIcon), false);
+        actionBar.setCastShadows(false);
+    }
+
+    private View createTabTitle(Context context) {
+        TextView tv = new TextView(context);
+        tv.setText(LocaleController.getString(R.string.MainTabsLitegram));
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+        tv.setTypeface(AndroidUtilities.bold());
+        tv.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
+        tv.setGravity(Gravity.CENTER);
+        tv.setPadding(0, AndroidUtilities.statusBarHeight + AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
+        return tv;
+    }
+
+    private static LinearLayout wrapWithSideMargin(Context context, View child, int marginDp) {
+        LinearLayout wrap = new LinearLayout(context);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        int m = AndroidUtilities.dp(marginDp);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.leftMargin = m;
+        lp.rightMargin = m;
+        wrap.addView(child, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        wrap.setLayoutParams(lp);
+        return wrap;
+    }
+
     private void highlightView(View view) {
         android.animation.ValueAnimator anim = android.animation.ValueAnimator.ofFloat(0f, 1f, 0f, 1f, 0f);
         anim.setDuration(1500);
         anim.addUpdateListener(animation -> {
             float v = (float) animation.getAnimatedValue();
             int alpha = (int) (v * 50);
-            view.setBackgroundColor(Color.argb(alpha, 123, 94, 167));
+            int accent = c(Theme.key_featuredStickers_addButton);
+            view.setBackgroundColor(Color.argb(alpha, Color.red(accent), Color.green(accent), Color.blue(accent)));
         });
         anim.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
-                view.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                view.setBackgroundColor(Color.TRANSPARENT);
             }
         });
         anim.start();
     }
 
     private View createProfileSection(Context context) {
-        LinearLayout section = new LinearLayout(context);
-        section.setOrientation(LinearLayout.VERTICAL);
-        section.setGravity(Gravity.CENTER_HORIZONTAL);
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(Gravity.CENTER_HORIZONTAL);
 
         GradientDrawable bg = new GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                new int[]{COLOR_HEADER_START, COLOR_HEADER_END});
-        section.setBackground(bg);
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{
+                        c(Theme.key_featuredStickers_addButton),
+                        c(Theme.key_featuredStickers_addButton2)
+                });
+        bg.setCornerRadius(AndroidUtilities.dp(24));
+        card.setBackground(bg);
 
-        int statusBarPadding = AndroidUtilities.statusBarHeight + AndroidUtilities.dp(24);
-        section.setPadding(AndroidUtilities.dp(16), statusBarPadding,
-                AndroidUtilities.dp(16), AndroidUtilities.dp(28));
+        card.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(24),
+                AndroidUtilities.dp(20), AndroidUtilities.dp(22));
 
         TLRPC.User user = UserConfig.getInstance(currentAccount).getCurrentUser();
 
@@ -152,128 +186,159 @@ public class LitegramActivity extends BaseFragment {
             avatarView.getImageReceiver().setCurrentAccount(currentAccount);
             avatarView.setForUserOrChat(user, avatarDrawable);
         }
-        section.addView(avatarView, LayoutHelper.createLinear(80, 80, Gravity.CENTER_HORIZONTAL));
+        card.addView(avatarView, LayoutHelper.createLinear(80, 80, Gravity.CENTER_HORIZONTAL));
 
         TextView nameView = new TextView(context);
         nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
-        nameView.setTextColor(Color.WHITE);
+        nameView.setTextColor(c(Theme.key_featuredStickers_buttonText));
         nameView.setTypeface(AndroidUtilities.bold());
         nameView.setGravity(Gravity.CENTER);
         nameView.setText(user != null ? UserObject.getUserName(user) : "");
         LinearLayout.LayoutParams nameParams = LayoutHelper.createLinear(
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL);
         nameParams.topMargin = AndroidUtilities.dp(12);
-        section.addView(nameView, nameParams);
+        card.addView(nameView, nameParams);
 
         TextView idView = new TextView(context);
         idView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        idView.setTextColor(0x99FFFFFF);
+        int idTc = c(Theme.key_featuredStickers_buttonText);
+        idView.setTextColor(ColorUtils.setAlphaComponent(idTc, (int) (255 * 0.8f)));
         idView.setGravity(Gravity.CENTER);
         idView.setText(user != null ? "ID: " + user.id : "");
         LinearLayout.LayoutParams idParams = LayoutHelper.createLinear(
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL);
         idParams.topMargin = AndroidUtilities.dp(4);
-        section.addView(idView, idParams);
+        card.addView(idView, idParams);
 
         statusView = new TextView(context);
         statusView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         statusView.setTypeface(AndroidUtilities.bold());
         statusView.setGravity(Gravity.CENTER);
-        statusView.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(5),
-                AndroidUtilities.dp(14), AndroidUtilities.dp(5));
+        statusView.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(6),
+                AndroidUtilities.dp(14), AndroidUtilities.dp(6));
         applySubscriptionBadge();
         LinearLayout.LayoutParams statusParams = LayoutHelper.createLinear(
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL);
-        statusParams.topMargin = AndroidUtilities.dp(12);
-        section.addView(statusView, statusParams);
+        statusParams.topMargin = AndroidUtilities.dp(14);
+        card.addView(statusView, statusParams);
 
         LitegramController.getInstance().refreshSubscription(() ->
                 AndroidUtilities.runOnUIThread(this::applySubscriptionBadge));
 
-        return section;
+        return card;
     }
 
     private void applySubscriptionBadge() {
-        if (statusView == null) return;
+        if (statusView == null) {
+            return;
+        }
         if (LitegramConfig.isSubscriptionActive()) {
             statusView.setText("\u2B50 " + LocaleController.getString(R.string.LitegramConnPremium));
-            statusView.setTextColor(0xFFF5E6FF);
+            statusView.setTextColor(c(Theme.key_featuredStickers_buttonText));
             GradientDrawable badge = new GradientDrawable();
-            badge.setCornerRadius(AndroidUtilities.dp(12));
-            badge.setColor(COLOR_ACCENT);
+            badge.setCornerRadius(AndroidUtilities.dp(20));
+            badge.setColor(c(Theme.key_featuredStickers_addButtonPressed));
             statusView.setBackground(badge);
         } else {
             statusView.setText(LocaleController.getString(R.string.LitegramConnFree));
-            statusView.setTextColor(0xCCFFFFFF);
+            statusView.setTextColor(c(Theme.key_featuredStickers_buttonText));
             GradientDrawable badge = new GradientDrawable();
-            badge.setCornerRadius(AndroidUtilities.dp(12));
-            badge.setColor(0x44FFFFFF);
+            badge.setCornerRadius(AndroidUtilities.dp(20));
+            int base = c(Theme.key_windowBackgroundWhiteBlackText);
+            badge.setColor(ColorUtils.setAlphaComponent(base, 0x59));
             statusView.setBackground(badge);
         }
     }
 
     private View createMenuSection(Context context) {
-        LinearLayout section = new LinearLayout(context);
-        section.setOrientation(LinearLayout.VERTICAL);
-        section.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        LinearLayout panel = new LinearLayout(context);
+        panel.setOrientation(LinearLayout.VERTICAL);
+
+        GradientDrawable panelBg = new GradientDrawable();
+        panelBg.setCornerRadius(AndroidUtilities.dp(16));
+        panelBg.setColor(c(Theme.key_windowBackgroundWhite));
+        panel.setBackground(panelBg);
+        int ph = AndroidUtilities.dp(4);
+        panel.setPadding(0, ph, 0, ph);
 
         saveTrafficItem = createToggleItem(context, R.drawable.msg_download,
                 LocaleController.getString(R.string.LitegramSaveTraffic),
                 LocaleController.getString(R.string.LitegramSaveTrafficDesc),
                 LitegramConfig.isSaveTrafficEnabled(),
                 (enabled) -> LitegramConfig.setSaveTrafficEnabled(enabled));
-        section.addView(saveTrafficItem);
+        panel.addView(saveTrafficItem);
 
-        section.addView(createDivider(context));
+        panel.addView(createPanelDivider(context));
 
-        section.addView(createMenuItem(context, R.drawable.msg_secret,
-                LocaleController.getString(R.string.LitegramConnection),
-                LocaleController.getString(R.string.LitegramConnectionDesc),
+        panel.addView(createMenuItem(context, R.drawable.litegram_ic_shield,
+                c(Theme.key_switchTrackChecked),
+                LocaleController.getString(R.string.LitegramProtection),
+                LocaleController.getString(R.string.LitegramProtectionDesc),
                 () -> presentFragment(new LitegramConnectionActivity())));
 
-        section.addView(createDivider(context));
+        panel.addView(createPanelDivider(context));
 
-        section.addView(createMenuItem(context, R.drawable.msg_help,
+        panel.addView(createMenuItem(context, R.drawable.msg_help,
+                c(Theme.key_windowBackgroundWhiteGrayIcon),
                 LocaleController.getString(R.string.LitegramSupport),
                 LocaleController.getString(R.string.LitegramSupportDesc),
                 this::showSupportSheet));
 
-        return section;
+        return panel;
     }
 
-    private View createMenuItem(Context context, int iconRes, String title, String subtitle, Runnable onClick) {
+    private View createPanelDivider(Context context) {
+        View divider = new View(context);
+        divider.setBackgroundColor(c(Theme.key_divider));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 1);
+        params.leftMargin = AndroidUtilities.dp(72);
+        params.rightMargin = AndroidUtilities.dp(16);
+        divider.setLayoutParams(params);
+        return divider;
+    }
+
+    private View createMenuItem(Context context, int iconRes, int iconBoxColor,
+                                String title, String subtitle, Runnable onClick) {
         FrameLayout item = new FrameLayout(context);
-        item.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(14),
-                AndroidUtilities.dp(21), AndroidUtilities.dp(14));
-        item.setBackground(Theme.createSelectorDrawable(
-                Theme.getColor(Theme.key_listSelector), 2));
+        item.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12),
+                AndroidUtilities.dp(12), AndroidUtilities.dp(12));
+        item.setBackground(Theme.createSelectorDrawable(c(Theme.key_listSelector), 2));
         item.setOnClickListener(v -> onClick.run());
 
+        FrameLayout iconBox = new FrameLayout(context);
+        GradientDrawable ibg = new GradientDrawable();
+        ibg.setCornerRadius(AndroidUtilities.dp(12));
+        ibg.setColor(iconBoxColor);
+        iconBox.setBackground(ibg);
         ImageView icon = new ImageView(context);
         icon.setScaleType(ImageView.ScaleType.CENTER);
         Drawable d = context.getResources().getDrawable(iconRes).mutate();
-        d.setColorFilter(new PorterDuffColorFilter(COLOR_ACCENT_LIGHT, PorterDuff.Mode.SRC_IN));
+        d.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
         icon.setImageDrawable(d);
-        item.addView(icon, LayoutHelper.createFrame(24, 24,
+        iconBox.addView(icon, LayoutHelper.createFrame(
+                LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        item.addView(iconBox, LayoutHelper.createFrame(44, 44,
                 Gravity.CENTER_VERTICAL | Gravity.START));
 
         LinearLayout textContainer = new LinearLayout(context);
         textContainer.setOrientation(LinearLayout.VERTICAL);
         FrameLayout.LayoutParams textParams = LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
-                Gravity.CENTER_VERTICAL, 52, 0, 40, 0);
+                Gravity.CENTER_VERTICAL, 72, 0, 36, 0);
         item.addView(textContainer, textParams);
 
         TextView titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.setTypeface(AndroidUtilities.bold());
         titleView.setText(title);
         textContainer.addView(titleView);
 
         if (subtitle != null) {
             TextView subtitleView = new TextView(context);
             subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-            subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+            subtitleView.setTextColor(c(Theme.key_windowBackgroundWhiteGrayText2));
             subtitleView.setText(subtitle);
             LinearLayout.LayoutParams stParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -284,7 +349,8 @@ public class LitegramActivity extends BaseFragment {
         ImageView arrow = new ImageView(context);
         arrow.setScaleType(ImageView.ScaleType.CENTER);
         Drawable arrowD = context.getResources().getDrawable(R.drawable.msg_arrowright).mutate();
-        arrowD.setColorFilter(new PorterDuffColorFilter(COLOR_ACCENT_LIGHT, PorterDuff.Mode.SRC_IN));
+        arrowD.setColorFilter(new PorterDuffColorFilter(
+                c(Theme.key_windowBackgroundWhiteGrayText4), PorterDuff.Mode.SRC_IN));
         arrow.setImageDrawable(arrowD);
         item.addView(arrow, LayoutHelper.createFrame(24, 24,
                 Gravity.CENTER_VERTICAL | Gravity.END));
@@ -296,37 +362,50 @@ public class LitegramActivity extends BaseFragment {
         void onToggle(boolean enabled);
     }
 
+    /**
+     * Telegram {@link Switch} не задаёт onMeasure: при WRAP_CONTENT в FrameLayout высота может
+     * стать равной всему доступному пространству — строка меню «раздувается» и остальные пункты
+     * уезжают за экран. Задаём размер как в {@link org.telegram.ui.Cells.TextCell} (37×20 dp).
+     */
     private View createToggleItem(Context context, int iconRes, String title, String subtitle,
                                   boolean initialState, ToggleCallback callback) {
         FrameLayout item = new FrameLayout(context);
-        item.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(14),
-                AndroidUtilities.dp(21), AndroidUtilities.dp(14));
+        item.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12),
+                AndroidUtilities.dp(12), AndroidUtilities.dp(12));
 
+        FrameLayout iconBox = new FrameLayout(context);
+        GradientDrawable ibg = new GradientDrawable();
+        ibg.setCornerRadius(AndroidUtilities.dp(12));
+        ibg.setColor(c(Theme.key_windowBackgroundWhiteGrayIcon));
+        iconBox.setBackground(ibg);
         ImageView icon = new ImageView(context);
         icon.setScaleType(ImageView.ScaleType.CENTER);
         Drawable d = context.getResources().getDrawable(iconRes).mutate();
-        d.setColorFilter(new PorterDuffColorFilter(COLOR_ACCENT_LIGHT, PorterDuff.Mode.SRC_IN));
+        d.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
         icon.setImageDrawable(d);
-        item.addView(icon, LayoutHelper.createFrame(24, 24,
+        iconBox.addView(icon, LayoutHelper.createFrame(
+                LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        item.addView(iconBox, LayoutHelper.createFrame(44, 44,
                 Gravity.CENTER_VERTICAL | Gravity.START));
 
         LinearLayout textContainer = new LinearLayout(context);
         textContainer.setOrientation(LinearLayout.VERTICAL);
         FrameLayout.LayoutParams textParams = LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
-                Gravity.CENTER_VERTICAL, 52, 0, 62, 0);
+                Gravity.CENTER_VERTICAL, 72, 0, 58, 0);
         item.addView(textContainer, textParams);
 
         TextView titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.setTypeface(AndroidUtilities.bold());
         titleView.setText(title);
         textContainer.addView(titleView);
 
         if (subtitle != null) {
             TextView subtitleView = new TextView(context);
             subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-            subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+            subtitleView.setTextColor(c(Theme.key_windowBackgroundWhiteGrayText2));
             subtitleView.setText(subtitle);
             LinearLayout.LayoutParams stParams = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -334,28 +413,15 @@ public class LitegramActivity extends BaseFragment {
             textContainer.addView(subtitleView, stParams);
         }
 
-        Switch toggle = new Switch(context);
-        toggle.setTrackTintList(new android.content.res.ColorStateList(
-                new int[][]{
-                        new int[]{android.R.attr.state_checked},
-                        new int[]{}
-                },
-                new int[]{COLOR_TOGGLE_ON_TRACK, COLOR_TOGGLE_OFF_TRACK}
-        ));
-        toggle.setThumbTintList(new android.content.res.ColorStateList(
-                new int[][]{
-                        new int[]{android.R.attr.state_checked},
-                        new int[]{}
-                },
-                new int[]{COLOR_TOGGLE_ON_THUMB, COLOR_TOGGLE_OFF_THUMB}
-        ));
-        toggle.setChecked(initialState);
-        toggle.setOnCheckedChangeListener((buttonView, isChecked) -> callback.onToggle(isChecked));
-        item.addView(toggle, LayoutHelper.createFrame(
-                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+        Switch toggle = new Switch(context, getResourceProvider());
+        toggle.setColors(Theme.key_switchTrack, Theme.key_switchTrackChecked,
+                Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite);
+        toggle.setChecked(initialState, false);
+        toggle.setOnCheckedChangeListener((view, isChecked) -> callback.onToggle(isChecked));
+        item.addView(toggle, LayoutHelper.createFrame(37, 20,
                 Gravity.CENTER_VERTICAL | Gravity.END));
 
-        item.setOnClickListener(v -> toggle.toggle());
+        item.setOnClickListener(v -> toggle.setChecked(!toggle.isChecked(), true));
 
         return item;
     }
@@ -378,7 +444,7 @@ public class LitegramActivity extends BaseFragment {
         title.setText(LocaleController.getString(R.string.LitegramSupport));
         title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
         title.setTypeface(AndroidUtilities.bold());
-        title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
         title.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(8),
                 AndroidUtilities.dp(22), AndroidUtilities.dp(16));
         root.addView(title);
@@ -419,7 +485,7 @@ public class LitegramActivity extends BaseFragment {
         row.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(14),
                 AndroidUtilities.dp(22), AndroidUtilities.dp(14));
         row.setBackground(Theme.createSelectorDrawable(
-                Theme.getColor(Theme.key_listSelector), 2));
+                Theme.getColor(Theme.key_listSelector, getResourceProvider()), 2));
         row.setOnClickListener(v -> onClick.run());
 
         LinearLayout leftPart = new LinearLayout(ctx);
@@ -438,13 +504,13 @@ public class LitegramActivity extends BaseFragment {
         TextView titleView = new TextView(ctx);
         titleView.setText(title);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
         textCol.addView(titleView);
 
         TextView subtitleView = new TextView(ctx);
         subtitleView.setText(subtitle);
         subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        subtitleView.setTextColor(COLOR_ACCENT_LIGHT);
+        subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4, getResourceProvider()));
         LinearLayout.LayoutParams stLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         stLp.topMargin = AndroidUtilities.dp(2);
@@ -460,7 +526,9 @@ public class LitegramActivity extends BaseFragment {
         ImageView arrow = new ImageView(ctx);
         arrow.setScaleType(ImageView.ScaleType.CENTER);
         Drawable arrowD = ctx.getResources().getDrawable(R.drawable.msg_arrowright).mutate();
-        arrowD.setColorFilter(new PorterDuffColorFilter(COLOR_ACCENT_LIGHT, PorterDuff.Mode.SRC_IN));
+        arrowD.setColorFilter(new PorterDuffColorFilter(
+                Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4, getResourceProvider()),
+                PorterDuff.Mode.SRC_IN));
         arrow.setImageDrawable(arrowD);
         row.addView(arrow, LayoutHelper.createFrame(24, 24,
                 Gravity.CENTER_VERTICAL | Gravity.END));
@@ -494,12 +562,11 @@ public class LitegramActivity extends BaseFragment {
 
     private View createTryAllButton(Context context) {
         FrameLayout container = new FrameLayout(context);
-        container.setPadding(AndroidUtilities.dp(32), 0, AndroidUtilities.dp(32), 0);
 
         TextView button = new TextView(context);
-        button.setText(LocaleController.getString(R.string.LitegramTryAllFeatures));
+        button.setText("\u2B50 " + LocaleController.getString(R.string.LitegramTryAllFeatures));
         button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
-        button.setTextColor(Color.WHITE);
+        button.setTextColor(c(Theme.key_featuredStickers_buttonText));
         button.setTypeface(AndroidUtilities.bold());
         button.setGravity(Gravity.CENTER);
         button.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(14),
@@ -507,7 +574,10 @@ public class LitegramActivity extends BaseFragment {
 
         GradientDrawable btnBg = new GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{COLOR_BTN_START, COLOR_BTN_END});
+                new int[]{
+                        c(Theme.key_featuredStickers_addButton),
+                        c(Theme.key_featuredStickers_addButton2)
+                });
         btnBg.setCornerRadius(AndroidUtilities.dp(14));
         button.setBackground(btnBg);
 
@@ -541,16 +611,6 @@ public class LitegramActivity extends BaseFragment {
         } catch (Exception e) {
             FileLog.e("litegram: openBotChat failed", e);
         }
-    }
-
-    private View createDivider(Context context) {
-        View divider = new View(context);
-        divider.setBackgroundColor(Theme.getColor(Theme.key_divider));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 1);
-        params.leftMargin = AndroidUtilities.dp(52);
-        divider.setLayoutParams(params);
-        return divider;
     }
 
     private View createSpacer(Context context, int heightDp) {

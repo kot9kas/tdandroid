@@ -10343,7 +10343,9 @@
     <string name="MainTabsProfile">Profile</string>
     <string name="MainTabsLitegram">Litegram</string>
     <string name="LitegramSaveTraffic">Save Traffic</string>
-    <string name="LitegramSaveTrafficDesc">Download media only on tap</string>
+    <string name="LitegramSaveTrafficDesc">Compress images and media.</string>
+    <string name="LitegramProtection">Protection</string>
+    <string name="LitegramProtectionDesc">Proxy settings and connection.</string>
     <string name="LitegramConnection">Litegram Connection</string>
     <string name="LitegramConnectionDesc">Proxy settings and status</string>
     <string name="LitegramSaveTrafficBlockTitle">Save Traffic is enabled</string>

@@ -267,10 +267,12 @@
     <string name="LitegramSaveTrafficBlockTitle">Экономия трафика включена</string>
     <string name="LitegramSaveTrafficBlockDesc">Пока **Экономия трафика** активна, настройки данных и памяти управляются Litegram. Нажмите **Экономия трафика**, чтобы изменить это.</string>
     <string name="LitegramTryAllFeatures">Попробовать все функции</string>
+    <string name="LitegramProtection">Защита</string>
+    <string name="LitegramProtectionDesc">Прокси и подключение.</string>
     <string name="LitegramSaveTraffic">Экономия трафика</string>
     <string name="IdCopied">ID скопирован в буфер обмена</string>
     <string name="ProfileCopyId">Копировать ID</string>
-    <string name="LitegramSaveTrafficDesc">Загрузка медиа только по нажатию</string>
+    <string name="LitegramSaveTrafficDesc">Сжатие изображений и медиа.</string>
     <string name="LitegramConnection">Litegram Подключение</string>
     <string name="LitegramSupport">Поддержка</string>
     <string name="LitegramSupportDesc">Свяжитесь с нами</string>
