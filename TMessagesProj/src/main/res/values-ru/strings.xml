@@ -221,6 +221,7 @@
     <string name="Page4Message">**Telegram** защищает Вашу переписку от злоумышленников.</string>
     <string name="Page5Message">**Telegram** не ограничивает размер\n Ваших медиафайлов и чатов.</string>
     <string name="Page6Message">В **Telegram** можно переписываться с любого количества устройств.</string>
+    <string name="Next">Дальше</string>
     <string name="StartMessaging">Начать общение</string>
     <!--date formatters-->
     <string name="formatterBoostExpired">dd MMM yyyy</string>
@@ -307,6 +308,11 @@
     <string name="LitegramConnFeatNoLogsDesc">Без журналов подключений и отслеживания активности</string>
     <string name="LitegramConnFeatBinding">Привязка к устройству</string>
     <string name="LitegramConnFeatBindingDesc">Уникальный прокси назначается каждому устройству</string>
+    <string name="LitegramConnFeatEncryptedDetail">Весь ваш трафик проходит через защищённый MTProto прокси-туннель. Данные шифруются сквозным образом, становясь невидимыми для третьих лиц, провайдеров и сетевых администраторов. Это обеспечивает максимальную конфиденциальность каждого сообщения и звонка.</string>
+    <string name="LitegramConnFeatAutoConnectDetail">При каждом запуске приложения Litegram автоматически выбирает самый быстрый прокси-сервер на основе вашего местоположения и текущих сетевых условий. Никакой ручной настройки — просто откройте и пользуйтесь.</string>
+    <string name="LitegramConnFeatBypassDetail">Прокси Litegram позволяет получить доступ к Telegram даже в странах и сетях, где он заблокирован. Трафик маскируется под обычный HTTPS, что делает его практически неуловимым для систем DPI (Deep Packet Inspection).</string>
+    <string name="LitegramConnFeatNoLogsDetail">Мы не собираем, не храним и не передаём никакие логи вашей активности. Ни IP-адреса, ни временные метки, ни данные трафика не записываются. Ваша анонимность гарантирована на уровне архитектуры.</string>
+    <string name="LitegramConnFeatBindingDetail">Каждое устройство получает уникальную конфигурацию прокси, привязанную к его идентификатору. Это предотвращает несанкционированное использование прокси-данных и обеспечивает стабильную работу для каждого пользователя.</string>
     <string name="LitegramConnSecureSubtitleConnected">Защищённое подключение через прокси</string>
     <string name="LitegramConnWhatsIncluded">Что включено</string>
     <string name="LitegramConnFeatFast">Быстро и стабильно</string>
@@ -323,6 +329,13 @@
     <string name="LitegramConnFeatMultiServerDesc">Выбор серверов по всему миру</string>
     <string name="LitegramConnFeatEasy">Простота</string>
     <string name="LitegramConnFeatEasyDesc">Одно нажатие — без настройки</string>
+    <string name="LitegramConnFeatFastDetail">Наши прокси-серверы оптимизированы для максимальной скорости и минимальной задержки. Мы используем высокопроизводительную инфраструктуру с прямым соединением к серверам Telegram, обеспечивая мгновенную загрузку сообщений и медиа без ограничений скорости.</string>
+    <string name="LitegramConnFeatPrivacyDetail">Весь трафик между вашим устройством и Telegram шифруется по протоколу MTProto. Никто — ни провайдер, ни администратор сети, ни третьи лица — не может прочитать ваши сообщения или отслеживать активность. Ваша конфиденциальность — наш главный приоритет.</string>
+    <string name="LitegramConnFeatAccessDetail">Прокси Litegram маскирует ваш трафик под обычный HTTPS, обходя фильтры DPI (Deep Packet Inspection). Это позволяет свободно пользоваться Telegram в любой стране или сети, где он заблокирован.</string>
+    <string name="LitegramConnFeatNoLimitsDetail">В отличие от многих прокси-сервисов, мы не устанавливаем ограничений скорости или объёма трафика. Смотрите видео, отправляйте большие файлы и совершайте видеозвонки в высоком качестве без ограничений.</string>
+    <string name="LitegramConnFeatAutoReconnectDetail">Если соединение обрывается или переключается между Wi-Fi и мобильными данными, Litegram автоматически переподключится к прокси-серверу. Вы не потеряете соединение даже в самых нестабильных сетях.</string>
+    <string name="LitegramConnFeatMultiServerDetail">Мы размещаем прокси-серверы в нескольких странах мира. Вы можете выбрать ближайший сервер для лучшей производительности или конкретный регион для оптимизации маршрутизации.</string>
+    <string name="LitegramConnFeatEasyDetail">Никаких сложных настроек или технических знаний не требуется. Просто нажмите «Подключить» — Litegram сам выберет сервер, настроит шифрование и будет управлять соединением автоматически.</string>
     <string name="ConnectingToProxy">Подключение к Litegram</string>
     <string name="ConnectingToProxyWithDots">Подключение к Litegram...</string>
     <string name="TitleSetupProxy">настроить ></string>
@@ -330,4 +343,16 @@
     <string name="MenuProxyConnecting">Подключение</string>
     <string name="MenuProxyConnected">Подключено</string>
     <string name="LitegramConnectionDesc">Настройки и статус прокси</string>
+    <string name="VoipInCallBranding">Звонок Litegram</string>
+    <string name="VoipInVideoCallBranding">Видеозвонок Litegram</string>
+    <string name="VoipInConferenceCallBranding">Групповой звонок Litegram</string>
+    <string name="VoipOutgoingCall">Текущий звонок Litegram</string>
+    <string name="VoipInCallBrandingWithName">Звонок Litegram — %s</string>
+    <string name="VoipInVideoCallBrandingWithName">Видеозвонок Litegram — %s</string>
+    <string name="CallViaTelegram">Звонок Litegram</string>
+    <string name="VideoCallViaTelegram">Видеозвонок Litegram</string>
+    <string name="VoiceCallViaTelegram">Голосовой звонок Litegram</string>
+    <string name="VoipRateCallAlert">Оцените качество звонка Litegram</string>
+    <string name="VoipErrorUnknown">Не удаётся совершить звонок Litegram в данный момент.</string>
+    <string name="CallReportSent">Спасибо, что помогаете улучшить звонки Litegram.</string>
 </resources>

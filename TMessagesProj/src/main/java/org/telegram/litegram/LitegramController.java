@@ -63,10 +63,15 @@ public class LitegramController {
 
         resolveTelegramId();
 
-        FileLog.d("litegram: fetching proxy config from backend on startup");
         Utilities.globalQueue.postRunnable(() -> {
             refreshSubscriptionStatus();
-            connectProxy();
+            if (LitegramConfig.isProxyEnabled() || !LitegramConfig.hasProxy()) {
+                FileLog.d("litegram: fetching proxy config from backend on startup");
+                connectProxy();
+            } else {
+                FileLog.d("litegram: proxy was disabled by user, skipping auto-connect; fetching servers for cache");
+                fetchServersForCache();
+            }
         });
         scheduleConnectionWatcher();
     }
@@ -260,9 +265,18 @@ public class LitegramController {
     private LitegramApi.ServerInfo pickServerForContext(List<LitegramApi.ServerInfo> servers) {
         if (startupConnect) {
             startupConnect = false;
+            String savedHost = LitegramConfig.getProxyHost();
+            if (!TextUtils.isEmpty(savedHost)) {
+                for (LitegramApi.ServerInfo s : servers) {
+                    if (savedHost.equals(s.host)) {
+                        FileLog.d("litegram: startup — restoring user's saved server " + s.host);
+                        return s;
+                    }
+                }
+            }
             for (LitegramApi.ServerInfo s : servers) {
                 if (DEFAULT_COUNTRY.equalsIgnoreCase(s.country)) {
-                    FileLog.d("litegram: startup — forcing default country server " + s.host);
+                    FileLog.d("litegram: startup — default country server " + s.host);
                     return s;
                 }
             }
@@ -431,6 +445,20 @@ public class LitegramController {
         } catch (Exception e) {
             FileLog.e("litegram: reAuthenticate failed", e);
             return false;
+        }
+    }
+
+    private void fetchServersForCache() {
+        try {
+            if (LitegramDeviceToken.hasAccessToken()) {
+                List<LitegramApi.ServerInfo> servers = api.getProxyServers();
+                if (servers != null && !servers.isEmpty()) {
+                    LitegramConfig.saveServersCache(servers);
+                    FileLog.d("litegram: cached " + servers.size() + " servers (proxy disabled)");
+                }
+            }
+        } catch (Exception e) {
+            FileLog.e("litegram: fetchServersForCache failed", e);
         }
     }
 

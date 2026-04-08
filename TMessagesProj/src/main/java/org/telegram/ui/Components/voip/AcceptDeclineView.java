@@ -106,10 +106,10 @@ public class AcceptDeclineView extends View {
         touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         buttonWidth = dp(60);
         acceptDrawable = new FabBackgroundDrawable();
-        acceptDrawable.setColor(0xFF40C749);
+        acceptDrawable.setColor(0xFF7B5EA7);
 
         declineDrawable = new FabBackgroundDrawable();
-        declineDrawable.setColor(0xFFF01D2C);
+        declineDrawable.setColor(0xFFC44E4E);
 
         declineDrawable.setBounds(0, 0, buttonWidth, buttonWidth);
         acceptDrawable.setBounds(0, 0, buttonWidth, buttonWidth);
@@ -164,7 +164,7 @@ public class AcceptDeclineView extends View {
                 startX = event.getX();
                 startY = event.getY();
                 if (leftAnimator == null && declineRect.contains((int) event.getX(), (int) event.getY())) {
-                    rippleDrawable = Theme.createSimpleSelectorCircleDrawable(dp(52), 0, retryMod ? Theme.getColor(Theme.key_listSelector) : 0xFFFF3846);
+                    rippleDrawable = Theme.createSimpleSelectorCircleDrawable(dp(52), 0, retryMod ? Theme.getColor(Theme.key_listSelector) : 0xFFD46060);
                     captured = true;
                     leftDrag = true;
                     declineBounce.setPressed(true);
@@ -174,7 +174,7 @@ public class AcceptDeclineView extends View {
                     return true;
                 }
                 if (rightAnimator == null && acceptRect.contains((int) event.getX(), (int) event.getY())) {
-                    rippleDrawable = Theme.createSimpleSelectorCircleDrawable(dp(52), 0, 0xFF4DD156);
+                    rippleDrawable = Theme.createSimpleSelectorCircleDrawable(dp(52), 0, 0xFF9E84B6);
                     captured = true;
                     leftDrag = false;
                     declineBounce.setPressed(false);
@@ -374,7 +374,7 @@ public class AcceptDeclineView extends View {
         } else {
             acceptVoiceDrawable.start();
             avatarWavesDrawable.setShowWaves(true, this);
-            declineDrawable.setColor(0xFFF01D2C);
+            declineDrawable.setColor(0xFFC44E4E);
 
             callAnimator = ValueAnimator.ofInt(0, 60, 0, 0, 60, 0, 0, 0, 0);
             callAnimator.addUpdateListener(a -> {

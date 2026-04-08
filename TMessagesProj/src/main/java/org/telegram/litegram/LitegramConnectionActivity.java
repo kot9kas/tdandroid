@@ -1,6 +1,7 @@
 package org.telegram.litegram;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
@@ -27,6 +28,7 @@ import org.telegram.messenger.R;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.RLottieImageView;
@@ -438,26 +440,26 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         panel.setPadding(ph, AndroidUtilities.dp(8), ph, AndroidUtilities.dp(8));
 
         addFeatureTile(context, panel, c(Theme.key_statisticChartLine_orange), "\u26A1",
-                R.string.LitegramConnFeatFast, R.string.LitegramConnFeatFastDesc);
+                R.string.LitegramConnFeatFast, R.string.LitegramConnFeatFastDesc, R.string.LitegramConnFeatFastDetail);
         addFeatureTile(context, panel, c(Theme.key_statisticChartLine_red), "\uD83D\uDEE1\uFE0F",
-                R.string.LitegramConnFeatPrivacy, R.string.LitegramConnFeatPrivacyDesc);
+                R.string.LitegramConnFeatPrivacy, R.string.LitegramConnFeatPrivacyDesc, R.string.LitegramConnFeatPrivacyDetail);
         addFeatureTile(context, panel, c(Theme.key_statisticChartLine_blue), "\uD83C\uDF0D",
-                R.string.LitegramConnFeatAccess, R.string.LitegramConnFeatAccessDesc);
+                R.string.LitegramConnFeatAccess, R.string.LitegramConnFeatAccessDesc, R.string.LitegramConnFeatAccessDetail);
         addFeatureTile(context, panel, c(Theme.key_statisticChartLine_purple), "\u00D72",
-                R.string.LitegramConnFeatNoLimits, R.string.LitegramConnFeatNoLimitsDesc);
+                R.string.LitegramConnFeatNoLimits, R.string.LitegramConnFeatNoLimitsDesc, R.string.LitegramConnFeatNoLimitsDetail);
         addFeatureTile(context, panel, c(Theme.key_statisticChartLine_lightblue), "\uD83D\uDCAC",
-                R.string.LitegramConnFeatAutoReconnect, R.string.LitegramConnFeatAutoReconnectDesc);
+                R.string.LitegramConnFeatAutoReconnect, R.string.LitegramConnFeatAutoReconnectDesc, R.string.LitegramConnFeatAutoReconnectDetail);
         addFeatureTile(context, panel, c(Theme.key_statisticChartLine_cyan), "\uD83D\uDDFA\uFE0F",
-                R.string.LitegramConnFeatMultiServer, R.string.LitegramConnFeatMultiServerDesc);
+                R.string.LitegramConnFeatMultiServer, R.string.LitegramConnFeatMultiServerDesc, R.string.LitegramConnFeatMultiServerDetail);
         addFeatureTile(context, panel, c(Theme.key_statisticChartLine_green), "Aa",
-                R.string.LitegramConnFeatEasy, R.string.LitegramConnFeatEasyDesc);
+                R.string.LitegramConnFeatEasy, R.string.LitegramConnFeatEasyDesc, R.string.LitegramConnFeatEasyDetail);
 
         section.addView(panel);
         return section;
     }
 
     private void addFeatureTile(Context context, LinearLayout panel, int iconBgColor, String symbol,
-                                int titleRes, int descRes) {
+                                int titleRes, int descRes, int detailRes) {
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -524,7 +526,66 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         chev.setImageDrawable(cd);
         row.addView(chev, new LinearLayout.LayoutParams(AndroidUtilities.dp(18), AndroidUtilities.dp(18)));
 
+        row.setBackground(Theme.createSelectorDrawable(
+                Theme.getColor(Theme.key_listSelector), 2));
+        row.setOnClickListener(v -> showFeatureDetail(titleRes, detailRes));
+
         panel.addView(row);
+    }
+
+    private void showFeatureDetail(int titleRes, int detailRes) {
+        Context ctx = getParentActivity();
+        if (ctx == null) return;
+
+        BottomSheet.Builder builder = new BottomSheet.Builder(ctx);
+
+        LinearLayout root = new LinearLayout(ctx);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(16),
+                AndroidUtilities.dp(22), AndroidUtilities.dp(24));
+
+        TextView title = new TextView(ctx);
+        title.setText(LocaleController.getString(titleRes));
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        title.setTypeface(AndroidUtilities.bold());
+        title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        root.addView(title);
+
+        View divider = new View(ctx);
+        divider.setBackgroundColor(Theme.getColor(Theme.key_divider));
+        LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 1);
+        divLp.topMargin = AndroidUtilities.dp(12);
+        divLp.bottomMargin = AndroidUtilities.dp(12);
+        root.addView(divider, divLp);
+
+        TextView detail = new TextView(ctx);
+        detail.setText(LocaleController.getString(detailRes));
+        detail.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        detail.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        detail.setLineSpacing(AndroidUtilities.dp(3), 1f);
+        root.addView(detail);
+
+        TextView closeBtn = new TextView(ctx);
+        closeBtn.setText(LocaleController.getString(R.string.Close));
+        closeBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        closeBtn.setTypeface(AndroidUtilities.bold());
+        closeBtn.setTextColor(c(Theme.key_featuredStickers_buttonText));
+        closeBtn.setGravity(Gravity.CENTER);
+        closeBtn.setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(12));
+        GradientDrawable btnBg = new GradientDrawable();
+        btnBg.setColor(c(Theme.key_featuredStickers_addButton));
+        btnBg.setCornerRadius(AndroidUtilities.dp(10));
+        closeBtn.setBackground(btnBg);
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        btnLp.topMargin = AndroidUtilities.dp(16);
+        root.addView(closeBtn, btnLp);
+
+        builder.setCustomView(root);
+        BottomSheet sheet = builder.create();
+        closeBtn.setOnClickListener(v -> sheet.dismiss());
+        showDialog(sheet);
     }
 
     private void loadServers() {
