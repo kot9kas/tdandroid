@@ -41,10 +41,10 @@ public class LitegramController {
 
     private static final long WATCHER_POLL_MS = 1_000;
     private static final long NO_PROXY_GRACE_MS = 3_000;
-    private static final long DIRECT_RECONNECT_GRACE_MS = 15_000;
+    private static final long DIRECT_RECONNECT_GRACE_MS = 5_000;
     private static final long PROXY_RETRY_COOLDOWN_MS = 3_000;
     private static final long APP_FOREGROUND_RECHECK_MS = 2_000;
-    private static final long UNAUTHORIZED_PROXY_RETRY_MS = 15_000;
+    private static final long UNAUTHORIZED_PROXY_RETRY_MS = 7_000;
     private volatile boolean reclaimScheduled;
     private volatile long noProxyConnectingSinceMs;
     private volatile long lastProxyAttemptAtMs;
