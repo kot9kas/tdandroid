@@ -8,6 +8,7 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.ConnectionsManager;
 
@@ -41,9 +42,13 @@ public class LitegramController {
     private static final long WATCHER_POLL_MS = 1_000;
     private static final long NO_PROXY_GRACE_MS = 3_000;
     private static final long PROXY_RETRY_COOLDOWN_MS = 3_000;
+    private static final long APP_FOREGROUND_RECHECK_MS = 2_000;
+    private static final long UNAUTHORIZED_PROXY_RETRY_MS = 15_000;
     private volatile boolean reclaimScheduled;
     private volatile long noProxyConnectingSinceMs;
     private volatile long lastProxyAttemptAtMs;
+    private volatile long lastAppForegroundCheckMs;
+    private volatile long lastUnauthorizedProxyAttemptMs;
     private volatile boolean startupConnect = true;
     private volatile long directCheckStartedAtMs;
 
@@ -73,6 +78,28 @@ public class LitegramController {
             fetchServersForCache();
         });
         scheduleConnectionWatcher();
+    }
+
+    /**
+     * Re-check direct connectivity whenever app is opened/resumed.
+     * If direct works, proxy stays disabled. Fallback logic enables proxy only when needed.
+     */
+    public void onAppForeground() {
+        long now = System.currentTimeMillis();
+        if (now - lastAppForegroundCheckMs < APP_FOREGROUND_RECHECK_MS) {
+            return;
+        }
+        lastAppForegroundCheckMs = now;
+
+        noProxyConnectingSinceMs = 0;
+        directCheckStartedAtMs = now;
+        reclaimScheduled = false;
+
+        AndroidUtilities.runOnUIThread(() -> {
+            ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
+            clearSharedConfigProxy();
+            NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
+        });
     }
 
     private void clearSharedConfigProxy() {
@@ -135,8 +162,15 @@ public class LitegramController {
         if (reclaimScheduled || nowMs - lastProxyAttemptAtMs < PROXY_RETRY_COOLDOWN_MS) {
             return;
         }
+        if (UserConfig.getActivatedAccountsCount() == 0
+                && nowMs - lastUnauthorizedProxyAttemptMs < UNAUTHORIZED_PROXY_RETRY_MS) {
+            return;
+        }
         reclaimScheduled = true;
         lastProxyAttemptAtMs = nowMs;
+        if (UserConfig.getActivatedAccountsCount() == 0) {
+            lastUnauthorizedProxyAttemptMs = nowMs;
+        }
         FileLog.d(reason);
         Utilities.globalQueue.postRunnable(() -> {
             connectProxy();
