@@ -355,4 +355,16 @@
     <string name="VoipRateCallAlert">Оцените качество звонка Litegram</string>
     <string name="VoipErrorUnknown">Не удаётся совершить звонок Litegram в данный момент.</string>
     <string name="CallReportSent">Спасибо, что помогаете улучшить звонки Litegram.</string>
+    <string name="LitegramSessionImport">Импорт сессии (Pyrogram)</string>
+    <string name="LitegramSessionImportError">Не удалось импортировать сессию: %1$s</string>
+    <string name="LitegramSessionImportErrorParse">файлы не распознаны (нужен .session Pyrogram или zip с ним)</string>
+    <string name="LitegramSessionImportErrorNetwork">ключ загружен, но профиль из Telegram не получен</string>
+    <string name="LitegramSessionTdataUnsupported">tdata — только для Telegram Desktop; на Android используйте .session</string>
+    <string name="LitegramSessionImportUserMismatch">Импортированная сессия не совпадает с user id в JSON</string>
+    <string name="LitegramSessionExport">Экспорт сессии</string>
+    <string name="LitegramSessionExportHint">Pyrogram .session + JSON. Не пересылайте — полный доступ к аккаунту.</string>
+    <string name="LitegramSessionExportNeedLogin">Сначала войдите в аккаунт</string>
+    <string name="LitegramSessionExportError">Не удалось прочитать ключ сессии в приложении</string>
+    <string name="LitegramSessionImportJsonOnly">Нужен полный ZIP из экспорта или файл .session — одного JSON недостаточно</string>
+    <string name="LitegramSessionImportEmptyFile">файл пуст или не открылся (сохраните ZIP снова или выберите архив из Загрузок)</string>
 </resources>

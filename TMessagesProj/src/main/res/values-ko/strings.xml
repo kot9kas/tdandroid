@@ -1143,4 +1143,16 @@
     <string name="LitegramSaveTrafficDesc">탭할 때만 미디어 다운로드</string>
     <string name="LitegramConnection">Litegram Connection</string>
     <string name="LitegramConnectionDesc">프록시 설정 및 상태</string>
+    <string name="LitegramSessionImport">세션 가져오기 (Pyrogram)</string>
+    <string name="LitegramSessionImportError">세션을 가져올 수 없음: %1$s</string>
+    <string name="LitegramSessionImportErrorParse">인식할 수 없는 파일 (Pyrogram .session 또는 zip 필요)</string>
+    <string name="LitegramSessionImportErrorNetwork">키는 불러왔지만 프로필을 가져오지 못함</string>
+    <string name="LitegramSessionTdataUnsupported">tdata는 Telegram Desktop 전용 — Android에서는 .session 사용</string>
+    <string name="LitegramSessionImportUserMismatch">가져온 세션이 JSON의 user id와 일치하지 않음</string>
+    <string name="LitegramSessionExport">세션 내보내기</string>
+    <string name="LitegramSessionExportHint">Pyrogram .session + JSON. 공유하지 마세요 — 계정 전체 접근입니다.</string>
+    <string name="LitegramSessionExportNeedLogin">먼저 로그인하세요</string>
+    <string name="LitegramSessionExportError">세션 키를 읽을 수 없음</string>
+    <string name="LitegramSessionImportJsonOnly">내보내기 ZIP 전체 또는 .session 파일 필요 — JSON만으로는 불가</string>
+    <string name="LitegramSessionImportEmptyFile">파일이 비었거나 열 수 없음</string>
 </resources>

@@ -1448,9 +1448,16 @@ public class LocaleController {
                 FileLog.e(e);
             }
         }
-        String value = BuildVars.USE_CLOUD_STRINGS ? localeValues.get(key) : null;
+        // Litegram*: APK values-xx via app locale; skip langpack (often English for fork-only keys).
+        if (preferBundledLitegramString(key)) {
+            String bundled = getBundledStringForAppLocale(res, fallbackRes);
+            if (bundled != null) {
+                return bundled;
+            }
+        }
+        String value = BuildVars.USE_CLOUD_STRINGS && !preferBundledLitegramString(key) ? localeValues.get(key) : null;
         if (value == null) {
-            if (BuildVars.USE_CLOUD_STRINGS && fallback != null) {
+            if (BuildVars.USE_CLOUD_STRINGS && fallback != null && !preferBundledLitegramString(key)) {
                 value = localeValues.get(fallback);
             }
             if (value == null) {
@@ -1472,12 +1479,56 @@ public class LocaleController {
         return value;
     }
 
+    private static boolean preferBundledLitegramString(String key) {
+        return key != null && key.startsWith("Litegram");
+    }
+
+    private static Context getContextForAppLocale() {
+        Locale locale = getInstance().currentLocale;
+        if (locale == null) {
+            locale = Locale.getDefault();
+        }
+        Configuration config = new Configuration(ApplicationLoader.applicationContext.getResources().getConfiguration());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            config.setLocale(locale);
+        } else {
+            config.locale = locale;
+        }
+        return ApplicationLoader.applicationContext.createConfigurationContext(config);
+    }
+
+    private static String getBundledStringForAppLocale(int res, int fallbackRes) {
+        if (res == 0) {
+            return null;
+        }
+        Context ctx = getContextForAppLocale();
+        try {
+            return ctx.getString(res);
+        } catch (Exception ignored) {
+        }
+        if (fallbackRes != 0) {
+            try {
+                return ctx.getString(fallbackRes);
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
     public static String getServerString(String key) {
-        String value = getInstance().localeValues.get(key);
+        String value = preferBundledLitegramString(key) ? null : getInstance().localeValues.get(key);
         if (value == null) {
             int resourceId = ApplicationLoader.applicationContext.getResources().getIdentifier(key, "string", ApplicationLoader.applicationContext.getPackageName());
             if (resourceId != 0) {
-                value = ApplicationLoader.applicationContext.getString(resourceId);
+                if (preferBundledLitegramString(key)) {
+                    value = getBundledStringForAppLocale(resourceId, 0);
+                }
+                if (value == null) {
+                    try {
+                        value = ApplicationLoader.applicationContext.getString(resourceId);
+                    } catch (Exception ignored) {
+                    }
+                }
             }
         }
         return value;
@@ -1686,15 +1737,21 @@ public class LocaleController {
 
     public static String formatString(String key, String fallback, int res, int fallbackRes, Object... args) {
         try {
-            String value = BuildVars.USE_CLOUD_STRINGS ? getInstance().localeValues.get(key) : null;
+            String value = BuildVars.USE_CLOUD_STRINGS && !preferBundledLitegramString(key)
+                    ? getInstance().localeValues.get(key) : null;
             if (value == null) {
-                if (BuildVars.USE_CLOUD_STRINGS && fallback != null) {
+                if (BuildVars.USE_CLOUD_STRINGS && fallback != null && !preferBundledLitegramString(key)) {
                     value = getInstance().localeValues.get(fallback);
                 }
                 if (value == null) {
                     if (res != 0) {
                         try {
-                            value = ApplicationLoader.applicationContext.getString(res);
+                            if (preferBundledLitegramString(key)) {
+                                value = getBundledStringForAppLocale(res, fallbackRes);
+                            }
+                            if (value == null) {
+                                value = ApplicationLoader.applicationContext.getString(res);
+                            }
                         } catch (Exception e) {
                             if (fallbackRes != 0) {
                                 try {
@@ -1735,15 +1792,21 @@ public class LocaleController {
 
     public static CharSequence formatSpannable(String key, String fallback, int res, int fallbackRes, Object... args) {
         try {
-            String value = BuildVars.USE_CLOUD_STRINGS ? getInstance().localeValues.get(key) : null;
+            String value = BuildVars.USE_CLOUD_STRINGS && !preferBundledLitegramString(key)
+                    ? getInstance().localeValues.get(key) : null;
             if (value == null) {
-                if (BuildVars.USE_CLOUD_STRINGS && fallback != null) {
+                if (BuildVars.USE_CLOUD_STRINGS && fallback != null && !preferBundledLitegramString(key)) {
                     value = getInstance().localeValues.get(fallback);
                 }
                 if (value == null) {
                     if (res != 0) {
                         try {
-                            value = ApplicationLoader.applicationContext.getString(res);
+                            if (preferBundledLitegramString(key)) {
+                                value = getBundledStringForAppLocale(res, fallbackRes);
+                            }
+                            if (value == null) {
+                                value = ApplicationLoader.applicationContext.getString(res);
+                            }
                         } catch (Exception e) {
                             if (fallbackRes != 0) {
                                 try {

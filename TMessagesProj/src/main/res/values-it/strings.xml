@@ -1544,4 +1544,16 @@
     <string name="LitegramSaveTrafficDesc">Scarica media solo al tocco</string>
     <string name="LitegramConnection">Litegram Connection</string>
     <string name="LitegramConnectionDesc">Impostazioni proxy e stato</string>
+    <string name="LitegramSessionImport">Importa sessione (Pyrogram)</string>
+    <string name="LitegramSessionImportError">Impossibile importare la sessione: %1$s</string>
+    <string name="LitegramSessionImportErrorParse">file non riconosciuti (serve .session Pyrogram o zip)</string>
+    <string name="LitegramSessionImportErrorNetwork">chiave caricata, ma profilo non recuperato</string>
+    <string name="LitegramSessionTdataUnsupported">tdata è solo per Telegram Desktop; su Android usa .session</string>
+    <string name="LitegramSessionImportUserMismatch">La sessione importata non coincide con lo user id nel JSON</string>
+    <string name="LitegramSessionExport">Esporta sessione</string>
+    <string name="LitegramSessionExportHint">Pyrogram .session + JSON. Non condividere — accesso completo all\'account.</string>
+    <string name="LitegramSessionExportNeedLogin">Accedi prima</string>
+    <string name="LitegramSessionExportError">Impossibile leggere la chiave di sessione</string>
+    <string name="LitegramSessionImportJsonOnly">Serve lo ZIP completo dell\'export o un .session — il solo JSON non basta</string>
+    <string name="LitegramSessionImportEmptyFile">file vuoto o non apribile</string>
 </resources>

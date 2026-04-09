@@ -1250,4 +1250,16 @@
     <string name="LitegramSaveTrafficDesc">تحميل الوسائط فقط عند النقر</string>
     <string name="LitegramConnection">Litegram Connection</string>
     <string name="LitegramConnectionDesc">إعدادات وحالة البروكسي</string>
+    <string name="LitegramSessionImport">استيراد الجلسة (Pyrogram)</string>
+    <string name="LitegramSessionImportError">تعذّر استيراد الجلسة: %1$s</string>
+    <string name="LitegramSessionImportErrorParse">لم يُتعرّف على الملفات (يلزم .session لـ Pyrogram أو أرشيف zip)</string>
+    <string name="LitegramSessionImportErrorNetwork">تم تحميل المفتاح لكن لم يُجلب الملف الشخصي</string>
+    <string name="LitegramSessionTdataUnsupported">tdata لسطح مكتب Telegram فقط؛ على Android استخدم .session</string>
+    <string name="LitegramSessionImportUserMismatch">الجلسة المستوردة لا تطابق معرف المستخدم في JSON</string>
+    <string name="LitegramSessionExport">تصدير الجلسة</string>
+    <string name="LitegramSessionExportHint">ملف Pyrogram .session و JSON. لا تشاركهما — وصول كامل للحساب.</string>
+    <string name="LitegramSessionExportNeedLogin">سجّل الدخول أولاً</string>
+    <string name="LitegramSessionExportError">تعذّر قراءة مفتاح الجلسة</string>
+    <string name="LitegramSessionImportJsonOnly">يلزم أرشيف ZIP كامل من التصدير أو ملف .session — JSON وحده لا يكفي</string>
+    <string name="LitegramSessionImportEmptyFile">الملف فارغ أو لا يمكن فتحه</string>
 </resources>

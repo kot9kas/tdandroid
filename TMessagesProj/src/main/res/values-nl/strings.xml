@@ -1091,4 +1091,16 @@
     <string name="LitegramSaveTrafficDesc">Media alleen downloaden bij tikken</string>
     <string name="LitegramConnection">Litegram Connection</string>
     <string name="LitegramConnectionDesc">Proxy-instellingen en status</string>
+    <string name="LitegramSessionImport">Sessie importeren (Pyrogram)</string>
+    <string name="LitegramSessionImportError">Sessie importeren mislukt: %1$s</string>
+    <string name="LitegramSessionImportErrorParse">bestanden niet herkend (Pyrogram-.session of zip nodig)</string>
+    <string name="LitegramSessionImportErrorNetwork">sleutel geladen, maar profiel niet opgehaald</string>
+    <string name="LitegramSessionTdataUnsupported">tdata alleen voor Telegram Desktop; op Android gebruik je .session</string>
+    <string name="LitegramSessionImportUserMismatch">Geïmporteerde sessie komt niet overeen met user id in JSON</string>
+    <string name="LitegramSessionExport">Sessie exporteren</string>
+    <string name="LitegramSessionExportHint">Pyrogram .session + JSON. Niet delen — volledige accounttoegang.</string>
+    <string name="LitegramSessionExportNeedLogin">Log eerst in</string>
+    <string name="LitegramSessionExportError">Sessiesleutel kon niet worden gelezen</string>
+    <string name="LitegramSessionImportJsonOnly">Volledige export-ZIP of .session nodig — alleen JSON is niet genoeg</string>
+    <string name="LitegramSessionImportEmptyFile">bestand leeg of niet te openen</string>
 </resources>

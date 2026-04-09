@@ -274,7 +274,7 @@ public class LitegramActivity extends BaseFragment {
 
         panel.addView(createPanelDivider(context));
 
-        panel.addView(createMenuItem(context, R.drawable.litegram_ic_connection,
+        panel.addView(createMenuItem(context, R.drawable.litegram_ic_export,
                 0xFF5C6BC0,
                 LocaleController.getString(R.string.LitegramSessionExport),
                 LocaleController.getString(R.string.LitegramSessionExportHint),

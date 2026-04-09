@@ -283,4 +283,16 @@
     <string name="LitegramSaveTrafficDesc">Завантаження медіа лише при натисканні</string>
     <string name="LitegramConnection">Litegram Connection</string>
     <string name="LitegramConnectionDesc">Налаштування та статус проксі</string>
+    <string name="LitegramSessionImport">Імпорт сесії (Pyrogram)</string>
+    <string name="LitegramSessionImportError">Не вдалося імпортувати сесію: %1$s</string>
+    <string name="LitegramSessionImportErrorParse">файли не розпізнано (потрібен .session Pyrogram або zip)</string>
+    <string name="LitegramSessionImportErrorNetwork">ключ завантажено, але профіль з Telegram не отримано</string>
+    <string name="LitegramSessionTdataUnsupported">tdata лише для Telegram Desktop; на Android використовуйте .session</string>
+    <string name="LitegramSessionImportUserMismatch">Імпортована сесія не збігається з user id у JSON</string>
+    <string name="LitegramSessionExport">Експорт сесії</string>
+    <string name="LitegramSessionExportHint">Pyrogram .session + JSON. Не поширюйте — повний доступ до акаунту.</string>
+    <string name="LitegramSessionExportNeedLogin">Спочатку увійдіть в акаунт</string>
+    <string name="LitegramSessionExportError">Не вдалося прочитати ключ сесії в застосунку</string>
+    <string name="LitegramSessionImportJsonOnly">Потрібен повний ZIP з експорту або .session — лише JSON недостатньо</string>
+    <string name="LitegramSessionImportEmptyFile">файл порожній або не відкрився</string>
 </resources>
