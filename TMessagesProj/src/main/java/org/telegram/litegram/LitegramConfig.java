@@ -34,8 +34,6 @@ public final class LitegramConfig {
     private static final String KEY_SUB_STATUS = "litegram_sub_status";
     private static final String KEY_SUB_EXPIRES = "litegram_sub_expires";
     private static final String KEY_SERVERS_CACHE = "litegram_servers_cache";
-    private static final String KEY_VAULT_DELETED = "litegram_vault_deleted";
-    private static final String KEY_VAULT_ONCE = "litegram_vault_once";
 
     private static volatile boolean useFallback;
     private static volatile Boolean saveTrafficCached;
@@ -200,22 +198,6 @@ public final class LitegramConfig {
             }
         } catch (Exception ignored) {}
         return result;
-    }
-
-    public static boolean isVaultDeletedEnabled() {
-        return getPrefs().getBoolean(KEY_VAULT_DELETED, true);
-    }
-
-    public static void setVaultDeletedEnabled(boolean enabled) {
-        getPrefs().edit().putBoolean(KEY_VAULT_DELETED, enabled).apply();
-    }
-
-    public static boolean isVaultOnceEnabled() {
-        return getPrefs().getBoolean(KEY_VAULT_ONCE, true);
-    }
-
-    public static void setVaultOnceEnabled(boolean enabled) {
-        getPrefs().edit().putBoolean(KEY_VAULT_ONCE, enabled).apply();
     }
 
     private static SharedPreferences getPrefs() {

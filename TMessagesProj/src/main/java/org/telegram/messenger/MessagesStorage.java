@@ -13934,11 +13934,6 @@ public class MessagesStorage extends BaseController {
                         cursor.dispose();
                         cursor = null;
                     }
-                    try {
-                        org.telegram.litegram.LitegramVault.captureBeforeDelete(database, did, idsStr, currentAccount);
-                    } catch (Exception lge) {
-                        FileLog.e("litegram vault: captureBeforeDelete failed", lge);
-                    }
                     database.executeFast(String.format(Locale.US, "DELETE FROM messages_v2 WHERE mid IN(%s) AND uid = %d", ids, did)).stepThis().dispose();
                     database.executeFast(String.format(Locale.US, "DELETE FROM messages_topics WHERE mid IN(%s) AND uid = %d", ids, did)).stepThis().dispose();
                     database.executeFast(String.format(Locale.US, "DELETE FROM polls_v2 WHERE mid IN(%s) AND uid = %d", ids, did)).stepThis().dispose();

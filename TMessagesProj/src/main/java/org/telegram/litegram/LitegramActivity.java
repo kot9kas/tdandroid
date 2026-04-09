@@ -274,14 +274,6 @@ public class LitegramActivity extends BaseFragment {
 
         panel.addView(createPanelDivider(context));
 
-        panel.addView(createMenuItem(context, R.drawable.msg_discussion,
-                0xFF42A5F5,
-                LocaleController.getString(R.string.LitegramChats),
-                LocaleController.getString(R.string.LitegramChatsDesc),
-                this::showChatsSheet));
-
-        panel.addView(createPanelDivider(context));
-
         panel.addView(createMenuItem(context, R.drawable.msg_help,
                 0xFFFF9800,
                 LocaleController.getString(R.string.LitegramSupport),
@@ -435,10 +427,6 @@ public class LitegramActivity extends BaseFragment {
     private static final String SUPPORT_EMAIL = "support@bubavpn.com";
     private static final String LITEGRAM_CHANNEL_USERNAME = "litegram_news";
     private static final String LITEGRAM_CHAT_USERNAME = "litegram_chat";
-
-    private void showChatsSheet() {
-        presentFragment(new LitegramChatsActivity());
-    }
 
     private void openChat(String username) {
         try {
