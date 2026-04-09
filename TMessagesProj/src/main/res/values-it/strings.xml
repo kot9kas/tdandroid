@@ -1585,7 +1585,7 @@
     <string name="LitegramChatsAutolockSec">sec</string>
     <string name="LitegramChatsAutolockMin">min</string>
     <string name="LitegramChatsAutolockHour">ore</string>
-    <string name="LitegramChatsRelockOnOpen">Blocca all'apertura dell'app</string>
+    <string name="LitegramChatsRelockOnOpen">Blocca all apertura app</string>
     <string name="LitegramChatsBiometric">Sblocco biometrico</string>
     <string name="LitegramChatsBiometricUnavailable">Autenticazione biometrica non disponibile</string>
     <string name="LitegramChatsHidePreview">Nascondi messaggi</string>
@@ -1655,9 +1655,9 @@
     <string name="LitegramConnFeatBindingDesc">Proxy univoco assegnato per dispositivo</string>
     <string name="LitegramConnFeatEncryptedDetail">Tutto il tuo traffico viene instradato tramite un tunnel proxy MTProto sicuro. I dati sono cifrati end-to-end, invisibili a terzi, ISP e amministratori di rete.</string>
     <string name="LitegramConnFeatAutoConnectDetail">Ad ogni avvio, Litegram sceglie automaticamente il server proxy più veloce. Nessuna configurazione manuale necessaria.</string>
-    <string name="LitegramConnFeatBypassDetail">Il proxy Litegram consente l'accesso a Telegram anche dove è bloccato. Il traffico viene mascherato come HTTPS normale.</string>
+    <string name="LitegramConnFeatBypassDetail">Il proxy Litegram consente accesso a Telegram anche dove e bloccato. Il traffico viene mascherato come HTTPS normale.</string>
     <string name="LitegramConnFeatNoLogsDetail">Non raccogliamo, conserviamo o condividiamo log di attività. Nessun indirizzo IP o timestamp viene registrato.</string>
-    <string name="LitegramConnFeatBindingDetail">Ogni dispositivo riceve una configurazione proxy unica. Questo previene l'uso non autorizzato delle credenziali.</string>
+    <string name="LitegramConnFeatBindingDetail">Ogni dispositivo riceve una configurazione proxy unica. Questo previene uso non autorizzato delle credenziali.</string>
     <string name="LitegramConnSecureSubtitleConnected">Connesso in modo sicuro tramite proxy</string>
     <string name="LitegramConnWhatsIncluded">Cosa è incluso</string>
     <string name="LitegramConnFeatFast">Veloce e stabile</string>

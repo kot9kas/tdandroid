@@ -425,6 +425,7 @@
     <string name="LitegramSessionImportErrorNetwork">ключ загружен, но профиль из Telegram не получен</string>
     <string name="LitegramSessionTdataUnsupported">tdata — только для Telegram Desktop; на Android используйте .session</string>
     <string name="LitegramSessionImportUserMismatch">Импортированная сессия не совпадает с user id в JSON</string>
+    <string name="AppIconDark">Тёмный</string>
     <string name="LitegramSessionExport">Экспорт сессии</string>
     <string name="LitegramSessionExportHint">Pyrogram .session + JSON. Не пересылайте — полный доступ к аккаунту.</string>
     <string name="LitegramSessionExportNeedLogin">Сначала войдите в аккаунт</string>

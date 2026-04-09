@@ -1195,12 +1195,12 @@
     <string name="LitegramConnFeatAutoConnect">Auto-verbinden</string>
     <string name="LitegramConnFeatAutoConnectDesc">Verbindt bij elke start automatisch met de beste proxy</string>
     <string name="LitegramConnFeatBypass">Beperkingen omzeilen</string>
-    <string name="LitegramConnFeatBypassDesc">Toegang tot Telegram in geblokkeerde regio's</string>
+    <string name="LitegramConnFeatBypassDesc">Toegang tot Telegram in geblokkeerde regio</string>
     <string name="LitegramConnFeatNoLogs">Geen logboeken</string>
     <string name="LitegramConnFeatNoLogsDesc">Geen verbindingslogboeken of activiteitsregistratie</string>
     <string name="LitegramConnFeatBinding">Apparaatbinding</string>
     <string name="LitegramConnFeatBindingDesc">Unieke proxy per apparaat voor extra beveiliging</string>
-    <string name="LitegramConnFeatEncryptedDetail">Al uw verkeer wordt gerouteerd via een veilige MTProto-proxytunnel. Gegevens zijn end-to-end versleuteld en onzichtbaar voor derden, ISP's en netwerkbeheerders.</string>
+    <string name="LitegramConnFeatEncryptedDetail">Al uw verkeer wordt gerouteerd via een veilige MTProto proxytunnel. Gegevens zijn end to end versleuteld en onzichtbaar voor derden, ISP en netwerkbeheerders.</string>
     <string name="LitegramConnFeatAutoConnectDetail">Bij elke start selecteert Litegram automatisch de snelste proxyserver. Geen handmatige installatie vereist.</string>
     <string name="LitegramConnFeatBypassDetail">Litegram-proxy maakt Telegram toegankelijk ook waar het geblokkeerd is. Verkeer wordt vermomd als normaal HTTPS.</string>
     <string name="LitegramConnFeatNoLogsDetail">We verzamelen, bewaren of delen geen activiteitslogboeken. Geen IP-adressen of tijdstempels worden geregistreerd.</string>

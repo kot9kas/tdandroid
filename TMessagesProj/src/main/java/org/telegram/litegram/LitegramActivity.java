@@ -3,9 +3,11 @@ package org.telegram.litegram;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.net.Uri;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -122,10 +124,27 @@ public class LitegramActivity extends BaseFragment {
         tv.setText(LocaleController.getString(R.string.MainTabsLitegram));
         tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
         tv.setTypeface(AndroidUtilities.bold());
-        tv.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
+        applyLitegramTitleGradient(tv);
         tv.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         tv.setPadding(AndroidUtilities.dp(18), AndroidUtilities.statusBarHeight + AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
         return tv;
+    }
+
+    private void applyLitegramTitleGradient(TextView titleView) {
+        titleView.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.post(() -> {
+            int width = titleView.getWidth();
+            if (width <= 0) {
+                return;
+            }
+            LinearGradient gradient = new LinearGradient(
+                    0f, 0f, width, 0f,
+                    new int[]{0xFFCCA6E6, 0xFF8E63CF, 0xFF5E3EA5},
+                    null,
+                    Shader.TileMode.CLAMP);
+            titleView.getPaint().setShader(gradient);
+            titleView.invalidate();
+        });
     }
 
     private static LinearLayout wrapWithSideMargin(Context context, View child, int marginDp) {
