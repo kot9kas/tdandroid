@@ -40,7 +40,8 @@ public class LitegramController {
     private LitegramController() {}
 
     private static final long WATCHER_POLL_MS = 1_000;
-    private static final long NO_PROXY_GRACE_MS = 3_000;
+    private static final long NO_PROXY_GRACE_MS = 7_000;
+    private static final long DIRECT_RECONNECT_GRACE_MS = 15_000;
     private static final long PROXY_RETRY_COOLDOWN_MS = 3_000;
     private static final long APP_FOREGROUND_RECHECK_MS = 2_000;
     private static final long UNAUTHORIZED_PROXY_RETRY_MS = 15_000;
@@ -51,6 +52,8 @@ public class LitegramController {
     private volatile long lastUnauthorizedProxyAttemptMs;
     private volatile boolean startupConnect = true;
     private volatile long directCheckStartedAtMs;
+    private volatile boolean proxyAppliedByUs;
+    private volatile long lastDirectConnectedMs;
 
     public void init() {
         if (initialized) {
@@ -69,6 +72,7 @@ public class LitegramController {
         }
 
         clearSharedConfigProxy();
+        proxyAppliedByUs = false;
         directCheckStartedAtMs = System.currentTimeMillis();
 
         resolveTelegramId();
@@ -94,6 +98,7 @@ public class LitegramController {
         noProxyConnectingSinceMs = 0;
         directCheckStartedAtMs = now;
         reclaimScheduled = false;
+        proxyAppliedByUs = false;
 
         AndroidUtilities.runOnUIThread(() -> {
             ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
@@ -126,27 +131,35 @@ public class LitegramController {
                 boolean connecting = state == ConnectionsManager.ConnectionStateConnecting
                         || state == ConnectionsManager.ConnectionStateConnectingToProxy;
                 boolean waitingForNetwork = state == ConnectionsManager.ConnectionStateWaitingForNetwork;
-                boolean telegramProxyEnabled = MessagesController.getGlobalMainSettings()
-                        .getBoolean("proxy_enabled", false);
                 long now = System.currentTimeMillis();
 
-                if (!telegramProxyEnabled) {
-                    if (connected || waitingForNetwork) {
+                if (!proxyAppliedByUs) {
+                    // Direct mode: proxy is off, check if direct connection works
+                    if (connected) {
+                        noProxyConnectingSinceMs = 0;
+                        lastDirectConnectedMs = now;
+                    } else if (waitingForNetwork) {
                         noProxyConnectingSinceMs = 0;
                     } else if (connecting) {
                         if (noProxyConnectingSinceMs == 0) {
                             noProxyConnectingSinceMs = now;
-                        } else if (now - noProxyConnectingSinceMs >= NO_PROXY_GRACE_MS) {
-                            maybeReconnectProxy("litegram: direct connection >3s, enabling proxy fallback", now);
+                        } else {
+                            long grace = NO_PROXY_GRACE_MS;
+                            if (lastDirectConnectedMs > 0 && now - lastDirectConnectedMs < 60_000) {
+                                grace = DIRECT_RECONNECT_GRACE_MS;
+                            }
+                            if (now - noProxyConnectingSinceMs >= grace) {
+                                maybeReconnectProxy("litegram: direct connection >" + (grace / 1000) + "s, enabling proxy fallback", now);
+                            }
                         }
                     } else {
-                        // Covers preroll/unauthorized startup states where Telegram may not report CONNECTING.
                         if (directCheckStartedAtMs > 0 && now - directCheckStartedAtMs >= NO_PROXY_GRACE_MS) {
-                            maybeReconnectProxy("litegram: startup direct check >3s, enabling proxy fallback", now);
+                            maybeReconnectProxy("litegram: startup direct check timeout, enabling proxy fallback", now);
                             directCheckStartedAtMs = 0;
                         }
                     }
                 } else {
+                    // Proxy mode: proxy was applied by us, monitor its health
                     noProxyConnectingSinceMs = 0;
                     directCheckStartedAtMs = 0;
                     if (!connected) {
@@ -233,6 +246,7 @@ public class LitegramController {
     public void connectToServer(LitegramApi.ServerInfo server, ReconnectCallback callback) {
         forceApply = true;
         AndroidUtilities.runOnUIThread(() -> {
+            proxyAppliedByUs = true;
             LitegramConfig.saveProxy(server.host, server.port, server.secret, server.name, server.country);
             ConnectionsManager.setProxySettings(true, server.host, server.port, "", "", server.secret);
             NotificationCenter.getGlobalInstance()
@@ -409,6 +423,7 @@ public class LitegramController {
             );
             NotificationCenter.getGlobalInstance()
                     .postNotificationName(NotificationCenter.proxySettingsChanged);
+            proxyAppliedByUs = true;
             latch.countDown();
         });
         try {
@@ -562,6 +577,7 @@ public class LitegramController {
             NotificationCenter.getGlobalInstance()
                     .postNotificationName(NotificationCenter.proxySettingsChanged);
 
+            proxyAppliedByUs = true;
             FileLog.d("litegram: proxy applied " + server.host + ":" + server.port);
         });
     }
@@ -588,6 +604,14 @@ public class LitegramController {
                 List<LitegramApi.ServerInfo> servers = api.getProxyServers();
                 if (!servers.isEmpty()) {
                     LitegramConfig.saveServersCache(servers);
+                }
+
+                if (!proxyAppliedByUs && isConnectedState()) {
+                    FileLog.d("litegram: direct connection active after auth, skipping proxy");
+                    return;
+                }
+
+                if (!servers.isEmpty()) {
                     LitegramApi.ServerInfo connected = connectWithAutoFallback(servers);
                     if (connected == null) {
                         FileLog.d("litegram: no location connected after auth within 3s windows");
