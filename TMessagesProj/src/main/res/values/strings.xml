@@ -10734,7 +10734,7 @@
     <string name="LitegramSessionTdataUnsupported">tdata is for Telegram Desktop only; use .session files on Android</string>
     <string name="LitegramSessionImportUserMismatch">Imported session does not match JSON user id</string>
     <string name="LitegramSessionExport">Export session pack</string>
-    <string name="LitegramSessionExportHint">Telethon/Pyrogram .session + JSON. Anyone with these files can access your account.</string>
+    <string name="LitegramSessionExportHint">Telethon/Pyrogram .session + JSON. Anyone with these files can access your account. The same key on two phones often logs one device out within minutes — this is normal Telegram behavior, not a Litegram bug.</string>
     <string name="LitegramSessionExportNeedLogin">Log in first</string>
     <string name="LitegramSessionExportError">Could not read session key from app</string>
     <string name="LitegramSessionImportJsonOnly">Use the full ZIP from export or a .session file — JSON alone cannot sign in.</string>

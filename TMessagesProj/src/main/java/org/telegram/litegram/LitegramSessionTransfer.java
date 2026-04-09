@@ -433,12 +433,25 @@ public final class LitegramSessionTransfer {
             String n = f.getName().toLowerCase();
             if (n.endsWith(".json") && !n.contains("tgnet")) {
                 try {
-                    String s = readWholeFile(f);
-                    jsonMeta = new JSONObject(s);
-                } catch (Exception ignored) { }
-            } else if (isSqliteDatabaseFile(f)) {
+                    jsonMeta = new JSONObject(readWholeFile(f));
+                } catch (Exception ignored) {
+                }
+            }
+            String path = f.getAbsolutePath().toLowerCase();
+            if (path.contains("tdata" + File.separator + "key_datas") || path.endsWith("key_datas")) {
+                sawTdata = true;
+            }
+        }
+        int preferredDc = jsonMeta != null ? jsonMeta.optInt("dc_id", 0) : 0;
+
+        for (File f : all) {
+            String n = f.getName().toLowerCase();
+            if (n.endsWith(".json") && !n.contains("tgnet")) {
+                continue;
+            }
+            if (isSqliteDatabaseFile(f)) {
                 if (tele == null && sqliteHasTelethonSchema(f)) {
-                    SessionPayload t = readTelethon(f);
+                    SessionPayload t = readTelethon(f, preferredDc);
                     if (t != null) {
                         tele = t;
                     }
@@ -450,7 +463,7 @@ public final class LitegramSessionTransfer {
                     }
                 }
                 if (tele == null && pyro == null) {
-                    SessionPayload a = readTelethon(f);
+                    SessionPayload a = readTelethon(f, preferredDc);
                     if (a != null) {
                         tele = a;
                     } else {
@@ -462,14 +475,14 @@ public final class LitegramSessionTransfer {
                 }
             } else if (n.endsWith("_telethon.session") || (n.endsWith(".session") && !n.contains("pyrogram") && sqliteHasTelethonSchema(f))) {
                 if (tele == null) {
-                    tele = readTelethon(f);
+                    tele = readTelethon(f, preferredDc);
                 }
             } else if (n.contains("pyrogram") && n.endsWith(".session")) {
                 if (pyro == null) {
                     pyro = readPyrogram(f);
                 }
             } else if (n.endsWith(".session") && pyro == null && tele == null) {
-                SessionPayload a = readTelethon(f);
+                SessionPayload a = readTelethon(f, preferredDc);
                 if (a != null) {
                     tele = a;
                 } else {
@@ -479,12 +492,8 @@ public final class LitegramSessionTransfer {
                     }
                 }
             }
-            String path = f.getAbsolutePath().toLowerCase();
-            if (path.contains("tdata" + File.separator + "key_datas") || path.endsWith("key_datas")) {
-                sawTdata = true;
-            }
         }
-        SessionPayload use = tele != null ? tele : pyro;
+        SessionPayload use = pickBestSessionPayload(tele, pyro, jsonMeta);
         if (use == null) {
             if (sawTdata) {
                 SessionPayload p = new SessionPayload();
@@ -504,6 +513,26 @@ public final class LitegramSessionTransfer {
         }
         use.onlyTdata = false;
         return use;
+    }
+
+    /**
+     * В архиве часто есть и Telethon и Pyrogram. У Telethon в SQLite несколько строк sessions (разные DC);
+     * Pyrogram — одна строка с нужным dc. Предпочитаем запись, совпадающую с dc_id из JSON, иначе Pyrogram.
+     */
+    private static SessionPayload pickBestSessionPayload(SessionPayload tele, SessionPayload pyro, JSONObject jsonMeta) {
+        int jsonDc = jsonMeta != null ? jsonMeta.optInt("dc_id", 0) : 0;
+        if (jsonDc >= 1 && jsonDc <= 5) {
+            if (tele != null && tele.dcId == jsonDc) {
+                return tele;
+            }
+            if (pyro != null && pyro.dcId == jsonDc) {
+                return pyro;
+            }
+        }
+        if (pyro != null) {
+            return pyro;
+        }
+        return tele;
     }
 
     /**
@@ -544,37 +573,67 @@ public final class LitegramSessionTransfer {
         }
     }
 
-    private static SessionPayload readTelethon(File f) {
+    /**
+     * @param preferredDcId dc_id из JSON пакета (см. {@link #writeJsonMetadata}); в Telethon часто несколько строк в sessions.
+     */
+    private static SessionPayload readTelethon(File f, int preferredDcId) {
+        SQLiteDatabase db = null;
         try {
-            SQLiteDatabase db = SQLiteDatabase.openDatabase(f.getAbsolutePath(), null, SQLiteDatabase.OPEN_READONLY);
-            Cursor c = db.rawQuery("SELECT * FROM sessions LIMIT 1", null);
-            if (!c.moveToFirst()) {
-                c.close();
-                db.close();
-                return null;
+            db = SQLiteDatabase.openDatabase(f.getAbsolutePath(), null, SQLiteDatabase.OPEN_READONLY);
+            if (preferredDcId >= 1 && preferredDcId <= 5) {
+                try (Cursor c = db.rawQuery("SELECT * FROM sessions WHERE dc_id = ? LIMIT 1",
+                        new String[]{String.valueOf(preferredDcId)})) {
+                    if (c.moveToFirst()) {
+                        SessionPayload p = telethonRowToPayload(c);
+                        if (p != null) {
+                            return p;
+                        }
+                    }
+                }
             }
-            int dcIdx = c.getColumnIndex("dc_id");
-            int keyIdx = c.getColumnIndex("auth_key");
-            if (dcIdx < 0 || keyIdx < 0) {
-                c.close();
-                db.close();
-                return null;
+            try (Cursor c = db.rawQuery("SELECT * FROM sessions", null)) {
+                SessionPayload fallback = null;
+                while (c.moveToNext()) {
+                    SessionPayload p = telethonRowToPayload(c);
+                    if (p == null) {
+                        continue;
+                    }
+                    if (p.dcId >= 1 && p.dcId <= 5) {
+                        if (preferredDcId >= 1 && preferredDcId <= 5 && p.dcId == preferredDcId) {
+                            return p;
+                        }
+                        if (fallback == null) {
+                            fallback = p;
+                        }
+                    }
+                }
+                return fallback;
             }
-            SessionPayload p = new SessionPayload();
-            p.dcId = c.getInt(dcIdx);
-            byte[] key = c.getBlob(keyIdx);
-            c.close();
-            db.close();
-            if (key == null || key.length != 256) {
-                return null;
-            }
-            p.authKey = key;
-            normalizeEndpointsForNative(p);
-            return p;
         } catch (Exception e) {
             FileLog.e(e);
             return null;
+        } finally {
+            if (db != null) {
+                db.close();
+            }
         }
+    }
+
+    private static SessionPayload telethonRowToPayload(Cursor c) {
+        int dcIdx = c.getColumnIndex("dc_id");
+        int keyIdx = c.getColumnIndex("auth_key");
+        if (dcIdx < 0 || keyIdx < 0) {
+            return null;
+        }
+        byte[] key = c.getBlob(keyIdx);
+        if (key == null || key.length != 256) {
+            return null;
+        }
+        SessionPayload p = new SessionPayload();
+        p.dcId = c.getInt(dcIdx);
+        p.authKey = key;
+        normalizeEndpointsForNative(p);
+        return p;
     }
 
     private static SessionPayload readPyrogram(File f) {
