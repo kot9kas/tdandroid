@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import org.telegram.messenger.ApplicationLoader;
 
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +27,10 @@ public final class LitegramChatLocks {
     private static final String KEY_USE_BIOMETRIC = "use_biometric";
     private static final String KEY_HIDE_PREVIEW = "hide_preview";
     private static final long FOLDER_ID_OFFSET = 0x7F00000000L;
+
+    private static final String KEY_PIN_SALT = "pin_salt";
+    /** Prefix that marks a salted SHA-256 hash (v2). Absent prefix = legacy unsalted hash. */
+    private static final String HASH_V2_PREFIX = "v2:";
 
     private static final long SETTINGS_UNLOCK_DURATION_MS = 30_000;
 
@@ -72,8 +77,7 @@ public final class LitegramChatLocks {
 
     public boolean checkPin(long dialogId, String pin) {
         String stored = prefs.getString(KEY_PREFIX + dialogId, null);
-        if (stored == null) return false;
-        return stored.equals(hashPin(pin));
+        return verifyAndUpgrade(stored, pin, KEY_PREFIX + dialogId);
     }
 
     public List<Long> getLockedDialogIds() {
@@ -247,8 +251,7 @@ public final class LitegramChatLocks {
 
     public boolean checkFolderPin(int filterId, String pin) {
         String stored = prefs.getString(KEY_FOLDER_PREFIX + filterId, null);
-        if (stored == null) return false;
-        return stored.equals(hashPin(pin));
+        return verifyAndUpgrade(stored, pin, KEY_FOLDER_PREFIX + filterId);
     }
 
     public List<Integer> getLockedFolderIds() {
@@ -349,7 +352,7 @@ public final class LitegramChatLocks {
 
     public boolean checkGroupPin(int groupId, String pin) {
         String stored = prefs.getString(KEY_GRP_PREFIX + groupId + "_pin", null);
-        return stored != null && stored.equals(hashPin(pin));
+        return verifyAndUpgrade(stored, pin, KEY_GRP_PREFIX + groupId + "_pin");
     }
 
     public void setGroupPin(int groupId, String newPin) {
@@ -455,17 +458,55 @@ public final class LitegramChatLocks {
 
     // --- Hash ---
 
-    private static String hashPin(String pin) {
+    /**
+     * Returns a salted SHA-256 hash of the PIN (format: "v2:<hex>").
+     * The per-installation salt is generated once and stored in SharedPreferences.
+     */
+    private String hashPin(String pin) {
+        return HASH_V2_PREFIX + sha256(getSalt() + pin);
+    }
+
+    /**
+     * Verifies {@code pin} against {@code storedHash}.
+     * Supports both v2 (salted) and legacy v1 (unsalted) hashes.
+     * On successful v1 verification, silently upgrades the stored value to v2.
+     */
+    private boolean verifyAndUpgrade(String storedHash, String pin, String prefKey) {
+        if (storedHash == null) return false;
+        if (storedHash.startsWith(HASH_V2_PREFIX)) {
+            return hashPin(pin).equals(storedHash);
+        }
+        // Legacy v1: plain SHA-256 without salt.
+        if (sha256(pin).equals(storedHash)) {
+            prefs.edit().putString(prefKey, hashPin(pin)).apply();
+            return true;
+        }
+        return false;
+    }
+
+    private String getSalt() {
+        String salt = prefs.getString(KEY_PIN_SALT, null);
+        if (salt == null) {
+            byte[] bytes = new byte[16];
+            new SecureRandom().nextBytes(bytes);
+            StringBuilder sb = new StringBuilder(32);
+            for (byte b : bytes) sb.append(String.format("%02x", b & 0xff));
+            salt = sb.toString();
+            prefs.edit().putString(KEY_PIN_SALT, salt).apply();
+        }
+        return salt;
+    }
+
+    private static String sha256(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(pin.getBytes("UTF-8"));
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b & 0xff));
-            }
+            byte[] digest = md.digest(input.getBytes("UTF-8"));
+            StringBuilder sb = new StringBuilder(64);
+            for (byte b : digest) sb.append(String.format("%02x", b & 0xff));
             return sb.toString();
         } catch (Exception e) {
-            return pin;
+            // SHA-256 is guaranteed on Android; this branch is unreachable in practice.
+            throw new RuntimeException("SHA-256 unavailable", e);
         }
     }
 }
