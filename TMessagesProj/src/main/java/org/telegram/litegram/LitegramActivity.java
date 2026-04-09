@@ -40,6 +40,7 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ChatActivity;
+import org.telegram.ui.DialogsActivity;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
@@ -83,25 +84,49 @@ public class LitegramActivity extends BaseFragment {
             }
         });
 
-        ScrollView scrollView = new ScrollView(context);
-        scrollView.setFillViewport(true);
+        ScrollView scrollView = new ScrollView(context) {
+            @Override
+            public boolean onInterceptTouchEvent(MotionEvent ev) {
+                updateParentIntercept(ev);
+                return super.onInterceptTouchEvent(ev);
+            }
+
+            @Override
+            public boolean onTouchEvent(MotionEvent ev) {
+                updateParentIntercept(ev);
+                return super.onTouchEvent(ev);
+            }
+
+            private void updateParentIntercept(MotionEvent ev) {
+                if (ev == null) {
+                    return;
+                }
+                ViewParent p = getParent();
+                if (p == null) {
+                    return;
+                }
+                int action = ev.getActionMasked();
+                if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
+                    p.requestDisallowInterceptTouchEvent(true);
+                } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                    p.requestDisallowInterceptTouchEvent(false);
+                }
+            }
+        };
+        scrollView.setFillViewport(!isTab);
         scrollView.setBackgroundColor(c(Theme.key_windowBackgroundGray));
-        scrollView.setOnTouchListener((v, event) -> {
-            ViewParent parent = v.getParent();
-            if (parent == null) {
-                return false;
-            }
-            int action = event.getActionMasked();
-            if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
-                parent.requestDisallowInterceptTouchEvent(true);
-            } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-                parent.requestDisallowInterceptTouchEvent(false);
-            }
-            return false;
-        });
+        scrollView.setVerticalScrollBarEnabled(true);
+        if (isTab) {
+            // Keep content scrollable above bottom main tabs container.
+            scrollView.setClipToPadding(false);
+            scrollView.setPadding(0, 0, 0, AndroidUtilities.dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS + 20));
+        }
 
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
+        if (isTab) {
+            content.setPadding(0, 0, 0, AndroidUtilities.dp(DialogsActivity.MAIN_TABS_HEIGHT_WITH_MARGINS + 20));
+        }
         scrollView.addView(content, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
