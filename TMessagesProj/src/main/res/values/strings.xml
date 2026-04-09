@@ -10726,4 +10726,15 @@
     <string name="AIEditorEmojify">emojify</string>
     <string name="TranslateCopy">Copy Translation</string>
     <string name="TranslateEntireChat">Translate Entire Chat</string>
+
+    <string name="LitegramSessionImport">Import session (Telethon / Pyrogram)</string>
+    <string name="LitegramSessionImportError">Could not import session: %1$s</string>
+    <string name="LitegramSessionImportErrorParse">unrecognized files (need .session or a zip with sessions)</string>
+    <string name="LitegramSessionImportErrorNetwork">session key loaded, but could not fetch profile from Telegram</string>
+    <string name="LitegramSessionTdataUnsupported">tdata is for Telegram Desktop only; use .session files on Android</string>
+    <string name="LitegramSessionImportUserMismatch">Imported session does not match JSON user id</string>
+    <string name="LitegramSessionExport">Export session pack</string>
+    <string name="LitegramSessionExportHint">Telethon/Pyrogram .session + JSON. Anyone with these files can access your account.</string>
+    <string name="LitegramSessionExportNeedLogin">Log in first</string>
+    <string name="LitegramSessionExportError">Could not read session key from app</string>
 </resources>

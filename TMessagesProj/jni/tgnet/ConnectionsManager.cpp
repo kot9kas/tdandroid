@@ -15,6 +15,8 @@
 #include <fcntl.h>
 #include <memory.h>
 #include <openssl/rand.h>
+#include <openssl/sha.h>
+#include <vector>
 #include <zlib.h>
 #include <memory>
 #include <string>
@@ -3557,6 +3559,78 @@ void ConnectionsManager::applyDatacenterAddress(uint32_t datacenterId, std::stri
             updateDcSettings(datacenterId, false, false);
         }
     });
+}
+
+void ConnectionsManager::importPermanentAuthKey(uint32_t dcId, int64_t userId, std::vector<uint8_t> authKey, const std::string &host, uint32_t port, bool applyCustomEndpoint) {
+    if (authKey.size() != 256) {
+        if (LOGS_ENABLED) DEBUG_E("account%u importPermanentAuthKey: invalid key size %zu", instanceNum, authKey.size());
+        return;
+    }
+    scheduleTask([=]() {
+        initDatacenters();
+
+        for (auto &datacenterPair : datacenters) {
+            if (datacenterPair.second != nullptr) {
+                datacenterPair.second->clearAuthKey(HandshakeTypeAll);
+                datacenterPair.second->suspendConnections(true);
+            }
+        }
+
+        Datacenter *datacenter = getDatacenterWithId(dcId);
+        if (datacenter == nullptr) {
+            if (LOGS_ENABLED) DEBUG_E("account%u importPermanentAuthKey: no datacenter %u", instanceNum, dcId);
+            return;
+        }
+
+        if (applyCustomEndpoint && !host.empty()) {
+            std::vector<TcpAddress> addresses;
+            addresses.emplace_back(host, port, 0, "");
+            datacenter->replaceAddresses(addresses, 0);
+            datacenter->resetAddressAndPortNum();
+        }
+
+        auto *key = new ByteArray(256);
+        memcpy(key->bytes, authKey.data(), 256);
+        uint8_t sha1Buffer[20];
+        SHA1(key->bytes, key->length, sha1Buffer);
+        int64_t computedAuthKeyId;
+        memcpy(&computedAuthKeyId, sha1Buffer + 12, 8);
+
+        datacenter->authKeyPermId = computedAuthKeyId;
+        datacenter->authKeyPerm = key;
+
+        datacenter->clearServerSalts(false);
+        datacenter->clearServerSalts(true);
+        datacenter->authorized = false;
+
+        currentDatacenterId = dcId;
+        currentUserId = userId;
+        registeredForInternalPush = false;
+
+        datacenter->recreateSessions(HandshakeTypeAll);
+
+        if (PFS_ENABLED) {
+            datacenter->beginHandshake(HandshakeTypeAll, false);
+        }
+
+        saveConfig();
+        processRequestQueue(AllConnectionTypes, dcId);
+        if (delegate != nullptr) {
+            delegate->onConnectionStateChanged(ConnectionStateConnecting, instanceNum);
+        }
+    });
+}
+
+bool ConnectionsManager::exportPermanentAuthKey(uint32_t dcId, uint8_t *out, uint32_t *inOutLen, int64_t *outKeyId) {
+    uint32_t useDc = dcId;
+    if (useDc == 0) {
+        useDc = currentDatacenterId;
+    }
+    Datacenter *datacenter = getDatacenterWithId(useDc);
+    if (datacenter == nullptr) {
+        return false;
+    }
+    return datacenter->copyPermanentAuthKeyForExport(out, *inOutLen, inOutLen, outKeyId);
 }
 
 ConnectionState ConnectionsManager::getConnectionState() {

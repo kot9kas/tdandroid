@@ -1496,6 +1496,21 @@ bool Datacenter::isRepeatCheckingAddresses() {
     return b;
 }
 
+bool Datacenter::copyPermanentAuthKeyForExport(uint8_t *out, uint32_t bufSize, uint32_t *outLen, int64_t *outKeyId) {
+    if (authKeyPerm == nullptr || out == nullptr || outLen == nullptr) {
+        return false;
+    }
+    if (bufSize < authKeyPerm->length) {
+        return false;
+    }
+    memcpy(out, authKeyPerm->bytes, authKeyPerm->length);
+    *outLen = authKeyPerm->length;
+    if (outKeyId != nullptr) {
+        *outKeyId = authKeyPermId;
+    }
+    return true;
+}
+
 TL_help_configSimple *Datacenter::decodeSimpleConfig(NativeByteBuffer *buffer) {
     TL_help_configSimple *result = nullptr;
 

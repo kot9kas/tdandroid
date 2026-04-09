@@ -12,6 +12,7 @@
 #include <openssl/bn.h>
 #include <openssl/pem.h>
 #include <openssl/aes.h>
+#include <vector>
 
 JavaVM *java;
 
@@ -221,6 +222,50 @@ void applyDatacenterAddress(JNIEnv *env, jclass c, jint instanceNum, jint datace
     if (valueStr != 0) {
         env->ReleaseStringUTFChars(ipAddress, valueStr);
     }
+}
+
+void importPermanentAuthKey(JNIEnv *env, jclass c, jint instanceNum, jint dcId, jbyteArray jAuthKey, jlong userId, jstring jHost, jint port, jboolean applyCustom) {
+    if (jAuthKey == nullptr) {
+        return;
+    }
+    jsize len = env->GetArrayLength(jAuthKey);
+    if (len != 256) {
+        return;
+    }
+    jbyte *bytes = env->GetByteArrayElements(jAuthKey, nullptr);
+    if (bytes == nullptr) {
+        return;
+    }
+    std::vector<uint8_t> keyCopy(256);
+    memcpy(keyCopy.data(), bytes, 256);
+    env->ReleaseByteArrayElements(jAuthKey, bytes, JNI_ABORT);
+
+    std::string host;
+    if (jHost != nullptr) {
+        const char *hostStr = env->GetStringUTFChars(jHost, nullptr);
+        if (hostStr != nullptr) {
+            host = std::string(hostStr);
+            env->ReleaseStringUTFChars(jHost, hostStr);
+        }
+    }
+
+    ConnectionsManager::getInstance(instanceNum).importPermanentAuthKey((uint32_t) dcId, (int64_t) userId, std::move(keyCopy), host, (uint32_t) port, applyCustom);
+}
+
+jbyteArray exportPermanentAuthKey(JNIEnv *env, jclass c, jint instanceNum, jint dcId) {
+    uint8_t buffer[256];
+    uint32_t bufLen = 256;
+    int64_t keyIdIgnored = 0;
+    bool ok = ConnectionsManager::getInstance(instanceNum).exportPermanentAuthKey((uint32_t) dcId, buffer, &bufLen, &keyIdIgnored);
+    if (!ok || bufLen != 256) {
+        return nullptr;
+    }
+    jbyteArray result = env->NewByteArray(256);
+    if (result == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, 256, (jbyte *) buffer);
+    return result;
 }
 
 void setProxySettings(JNIEnv *env, jclass c, jint instanceNum, jstring address, jint port, jstring username, jstring password, jstring secret) {
@@ -536,6 +581,8 @@ static JNINativeMethod ConnectionsManagerMethods[] = {
         {"native_cancelRequestsForGuid", "(II)V", (void *) cancelRequestsForGuid},
         {"native_bindRequestToGuid", "(III)V", (void *) bindRequestToGuid},
         {"native_applyDatacenterAddress", "(IILjava/lang/String;I)V", (void *) applyDatacenterAddress},
+        {"native_importPermanentAuthKey", "(II[BJLjava/lang/String;IZ)V", (void *) importPermanentAuthKey},
+        {"native_exportPermanentAuthKey", "(II)[B", (void *) exportPermanentAuthKey},
         {"native_setProxySettings", "(ILjava/lang/String;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", (void *) setProxySettings},
         {"native_getConnectionState", "(I)I", (void *) getConnectionState},
         {"native_setUserId", "(IJ)V", (void *) setUserId},

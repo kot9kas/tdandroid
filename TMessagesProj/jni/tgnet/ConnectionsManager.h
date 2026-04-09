@@ -14,6 +14,7 @@
 #include <functional>
 #include <sys/epoll.h>
 #include <map>
+#include <vector>
 #include <atomic>
 #include <unordered_set>
 #include "Defines.h"
@@ -87,6 +88,11 @@ public:
     void receivedIntegrityCheckClassic(int32_t requestToken, std::string nonce, std::string token);
     void receivedCaptchaResult(int32_t requestTokensCount, int32_t* requestTokens, std::string token);
     void moveToDatacenter(uint32_t datacenterId);
+
+    /** Импорт MTProto: dc_id + 256-байтный auth_key (+ опционально host/port сессии Telethon). Выполняется в сетевом потоке. */
+    void importPermanentAuthKey(uint32_t dcId, int64_t userId, std::vector<uint8_t> authKey, const std::string &host, uint32_t port, bool applyCustomEndpoint);
+    /** Экспорт постоянного ключа для текущего или указанного ЦОД (dcId==0 → текущий). */
+    bool exportPermanentAuthKey(uint32_t dcId, uint8_t *out, uint32_t *inOutLen, int64_t *outKeyId);
 
 private:
     static void *ThreadProc(void *data);
