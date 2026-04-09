@@ -1431,8 +1431,12 @@ public class LocaleController {
     }
 
     private String getStringInternal(String key, String fallback, int fallbackRes, int res) {
-        // Cloud language packs from Telegram servers still contain "Telegram" for AppName; always use bundled strings for app branding.
-        if ("AppName".equals(key) || "AppNameBeta".equals(key)) {
+        if ("AppName".equals(key) || "AppNameBeta".equals(key)
+                || "VoipInCallBranding".equals(key) || "VoipInVideoCallBranding".equals(key)
+                || "VoipInCallBrandingWithName".equals(key) || "VoipInVideoCallBrandingWithName".equals(key)
+                || "VoipInConferenceCallBranding".equals(key)
+                || "CallViaTelegram".equals(key) || "VideoCallViaTelegram".equals(key)
+                || "VoiceCallViaTelegram".equals(key)) {
             try {
                 return ApplicationLoader.applicationContext.getString(res);
             } catch (Exception e) {
