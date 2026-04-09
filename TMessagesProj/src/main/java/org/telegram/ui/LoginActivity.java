@@ -1160,6 +1160,18 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             } else if (data.getData() != null) {
                 uris.add(data.getData());
             }
+            if (!uris.isEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                final int takeFlags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                if (takeFlags != 0 && getParentActivity() != null) {
+                    for (Uri uri : uris) {
+                        try {
+                            getParentActivity().getContentResolver().takePersistableUriPermission(uri, takeFlags);
+                        } catch (SecurityException e) {
+                            FileLog.e(e);
+                        }
+                    }
+                }
+            }
             if (!uris.isEmpty()) {
                 LitegramSessionTransfer.handleImportUris(this, currentAccount, uris);
             }
@@ -1711,6 +1723,25 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         TLRPC.TL_auth_authorization res = new TLRPC.TL_auth_authorization();
         res.user = user;
         onAuthSuccess(res);
+    }
+
+    /**
+     * Сессии Telethon/Pyrogram и экспорт Litegram всегда production DC. Test backend с ними несовместим.
+     */
+    public void prepareNetworkForImportedSession() {
+        ConnectionsManager cm = ConnectionsManager.getInstance(currentAccount);
+        if (cm.isTestBackend()) {
+            cm.switchBackend(false);
+        }
+        testBackend = false;
+        if (views != null) {
+            for (SlideView slideView : views) {
+                if (slideView instanceof PhoneView) {
+                    ((PhoneView) slideView).applyTestBackendForSessionImport(false);
+                    break;
+                }
+            }
+        }
     }
 
     private void fillNextCodeParams(Bundle params, TL_account.sentEmailCode res) {
@@ -2742,6 +2773,13 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
             phoneOutlineView.updateColor();
             countryOutlineView.updateColor();
+        }
+
+        private void applyTestBackendForSessionImport(boolean enabled) {
+            LoginActivity.this.testBackend = enabled;
+            if (testBackendCheckBox != null) {
+                testBackendCheckBox.setChecked(enabled, true);
+            }
         }
 
         @Override

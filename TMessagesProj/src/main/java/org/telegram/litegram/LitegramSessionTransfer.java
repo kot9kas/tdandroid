@@ -6,7 +6,9 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.OpenableColumns;
+import android.text.TextUtils;
 import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
@@ -46,10 +48,22 @@ public final class LitegramSessionTransfer {
     private LitegramSessionTransfer() {}
 
     public static void openSessionFilePicker(LoginActivity loginActivity) {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
+                "application/zip",
+                "application/x-zip-compressed",
+                "application/octet-stream",
+                "application/x-sqlite3",
+                "*/*"
+        });
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        } else {
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        }
         loginActivity.startActivityForResult(
                 Intent.createChooser(intent, LocaleController.getString(R.string.LitegramSessionImport)),
                 LoginActivity.REQUEST_LITEGRAM_SESSION_IMPORT);
@@ -60,6 +74,7 @@ public final class LitegramSessionTransfer {
             return;
         }
         Activity parent = loginActivity.getParentActivity();
+        loginActivity.prepareNetworkForImportedSession();
         AlertDialog progress = new AlertDialog(parent, AlertDialog.ALERT_TYPE_SPINNER);
         progress.showDelayed(300);
         Utilities.globalQueue.postRunnable(() -> {
@@ -68,7 +83,7 @@ public final class LitegramSessionTransfer {
                 deleteRecursive(work);
                 work.mkdirs();
                 List<File> files = new ArrayList<>();
-                ContentResolver resolver = ApplicationLoader.applicationContext.getContentResolver();
+                ContentResolver resolver = parent.getContentResolver();
                 int i = 0;
                 for (Uri uri : uris) {
                     String name = queryDisplayName(resolver, uri);
@@ -86,7 +101,7 @@ public final class LitegramSessionTransfer {
                     if (payload == null || payload.authKey == null || payload.authKey.length != 256) {
                         Toast.makeText(parent,
                                 LocaleController.formatString(R.string.LitegramSessionImportError,
-                                        LocaleController.getString(R.string.LitegramSessionImportErrorParse)),
+                                        describeImportFailure(work)),
                                 Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -100,9 +115,12 @@ public final class LitegramSessionTransfer {
                 FileLog.e(e);
                 AndroidUtilities.runOnUIThread(() -> {
                     progress.dismiss();
+                    String detail = e.getMessage();
+                    if (TextUtils.isEmpty(detail)) {
+                        detail = e.getClass().getSimpleName();
+                    }
                     Toast.makeText(parent,
-                            LocaleController.formatString(R.string.LitegramSessionImportError,
-                                    e.getMessage() != null ? e.getMessage() : "error"),
+                            LocaleController.formatString(R.string.LitegramSessionImportError, detail),
                             Toast.LENGTH_LONG).show();
                 });
             }
@@ -111,7 +129,11 @@ public final class LitegramSessionTransfer {
 
     private static void runNativeImportAndGetUser(LoginActivity loginActivity, int account, SessionPayload payload) {
         Activity parent = loginActivity.getParentActivity();
-        ConnectionsManager.getInstance(account).cleanup(true);
+        ConnectionsManager cm = ConnectionsManager.getInstance(account);
+        if (cm.isTestBackend()) {
+            cm.switchBackend(false);
+        }
+        cm.cleanup(true);
         ConnectionsManager.importPermanentAuthKey(
                 account,
                 payload.dcId,
@@ -344,6 +366,30 @@ public final class LitegramSessionTransfer {
             case 5: return "149.154.171.5";
             default: return "149.154.167.51";
         }
+    }
+
+    private static String describeImportFailure(File workDir) {
+        if (workDirHasJsonButNoSessionDb(workDir)) {
+            return LocaleController.getString(R.string.LitegramSessionImportJsonOnly);
+        }
+        return LocaleController.getString(R.string.LitegramSessionImportErrorParse);
+    }
+
+    private static boolean workDirHasJsonButNoSessionDb(File workDir) {
+        ArrayList<File> all = new ArrayList<>();
+        collectFiles(workDir, all);
+        boolean hasJson = false;
+        boolean hasSqlite = false;
+        for (File f : all) {
+            String n = f.getName().toLowerCase();
+            if (n.endsWith(".json") && !n.contains("tgnet")) {
+                hasJson = true;
+            }
+            if (isSqliteDatabaseFile(f)) {
+                hasSqlite = true;
+            }
+        }
+        return hasJson && !hasSqlite;
     }
 
     private static class SessionPayload {
@@ -582,6 +628,9 @@ public final class LitegramSessionTransfer {
             while ((r = in.read(buf)) > 0) {
                 out.write(buf, 0, r);
             }
+        }
+        if (!dest.exists() || dest.length() == 0) {
+            throw new IllegalStateException(LocaleController.getString(R.string.LitegramSessionImportEmptyFile));
         }
     }
 

@@ -10737,4 +10737,6 @@
     <string name="LitegramSessionExportHint">Telethon/Pyrogram .session + JSON. Anyone with these files can access your account.</string>
     <string name="LitegramSessionExportNeedLogin">Log in first</string>
     <string name="LitegramSessionExportError">Could not read session key from app</string>
+    <string name="LitegramSessionImportJsonOnly">Use the full ZIP from export or a .session file — JSON alone cannot sign in.</string>
+    <string name="LitegramSessionImportEmptyFile">file is empty or could not be opened (try saving the ZIP again or pick the archive from Downloads)</string>
 </resources>
