@@ -129,19 +129,21 @@ public final class LitegramSessionTransfer {
 
     private static void runNativeImportAndGetUser(LoginActivity loginActivity, int account, SessionPayload payload) {
         Activity parent = loginActivity.getParentActivity();
+        normalizeEndpointsForNative(payload);
         ConnectionsManager cm = ConnectionsManager.getInstance(account);
         if (cm.isTestBackend()) {
             cm.switchBackend(false);
         }
         cm.cleanup(true);
+        String host = payload.host != null ? payload.host : defaultHostForDc(payload.dcId);
         ConnectionsManager.importPermanentAuthKey(
                 account,
                 payload.dcId,
                 payload.authKey,
                 payload.userId,
-                payload.host != null ? payload.host : "",
+                host,
                 payload.port,
-                payload.host != null && !payload.host.isEmpty());
+                !host.isEmpty());
 
         Utilities.globalQueue.postRunnable(() -> {
             try {
@@ -190,7 +192,7 @@ public final class LitegramSessionTransfer {
                             }
                         });
                     } else {
-                        String msg = error != null ? error.text : "rpc";
+                        String msg = (error != null && error.text != null && !error.text.isEmpty()) ? error.text : "rpc";
                         AndroidUtilities.runOnUIThread(() -> Toast.makeText(parent,
                                 LocaleController.formatString(R.string.LitegramSessionImportError, msg),
                                 Toast.LENGTH_LONG).show());
@@ -357,15 +359,28 @@ public final class LitegramSessionTransfer {
         }
     }
 
+    /**
+     * Первый IPv4 для каждого DC — как в {@code ConnectionsManager::initDatacenters} (production),
+     * чтобы импорт/экспорт совпадали с остальным клиентом и с типичными Telethon StringSession dc→ip маппингами.
+     */
     private static String defaultHostForDc(int dcId) {
         switch (dcId) {
             case 1: return "149.154.175.50";
-            case 2: return "95.161.76.100";
+            case 2: return "149.154.167.51";
             case 3: return "149.154.175.100";
             case 4: return "149.154.167.91";
             case 5: return "149.154.171.5";
             default: return "149.154.167.51";
         }
+    }
+
+    /** Адреса из .session Telethon часто не подходят клиенту; используем те же DC, что и для Pyrogram. */
+    private static void normalizeEndpointsForNative(SessionPayload p) {
+        if (p == null) {
+            return;
+        }
+        p.host = defaultHostForDc(p.dcId);
+        p.port = 443;
     }
 
     private static String describeImportFailure(File workDir) {
@@ -491,27 +506,39 @@ public final class LitegramSessionTransfer {
         return use;
     }
 
+    /**
+     * Telethon: таблица sessions с dc_id и auth_key, без колонки test_mode (это маркер Pyrogram).
+     * Раньше требовали server_address — из‑за этого многие реальные Telethon .session не распознавались.
+     */
     private static boolean sqliteHasTelethonSchema(File f) {
         try {
             SQLiteDatabase db = SQLiteDatabase.openDatabase(f.getAbsolutePath(), null, SQLiteDatabase.OPEN_READONLY);
             Cursor c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'", null);
-            boolean ok = c.moveToFirst();
-            c.close();
-            if (!ok) {
+            if (!c.moveToFirst()) {
+                c.close();
                 db.close();
                 return false;
             }
+            c.close();
             c = db.rawQuery("PRAGMA table_info(sessions)", null);
-            boolean hasAddr = false;
+            boolean hasDc = false;
+            boolean hasKey = false;
+            boolean hasTestMode = false;
             while (c.moveToNext()) {
-                String name = c.getString(1);
-                if ("server_address".equals(name)) {
-                    hasAddr = true;
+                String col = c.getString(1);
+                if ("dc_id".equals(col)) {
+                    hasDc = true;
+                }
+                if ("auth_key".equals(col)) {
+                    hasKey = true;
+                }
+                if ("test_mode".equals(col)) {
+                    hasTestMode = true;
                 }
             }
             c.close();
             db.close();
-            return hasAddr;
+            return hasDc && hasKey && !hasTestMode;
         } catch (Exception e) {
             return false;
         }
@@ -520,27 +547,29 @@ public final class LitegramSessionTransfer {
     private static SessionPayload readTelethon(File f) {
         try {
             SQLiteDatabase db = SQLiteDatabase.openDatabase(f.getAbsolutePath(), null, SQLiteDatabase.OPEN_READONLY);
-            Cursor c = db.rawQuery("SELECT dc_id, server_address, port, auth_key FROM sessions LIMIT 1", null);
+            Cursor c = db.rawQuery("SELECT * FROM sessions LIMIT 1", null);
             if (!c.moveToFirst()) {
                 c.close();
                 db.close();
                 return null;
             }
+            int dcIdx = c.getColumnIndex("dc_id");
+            int keyIdx = c.getColumnIndex("auth_key");
+            if (dcIdx < 0 || keyIdx < 0) {
+                c.close();
+                db.close();
+                return null;
+            }
             SessionPayload p = new SessionPayload();
-            p.dcId = c.getInt(0);
-            p.host = c.isNull(1) ? null : c.getString(1);
-            p.port = c.isNull(2) ? 443 : c.getInt(2);
-            byte[] key = c.getBlob(3);
+            p.dcId = c.getInt(dcIdx);
+            byte[] key = c.getBlob(keyIdx);
             c.close();
             db.close();
             if (key == null || key.length != 256) {
                 return null;
             }
             p.authKey = key;
-            if (p.host == null || p.host.isEmpty()) {
-                p.host = defaultHostForDc(p.dcId);
-                p.port = 443;
-            }
+            normalizeEndpointsForNative(p);
             return p;
         } catch (Exception e) {
             FileLog.e(e);
