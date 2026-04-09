@@ -10432,6 +10432,9 @@
     <string name="LitegramConnStatusDisconnected">Disconnected</string>
     <string name="LitegramConnPremium">Premium</string>
     <string name="LitegramConnFree">Free</string>
+    <string name="LitegramProxySuggestTitle">Proxy failed to connect</string>
+    <string name="LitegramProxySuggestMessage">Couldn\'t connect within 5 seconds. Try another server in Litegram Connection.</string>
+    <string name="LitegramProxySuggestOpen">Open Connection</string>
     <string name="LitegramConnDisconnect">Disconnect</string>
     <string name="LitegramConnConnect">Connect</string>
     <string name="LitegramConnFeatures">Features</string>

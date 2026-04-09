@@ -356,6 +356,9 @@
     <string name="LitegramConnStatusDisconnected">Отключено</string>
     <string name="LitegramConnPremium">Премиум</string>
     <string name="LitegramConnFree">Бесплатно</string>
+    <string name="LitegramProxySuggestTitle">Прокси не подключился</string>
+    <string name="LitegramProxySuggestMessage">Подключение не удалось за 5 секунд. Попробуйте выбрать другой сервер в разделе Соединение.</string>
+    <string name="LitegramProxySuggestOpen">Открыть Соединение</string>
     <string name="LitegramConnDisconnect">Отключить</string>
     <string name="LitegramConnConnect">Подключить</string>
     <string name="LitegramConnFeatures">Возможности</string>

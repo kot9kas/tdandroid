@@ -105,7 +105,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
     private void applyThemedActionBar() {
         actionBar.setBackgroundColor(c(Theme.key_actionBarDefault));
-        actionBar.setTitleColor(c(Theme.key_actionBarDefaultTitle));
+        actionBar.setTitleColor(c(Theme.key_telegram_color_dialogsLogo));
         actionBar.setItemsColor(c(Theme.key_actionBarDefaultIcon), false);
         actionBar.setCastShadows(false);
     }
@@ -228,17 +228,26 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         if (planBadge == null) {
             return;
         }
+        planBadge.setTypeface(AndroidUtilities.bold());
+        planBadge.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        planBadge.setAllCaps(true);
+        planBadge.setLetterSpacing(0.04f);
+        planBadge.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(8),
+                AndroidUtilities.dp(18), AndroidUtilities.dp(8));
         if (LitegramConfig.isSubscriptionActive()) {
             planBadge.setTextColor(Color.WHITE);
             GradientDrawable badgeBg = new GradientDrawable();
-            badgeBg.setCornerRadius(AndroidUtilities.dp(20));
-            badgeBg.setColor(0xFF7B5EA7);
+            badgeBg.setCornerRadius(AndroidUtilities.dp(24));
+            badgeBg.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);
+            badgeBg.setColors(new int[]{0xFF9B74FF, 0xFF6A45C1});
+            badgeBg.setStroke(AndroidUtilities.dp(1), 0x66FFFFFF);
             planBadge.setBackground(badgeBg);
         } else {
             planBadge.setTextColor(Color.WHITE);
             GradientDrawable badgeBg = new GradientDrawable();
-            badgeBg.setCornerRadius(AndroidUtilities.dp(20));
-            badgeBg.setColor(ColorUtils.setAlphaComponent(Color.WHITE, 0x40));
+            badgeBg.setCornerRadius(AndroidUtilities.dp(24));
+            badgeBg.setColor(0x2BFFFFFF);
+            badgeBg.setStroke(AndroidUtilities.dp(1), 0x5CFFFFFF);
             planBadge.setBackground(badgeBg);
         }
     }
@@ -649,7 +658,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
         if (planBadge != null) {
             if (LitegramConfig.isSubscriptionActive()) {
-                planBadge.setText("\u2B50 " + LocaleController.getString(R.string.LitegramConnPremium));
+                planBadge.setText(LocaleController.getString(R.string.LitegramConnPremium));
             } else {
                 planBadge.setText(LocaleController.getString(R.string.LitegramConnFree));
             }

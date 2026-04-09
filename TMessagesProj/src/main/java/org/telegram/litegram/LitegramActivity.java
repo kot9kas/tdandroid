@@ -228,20 +228,28 @@ public class LitegramActivity extends BaseFragment {
         if (statusView == null) {
             return;
         }
+        statusView.setTypeface(AndroidUtilities.bold());
+        statusView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        statusView.setAllCaps(true);
+        statusView.setLetterSpacing(0.04f);
+        statusView.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(8),
+                AndroidUtilities.dp(18), AndroidUtilities.dp(8));
         if (LitegramConfig.isSubscriptionActive()) {
-            statusView.setText("\u2B50 " + LocaleController.getString(R.string.LitegramConnPremium));
+            statusView.setText(LocaleController.getString(R.string.LitegramConnPremium));
             statusView.setTextColor(Color.WHITE);
             GradientDrawable badge = new GradientDrawable();
-            badge.setCornerRadius(AndroidUtilities.dp(20));
-            badge.setColor(0xFF7B5EA7);
+            badge.setCornerRadius(AndroidUtilities.dp(24));
+            badge.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);
+            badge.setColors(new int[]{0xFF9B74FF, 0xFF6A45C1});
+            badge.setStroke(AndroidUtilities.dp(1), 0x66FFFFFF);
             statusView.setBackground(badge);
         } else {
             statusView.setText(LocaleController.getString(R.string.LitegramConnFree));
             statusView.setTextColor(Color.WHITE);
             GradientDrawable badge = new GradientDrawable();
-            badge.setCornerRadius(AndroidUtilities.dp(20));
-            int base = c(Theme.key_windowBackgroundWhiteBlackText);
-            badge.setColor(ColorUtils.setAlphaComponent(base, 0x59));
+            badge.setCornerRadius(AndroidUtilities.dp(24));
+            badge.setColor(0x2BFFFFFF);
+            badge.setStroke(AndroidUtilities.dp(1), 0x5CFFFFFF);
             statusView.setBackground(badge);
         }
     }

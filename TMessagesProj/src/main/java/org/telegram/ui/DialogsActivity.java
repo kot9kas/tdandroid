@@ -620,6 +620,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private boolean checkPermission = true;
 
     private int currentConnectionState;
+    private long proxyConnectingSinceMs;
+    private boolean proxySwitchHintShown;
 
     private boolean disableActionBarScrolling;
 
@@ -10094,6 +10096,33 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         final boolean connected = currentConnectionState == ConnectionsManager.ConnectionStateConnected || currentConnectionState == ConnectionsManager.ConnectionStateUpdating;
         proxyMenuSubItem.setSubtext(getString(connected ? R.string.MenuProxyConnected : R.string.MenuProxyConnecting));
         proxyDrawable.setConnected(proxyEnabled, connected, animated);
+        if (proxyEnabled && !connected) {
+            long now = System.currentTimeMillis();
+            if (proxyConnectingSinceMs == 0) {
+                proxyConnectingSinceMs = now;
+            } else if (!proxySwitchHintShown && now - proxyConnectingSinceMs >= 5_000) {
+                proxySwitchHintShown = true;
+                showProxySwitchHintDialog();
+            }
+        } else {
+            proxyConnectingSinceMs = 0;
+            if (connected) {
+                proxySwitchHintShown = false;
+            }
+        }
+    }
+
+    private void showProxySwitchHintDialog() {
+        if (onlySelect || getParentActivity() == null || isPaused || fragmentView == null) {
+            return;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(LocaleController.getString(R.string.LitegramProxySuggestTitle));
+        builder.setMessage(LocaleController.getString(R.string.LitegramProxySuggestMessage));
+        builder.setPositiveButton(LocaleController.getString(R.string.LitegramProxySuggestOpen), (d, w) ->
+                presentFragment(new org.telegram.litegram.LitegramConnectionActivity()));
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
     }
 
     private AnimatorSet doneItemAnimator;
@@ -13351,7 +13380,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (proxyMenuSubItem != null) {
                 proxyMenuSubItem.setOnClickListener(v -> {
                     io.dismiss();
-                    presentFragment(new ProxyListActivity());
+                    presentFragment(new org.telegram.litegram.LitegramConnectionActivity());
                 });
 
                 final SharedPreferences preferences = ApplicationLoader.applicationContext
