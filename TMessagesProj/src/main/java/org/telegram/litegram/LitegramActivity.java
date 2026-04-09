@@ -123,8 +123,8 @@ public class LitegramActivity extends BaseFragment {
         tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
         tv.setTypeface(AndroidUtilities.bold());
         tv.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
-        tv.setGravity(Gravity.CENTER);
-        tv.setPadding(0, AndroidUtilities.statusBarHeight + AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
+        tv.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        tv.setPadding(AndroidUtilities.dp(18), AndroidUtilities.statusBarHeight + AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8));
         return tv;
     }
 
@@ -147,7 +147,7 @@ public class LitegramActivity extends BaseFragment {
         anim.addUpdateListener(animation -> {
             float v = (float) animation.getAnimatedValue();
             int alpha = (int) (v * 50);
-            int accent = c(Theme.key_featuredStickers_addButton);
+            int accent = 0xFF7B5EA7;
             view.setBackgroundColor(Color.argb(alpha, Color.red(accent), Color.green(accent), Color.blue(accent)));
         });
         anim.addListener(new android.animation.AnimatorListenerAdapter() {
@@ -165,11 +165,8 @@ public class LitegramActivity extends BaseFragment {
         card.setGravity(Gravity.CENTER_HORIZONTAL);
 
         GradientDrawable bg = new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{
-                        c(Theme.key_featuredStickers_addButton),
-                        c(Theme.key_featuredStickers_addButton2)
-                });
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{0xFF5B2D8E, 0xFF9E84B6});
         bg.setCornerRadius(AndroidUtilities.dp(24));
         card.setBackground(bg);
 
@@ -190,7 +187,7 @@ public class LitegramActivity extends BaseFragment {
 
         TextView nameView = new TextView(context);
         nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
-        nameView.setTextColor(c(Theme.key_featuredStickers_buttonText));
+        nameView.setTextColor(Color.WHITE);
         nameView.setTypeface(AndroidUtilities.bold());
         nameView.setGravity(Gravity.CENTER);
         nameView.setText(user != null ? UserObject.getUserName(user) : "");
@@ -201,8 +198,7 @@ public class LitegramActivity extends BaseFragment {
 
         TextView idView = new TextView(context);
         idView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        int idTc = c(Theme.key_featuredStickers_buttonText);
-        idView.setTextColor(ColorUtils.setAlphaComponent(idTc, (int) (255 * 0.8f)));
+        idView.setTextColor(ColorUtils.setAlphaComponent(Color.WHITE, (int) (255 * 0.8f)));
         idView.setGravity(Gravity.CENTER);
         idView.setText(user != null ? "ID: " + user.id : "");
         LinearLayout.LayoutParams idParams = LayoutHelper.createLinear(
@@ -234,14 +230,14 @@ public class LitegramActivity extends BaseFragment {
         }
         if (LitegramConfig.isSubscriptionActive()) {
             statusView.setText("\u2B50 " + LocaleController.getString(R.string.LitegramConnPremium));
-            statusView.setTextColor(c(Theme.key_featuredStickers_buttonText));
+            statusView.setTextColor(Color.WHITE);
             GradientDrawable badge = new GradientDrawable();
             badge.setCornerRadius(AndroidUtilities.dp(20));
-            badge.setColor(c(Theme.key_featuredStickers_addButtonPressed));
+            badge.setColor(0xFF7B5EA7);
             statusView.setBackground(badge);
         } else {
             statusView.setText(LocaleController.getString(R.string.LitegramConnFree));
-            statusView.setTextColor(c(Theme.key_featuredStickers_buttonText));
+            statusView.setTextColor(Color.WHITE);
             GradientDrawable badge = new GradientDrawable();
             badge.setCornerRadius(AndroidUtilities.dp(20));
             int base = c(Theme.key_windowBackgroundWhiteBlackText);
@@ -270,8 +266,8 @@ public class LitegramActivity extends BaseFragment {
 
         panel.addView(createPanelDivider(context));
 
-        panel.addView(createMenuItem(context, R.drawable.litegram_ic_shield,
-                c(Theme.key_switchTrackChecked),
+        panel.addView(createMenuItem(context, R.drawable.litegram_ic_connection,
+                0xFF26A69A,
                 LocaleController.getString(R.string.LitegramProtection),
                 LocaleController.getString(R.string.LitegramProtectionDesc),
                 () -> presentFragment(new LitegramConnectionActivity())));
@@ -279,7 +275,7 @@ public class LitegramActivity extends BaseFragment {
         panel.addView(createPanelDivider(context));
 
         panel.addView(createMenuItem(context, R.drawable.msg_discussion,
-                c(Theme.key_chat_messagePanelSend),
+                0xFF42A5F5,
                 LocaleController.getString(R.string.LitegramChats),
                 LocaleController.getString(R.string.LitegramChatsDesc),
                 this::showChatsSheet));
@@ -287,7 +283,7 @@ public class LitegramActivity extends BaseFragment {
         panel.addView(createPanelDivider(context));
 
         panel.addView(createMenuItem(context, R.drawable.msg_help,
-                c(Theme.key_windowBackgroundWhiteGrayIcon),
+                0xFFFF9800,
                 LocaleController.getString(R.string.LitegramSupport),
                 LocaleController.getString(R.string.LitegramSupportDesc),
                 this::showSupportSheet));
@@ -384,7 +380,7 @@ public class LitegramActivity extends BaseFragment {
         FrameLayout iconBox = new FrameLayout(context);
         GradientDrawable ibg = new GradientDrawable();
         ibg.setCornerRadius(AndroidUtilities.dp(12));
-        ibg.setColor(c(Theme.key_windowBackgroundWhiteGrayIcon));
+        ibg.setColor(0xFF4CAF50);
         iconBox.setBackground(ibg);
         ImageView icon = new ImageView(context);
         icon.setScaleType(ImageView.ScaleType.CENTER);
@@ -441,74 +437,7 @@ public class LitegramActivity extends BaseFragment {
     private static final String LITEGRAM_CHAT_USERNAME = "litegram_chat";
 
     private void showChatsSheet() {
-        Context ctx = getParentActivity();
-        if (ctx == null) return;
-
-        BottomSheet.Builder builder = new BottomSheet.Builder(ctx);
-
-        LinearLayout root = new LinearLayout(ctx);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(20));
-
-        TextView title = new TextView(ctx);
-        title.setText(LocaleController.getString(R.string.LitegramChats));
-        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
-        title.setTypeface(AndroidUtilities.bold());
-        title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
-        title.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(8),
-                AndroidUtilities.dp(22), AndroidUtilities.dp(16));
-        root.addView(title);
-
-        final BottomSheet[] sheetHolder = new BottomSheet[1];
-
-        root.addView(createSupportRow(ctx, "\uD83D\uDDD1\uFE0F",
-                LocaleController.getString(R.string.LitegramChatsDeleted),
-                LocaleController.getString(R.string.LitegramChatsDeletedDesc), () -> {
-                    if (sheetHolder[0] != null) sheetHolder[0].dismiss();
-                    presentFragment(new LitegramVaultActivity(LitegramVaultActivity.MODE_DELETED));
-                }));
-
-        root.addView(createSupportRow(ctx, "\uD83D\uDD25",
-                LocaleController.getString(R.string.LitegramChatsOnce),
-                LocaleController.getString(R.string.LitegramChatsOnceDesc), () -> {
-                    if (sheetHolder[0] != null) sheetHolder[0].dismiss();
-                    presentFragment(new LitegramVaultActivity(LitegramVaultActivity.MODE_ONCE));
-                }));
-
-        View divider = new View(ctx);
-        divider.setBackgroundColor(Theme.getColor(Theme.key_divider, getResourceProvider()));
-        LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 1);
-        divLp.topMargin = AndroidUtilities.dp(8);
-        divLp.bottomMargin = AndroidUtilities.dp(8);
-        divLp.leftMargin = AndroidUtilities.dp(22);
-        divLp.rightMargin = AndroidUtilities.dp(22);
-        root.addView(divider, divLp);
-
-        root.addView(createSupportRow(ctx, "\uD83D\uDCE2",
-                LocaleController.getString(R.string.LitegramChatsChannel),
-                "@" + LITEGRAM_CHANNEL_USERNAME, () -> {
-                    if (sheetHolder[0] != null) sheetHolder[0].dismiss();
-                    openChat(LITEGRAM_CHANNEL_USERNAME);
-                }));
-
-        root.addView(createSupportRow(ctx, "\uD83D\uDCAC",
-                LocaleController.getString(R.string.LitegramChatsCommunity),
-                "@" + LITEGRAM_CHAT_USERNAME, () -> {
-                    if (sheetHolder[0] != null) sheetHolder[0].dismiss();
-                    openChat(LITEGRAM_CHAT_USERNAME);
-                }));
-
-        root.addView(createSupportRow(ctx, "\uD83E\uDD16",
-                LocaleController.getString(R.string.LitegramChatsBot),
-                "@" + LITEGRAM_BOT_USERNAME, () -> {
-                    if (sheetHolder[0] != null) sheetHolder[0].dismiss();
-                    openBotChat();
-                }));
-
-        builder.setCustomView(root);
-        sheetHolder[0] = builder.create();
-        showDialog(sheetHolder[0]);
+        presentFragment(new LitegramChatsActivity());
     }
 
     private void openChat(String username) {
@@ -668,9 +597,9 @@ public class LitegramActivity extends BaseFragment {
         FrameLayout container = new FrameLayout(context);
 
         TextView button = new TextView(context);
-        button.setText("\u2B50 " + LocaleController.getString(R.string.LitegramTryAllFeatures));
+        button.setText("\u2728 " + LocaleController.getString(R.string.LitegramTryAllFeatures));
         button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
-        button.setTextColor(c(Theme.key_featuredStickers_buttonText));
+        button.setTextColor(Color.WHITE);
         button.setTypeface(AndroidUtilities.bold());
         button.setGravity(Gravity.CENTER);
         button.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(14),
@@ -678,10 +607,7 @@ public class LitegramActivity extends BaseFragment {
 
         GradientDrawable btnBg = new GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{
-                        c(Theme.key_featuredStickers_addButton),
-                        c(Theme.key_featuredStickers_addButton2)
-                });
+                new int[]{0xFF5B2D8E, 0xFF9E84B6});
         btnBg.setCornerRadius(AndroidUtilities.dp(14));
         button.setBackground(btnBg);
 

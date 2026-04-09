@@ -831,7 +831,7 @@ public class ThemeColors {
         defaultColors[key_botKeyboard_button_primary] = TELEGRAM_COLOR;
         defaultColors[key_botKeyboard_button_success] = 0xFF40b135;
 
-        defaultColors[key_telegram_color_dialogsLogo] = 0xFF168bdb;
+        defaultColors[key_telegram_color_dialogsLogo] = 0xFF9E84B6;
         defaultColors[key_telegram_color] = TELEGRAM_COLOR;
         defaultColors[key_telegram_color_text] = TELEGRAM_COLOR_TEXT;
 

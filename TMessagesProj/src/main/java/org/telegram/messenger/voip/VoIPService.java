@@ -4019,10 +4019,10 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			builder.setShowWhen(false);
 		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-			builder.setColor(0xff282e31);
+			builder.setColor(0xFF1A0F2E);
 			builder.setColorized(true);
 		} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-			builder.setColor(0xff2ca5e0);
+			builder.setColor(0xFF7B5EA7);
 		}
 		if (Build.VERSION.SDK_INT >= 26) {
 			NotificationsController.checkOtherNotificationsChannel();
@@ -5257,7 +5257,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			builder.setShowWhen(false);
 		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-			builder.setColor(0xff2ca5e0);
+			builder.setColor(0xFF7B5EA7);
 			builder.setVibrate(new long[0]);
 			builder.setCategory(Notification.CATEGORY_CALL);
 			builder.setFullScreenIntent(PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE), true);

@@ -159,10 +159,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
         GradientDrawable cardBg = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                new int[]{
-                        c(Theme.key_featuredStickers_addButton),
-                        c(Theme.key_featuredStickers_addButton2)
-                });
+                new int[]{0xFF5B2D8E, 0xFF9E84B6});
         cardBg.setCornerRadius(AndroidUtilities.dp(24));
         card.setBackground(cardBg);
         int cardPad = AndroidUtilities.dp(22);
@@ -183,7 +180,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
         statusText = new TextView(context);
         statusText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 26);
-        statusText.setTextColor(c(Theme.key_featuredStickers_buttonText));
+        statusText.setTextColor(Color.WHITE);
         statusText.setTypeface(AndroidUtilities.bold());
         statusText.setGravity(Gravity.CENTER);
         statusText.setText(LocaleController.getString(R.string.LitegramConnStatusDisconnected));
@@ -195,8 +192,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
         subtitleText = new TextView(context);
         subtitleText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        subtitleText.setTextColor(ColorUtils.setAlphaComponent(
-                c(Theme.key_featuredStickers_buttonText), 0xE6));
+        subtitleText.setTextColor(ColorUtils.setAlphaComponent(Color.WHITE, 0xE6));
         subtitleText.setGravity(Gravity.CENTER);
         subtitleText.setLineSpacing(AndroidUtilities.dp(2), 1f);
         subtitleText.setText(LocaleController.getString(R.string.LitegramConnSubtitle));
@@ -233,17 +229,16 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
             return;
         }
         if (LitegramConfig.isSubscriptionActive()) {
-            planBadge.setTextColor(c(Theme.key_featuredStickers_buttonText));
+            planBadge.setTextColor(Color.WHITE);
             GradientDrawable badgeBg = new GradientDrawable();
             badgeBg.setCornerRadius(AndroidUtilities.dp(20));
-            badgeBg.setColor(c(Theme.key_featuredStickers_addButtonPressed));
+            badgeBg.setColor(0xFF7B5EA7);
             planBadge.setBackground(badgeBg);
         } else {
-            planBadge.setTextColor(c(Theme.key_featuredStickers_buttonText));
+            planBadge.setTextColor(Color.WHITE);
             GradientDrawable badgeBg = new GradientDrawable();
             badgeBg.setCornerRadius(AndroidUtilities.dp(20));
-            badgeBg.setColor(ColorUtils.setAlphaComponent(
-                    c(Theme.key_windowBackgroundWhiteBlackText), 0x59));
+            badgeBg.setColor(ColorUtils.setAlphaComponent(Color.WHITE, 0x40));
             planBadge.setBackground(badgeBg);
         }
     }
@@ -397,17 +392,14 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
         actionButton = new TextView(context);
         actionButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        actionButton.setTextColor(c(Theme.key_featuredStickers_buttonText));
+        actionButton.setTextColor(Color.WHITE);
         actionButton.setTypeface(AndroidUtilities.bold());
         actionButton.setAllCaps(true);
         actionButton.setGravity(Gravity.CENTER);
         actionButton.setPadding(0, AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16));
 
         actionBtnBg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{
-                        c(Theme.key_featuredStickers_addButton),
-                        c(Theme.key_featuredStickers_addButton2)
-                });
+                new int[]{0xFF5B2D8E, 0xFF9E84B6});
         actionBtnBg.setCornerRadius(AndroidUtilities.dp(14));
         actionButton.setBackground(actionBtnBg);
 
@@ -501,7 +493,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         TextView sym = new TextView(context);
         sym.setGravity(Gravity.CENTER);
         sym.setIncludeFontPadding(false);
-        sym.setTextColor(c(Theme.key_featuredStickers_buttonText));
+        sym.setTextColor(Color.WHITE);
         if ("Aa".equals(symbol)) {
             sym.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
             sym.setTypeface(AndroidUtilities.bold());
@@ -593,11 +585,11 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         closeBtn.setText(LocaleController.getString(R.string.Close));
         closeBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         closeBtn.setTypeface(AndroidUtilities.bold());
-        closeBtn.setTextColor(c(Theme.key_featuredStickers_buttonText));
+        closeBtn.setTextColor(Color.WHITE);
         closeBtn.setGravity(Gravity.CENTER);
         closeBtn.setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(12));
         GradientDrawable btnBg = new GradientDrawable();
-        btnBg.setColor(c(Theme.key_featuredStickers_addButton));
+        btnBg.setColor(0xFF7B5EA7);
         btnBg.setCornerRadius(AndroidUtilities.dp(10));
         closeBtn.setBackground(btnBg);
         LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
@@ -637,7 +629,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 || connectionState == ConnectionsManager.ConnectionStateConnecting);
 
         if (statusText != null) {
-            statusText.setTextColor(c(Theme.key_featuredStickers_buttonText));
+            statusText.setTextColor(Color.WHITE);
             if (connected) {
                 statusText.setText(LocaleController.getString(R.string.LitegramConnStatusConnected));
             } else if (connecting) {
@@ -672,10 +664,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 actionBtnBg.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);
             } else {
                 actionButton.setText(LocaleController.getString(R.string.LitegramConnConnect));
-                actionBtnBg.setColors(new int[]{
-                        c(Theme.key_featuredStickers_addButton),
-                        c(Theme.key_featuredStickers_addButton2)
-                });
+                actionBtnBg.setColors(new int[]{0xFF5B2D8E, 0xFF9E84B6});
                 actionBtnBg.setOrientation(GradientDrawable.Orientation.TL_BR);
             }
             actionButton.setEnabled(true);

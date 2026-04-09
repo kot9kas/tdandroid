@@ -16,7 +16,7 @@ import java.util.List;
 public class LitegramStorage {
 
     private static final String DB_NAME = "litegram_vault.db";
-    private static final int DB_VERSION = 1;
+    private static final int DB_VERSION = 2;
 
     private static volatile LitegramStorage instance;
     private final DbHelper helper;
@@ -45,6 +45,7 @@ public class LitegramStorage {
         public String text;
         public int mediaType;
         public String mediaPath;
+        public byte[] docData;
         public int date;
         public long savedAt;
         public int type; // 0 = deleted, 1 = once_media
@@ -52,13 +53,14 @@ public class LitegramStorage {
 
     public void saveDeletedMessage(int mid, long dialogId, long fromId,
                                    String senderName, String chatTitle,
-                                   String text, int mediaType, String mediaPath, int date) {
+                                   String text, int mediaType, String mediaPath,
+                                   byte[] docData, int date) {
         try {
             SQLiteDatabase db = helper.getWritableDatabase();
             SQLiteStatement st = db.compileStatement(
                     "INSERT OR REPLACE INTO deleted_messages " +
-                    "(mid, dialog_id, from_id, sender_name, chat_title, text, media_type, media_path, date, saved_at) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    "(mid, dialog_id, from_id, sender_name, chat_title, text, media_type, media_path, doc_data, date, saved_at) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             st.bindLong(1, mid);
             st.bindLong(2, dialogId);
             st.bindLong(3, fromId);
@@ -67,8 +69,13 @@ public class LitegramStorage {
             st.bindString(6, text != null ? text : "");
             st.bindLong(7, mediaType);
             st.bindString(8, mediaPath != null ? mediaPath : "");
-            st.bindLong(9, date);
-            st.bindLong(10, System.currentTimeMillis() / 1000);
+            if (docData != null) {
+                st.bindBlob(9, docData);
+            } else {
+                st.bindNull(9);
+            }
+            st.bindLong(10, date);
+            st.bindLong(11, System.currentTimeMillis() / 1000);
             st.executeInsert();
             st.close();
         } catch (Exception e) {
@@ -116,6 +123,16 @@ public class LitegramStorage {
 
     public int getOnceMediaCount() {
         return count("once_media");
+    }
+
+    public void updateMediaPath(int mid, long dialogId, String newPath) {
+        try {
+            SQLiteDatabase db = helper.getWritableDatabase();
+            db.execSQL("UPDATE deleted_messages SET media_path = ? WHERE mid = ? AND dialog_id = ?",
+                    new Object[]{newPath != null ? newPath : "", mid, dialogId});
+        } catch (Exception e) {
+            FileLog.e("litegram: updateMediaPath failed", e);
+        }
     }
 
     public void deleteDeletedMessage(int mid, long dialogId) {
@@ -168,7 +185,7 @@ public class LitegramStorage {
         try {
             SQLiteDatabase db = helper.getReadableDatabase();
             c = db.rawQuery("SELECT mid, dialog_id, from_id, sender_name, chat_title, text, " +
-                    "media_type, media_path, date, saved_at FROM " + table +
+                    "media_type, media_path, date, saved_at, doc_data FROM " + table +
                     " ORDER BY saved_at DESC LIMIT ? OFFSET ?",
                     new String[]{String.valueOf(limit), String.valueOf(offset)});
             while (c.moveToNext()) {
@@ -183,6 +200,7 @@ public class LitegramStorage {
                 m.mediaPath = c.getString(7);
                 m.date = c.getInt(8);
                 m.savedAt = c.getLong(9);
+                m.docData = c.isNull(10) ? null : c.getBlob(10);
                 m.type = type;
                 result.add(m);
             }
@@ -192,6 +210,23 @@ public class LitegramStorage {
             if (c != null) c.close();
         }
         return result;
+    }
+
+    public long getDeletedMessagesDataSize() {
+        long total = 0;
+        Cursor c = null;
+        try {
+            SQLiteDatabase db = helper.getReadableDatabase();
+            c = db.rawQuery("SELECT IFNULL(SUM(LENGTH(text)),0) + IFNULL(SUM(LENGTH(doc_data)),0) " +
+                    "+ IFNULL(SUM(LENGTH(sender_name)),0) + IFNULL(SUM(LENGTH(chat_title)),0) " +
+                    "+ IFNULL(SUM(LENGTH(media_path)),0) FROM deleted_messages", null);
+            if (c.moveToFirst()) total = c.getLong(0);
+        } catch (Exception e) {
+            FileLog.e(e);
+        } finally {
+            if (c != null) c.close();
+        }
+        return total;
     }
 
     private int count(String table) {
@@ -225,6 +260,7 @@ public class LitegramStorage {
                     "text TEXT, " +
                     "media_type INTEGER DEFAULT 0, " +
                     "media_path TEXT, " +
+                    "doc_data BLOB, " +
                     "date INTEGER, " +
                     "saved_at INTEGER, " +
                     "PRIMARY KEY (mid, dialog_id))");
@@ -238,6 +274,7 @@ public class LitegramStorage {
                     "text TEXT, " +
                     "media_type INTEGER DEFAULT 0, " +
                     "media_path TEXT, " +
+                    "doc_data BLOB, " +
                     "date INTEGER, " +
                     "saved_at INTEGER, " +
                     "PRIMARY KEY (mid, dialog_id))");
@@ -248,6 +285,10 @@ public class LitegramStorage {
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            if (oldVersion < 2) {
+                try { db.execSQL("ALTER TABLE deleted_messages ADD COLUMN doc_data BLOB"); } catch (Exception ignored) {}
+                try { db.execSQL("ALTER TABLE once_media ADD COLUMN doc_data BLOB"); } catch (Exception ignored) {}
+            }
         }
     }
 

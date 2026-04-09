@@ -868,7 +868,7 @@ public class VoIPFragment implements
         frameLayout.addView(voIpSnowView = new VoIpSnowView(context), LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 220));
         frameLayout.addView(callingUserTextureView);
 
-        final BackgroundGradientDrawable gradientDrawable = new BackgroundGradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xFF1b354e, 0xFF255b7d});
+        final BackgroundGradientDrawable gradientDrawable = new BackgroundGradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xFF2D1B4E, 0xFF3A1F6E});
         final BackgroundGradientDrawable.Sizes sizes = BackgroundGradientDrawable.Sizes.ofDeviceScreen(BackgroundGradientDrawable.Sizes.Orientation.PORTRAIT);
         gradientDrawable.startDithering(sizes, new BackgroundGradientDrawable.ListenerAdapter() {
             @Override
@@ -3241,7 +3241,7 @@ public class VoIPFragment implements
 
         public ConferenceParticipantsView(Context context) {
             super(context);
-            backgroundPaint.setColor(0xFF222A33);
+            backgroundPaint.setColor(0xFF231530);
             avatarsDrawable = new AvatarsDrawable(this, false);
             avatarsDrawable.width = dp(100);
             avatarsDrawable.height = dp(30);

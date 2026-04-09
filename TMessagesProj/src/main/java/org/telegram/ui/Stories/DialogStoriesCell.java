@@ -13,10 +13,8 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
-import android.graphics.Shader;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
@@ -319,25 +317,10 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
         addView(recyclerListView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, FAKE_TOP_PADDING, 0, 0));
 
         titleView = new AnimatedTextView(getContext(), true, true, false) {
-            private LinearGradient titleGradient;
-            private float lastGradientWidth;
             @Override
             protected void onDraw(Canvas canvas) {
                 android.text.TextPaint paint = getPaint();
-                CharSequence text = getText();
-                if (text != null && text.length() > 0) {
-                    float w = paint.measureText(text.toString());
-                    if (w > 0 && (titleGradient == null || lastGradientWidth != w)) {
-                        titleGradient = new LinearGradient(
-                                0, 0, w, 0,
-                                new int[]{0xFFAE8BA1, 0xFFF2ECB6},
-                                null, Shader.TileMode.CLAMP);
-                        lastGradientWidth = w;
-                    }
-                    if (titleGradient != null) {
-                        paint.setShader(titleGradient);
-                    }
-                }
+                paint.setShader(null);
                 super.onDraw(canvas);
             }
         };

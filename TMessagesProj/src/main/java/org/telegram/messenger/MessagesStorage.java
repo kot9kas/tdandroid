@@ -4598,11 +4598,6 @@ public class MessagesStorage extends BaseController {
                             message.id = cursor.intValue(1);
                             message.date = cursor.intValue(2);
                             message.dialog_id = cursor.longValue(3);
-                            try {
-                                org.telegram.litegram.LitegramVault.interceptOnceMedia(message, dialogId, currentAccount);
-                            } catch (Exception lge) {
-                                FileLog.e("litegram vault: interceptOnceMedia failed", lge);
-                            }
                             if (!addFilesToDelete(message, filesToDelete, idsToDelete, namesToDelete, true)) {
                                 continue;
                             } else {

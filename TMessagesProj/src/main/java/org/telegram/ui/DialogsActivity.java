@@ -5270,7 +5270,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         if (hasMainTabs) {
             actionBar.getTitlesContainer().setTranslationX(dp(4));
-            actionBar.setTitleColor(getThemedColor(Theme.key_telegram_color_dialogsLogo));
+            actionBar.setTitleColor(0xFF9E84B6);
         }
 
         if (folderId != 0) {
@@ -11588,7 +11588,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 dialogStoriesCell.updateColors();
             }
             if (logoDrawable != null) {
-                logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);
+                logoDrawable.setColorFilter(0xFF9E84B6, PorterDuff.Mode.MULTIPLY);
             }
             if (actionModeCloseView != null) {
                 actionModeCloseView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_actionBarActionModeDefaultIcon), PorterDuff.Mode.MULTIPLY));
