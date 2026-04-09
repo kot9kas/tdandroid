@@ -45,6 +45,7 @@ public class LitegramController {
     private volatile long noProxyConnectingSinceMs;
     private volatile long lastProxyAttemptAtMs;
     private volatile boolean startupConnect = true;
+    private volatile long directCheckStartedAtMs;
 
     public void init() {
         if (initialized) {
@@ -63,6 +64,7 @@ public class LitegramController {
         }
 
         clearSharedConfigProxy();
+        directCheckStartedAtMs = System.currentTimeMillis();
 
         resolveTelegramId();
 
@@ -96,22 +98,30 @@ public class LitegramController {
                         || state == ConnectionsManager.ConnectionStateUpdating;
                 boolean connecting = state == ConnectionsManager.ConnectionStateConnecting
                         || state == ConnectionsManager.ConnectionStateConnectingToProxy;
+                boolean waitingForNetwork = state == ConnectionsManager.ConnectionStateWaitingForNetwork;
                 boolean telegramProxyEnabled = MessagesController.getGlobalMainSettings()
                         .getBoolean("proxy_enabled", false);
                 long now = System.currentTimeMillis();
 
                 if (!telegramProxyEnabled) {
-                    if (connecting) {
+                    if (connected || waitingForNetwork) {
+                        noProxyConnectingSinceMs = 0;
+                    } else if (connecting) {
                         if (noProxyConnectingSinceMs == 0) {
                             noProxyConnectingSinceMs = now;
                         } else if (now - noProxyConnectingSinceMs >= NO_PROXY_GRACE_MS) {
                             maybeReconnectProxy("litegram: direct connection >3s, enabling proxy fallback", now);
                         }
                     } else {
-                        noProxyConnectingSinceMs = 0;
+                        // Covers preroll/unauthorized startup states where Telegram may not report CONNECTING.
+                        if (directCheckStartedAtMs > 0 && now - directCheckStartedAtMs >= NO_PROXY_GRACE_MS) {
+                            maybeReconnectProxy("litegram: startup direct check >3s, enabling proxy fallback", now);
+                            directCheckStartedAtMs = 0;
+                        }
                     }
                 } else {
                     noProxyConnectingSinceMs = 0;
+                    directCheckStartedAtMs = 0;
                     if (!connected) {
                         maybeReconnectProxy("litegram: proxy disconnected, re-claim", now);
                     }
