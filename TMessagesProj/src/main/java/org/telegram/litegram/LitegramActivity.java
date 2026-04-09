@@ -461,6 +461,30 @@ public class LitegramActivity extends BaseFragment {
 
         final BottomSheet[] sheetHolder = new BottomSheet[1];
 
+        root.addView(createSupportRow(ctx, "\uD83D\uDDD1\uFE0F",
+                LocaleController.getString(R.string.LitegramChatsDeleted),
+                LocaleController.getString(R.string.LitegramChatsDeletedDesc), () -> {
+                    if (sheetHolder[0] != null) sheetHolder[0].dismiss();
+                    presentFragment(new LitegramVaultActivity(LitegramVaultActivity.MODE_DELETED));
+                }));
+
+        root.addView(createSupportRow(ctx, "\uD83D\uDD25",
+                LocaleController.getString(R.string.LitegramChatsOnce),
+                LocaleController.getString(R.string.LitegramChatsOnceDesc), () -> {
+                    if (sheetHolder[0] != null) sheetHolder[0].dismiss();
+                    presentFragment(new LitegramVaultActivity(LitegramVaultActivity.MODE_ONCE));
+                }));
+
+        View divider = new View(ctx);
+        divider.setBackgroundColor(Theme.getColor(Theme.key_divider, getResourceProvider()));
+        LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 1);
+        divLp.topMargin = AndroidUtilities.dp(8);
+        divLp.bottomMargin = AndroidUtilities.dp(8);
+        divLp.leftMargin = AndroidUtilities.dp(22);
+        divLp.rightMargin = AndroidUtilities.dp(22);
+        root.addView(divider, divLp);
+
         root.addView(createSupportRow(ctx, "\uD83D\uDCE2",
                 LocaleController.getString(R.string.LitegramChatsChannel),
                 "@" + LITEGRAM_CHANNEL_USERNAME, () -> {
