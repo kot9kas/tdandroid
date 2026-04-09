@@ -173,6 +173,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     private boolean twoLinesForName;
     private boolean nameIsEllipsized;
     private Paint topicCounterPaint;
+    private Paint litegramLockPaint;
+    private boolean litegramMsgHidden;
     private Paint counterPaintOutline;
     public float chekBoxPaddingTop = 42;
     private boolean needEmoji;
@@ -2590,6 +2592,15 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         }
 
         try {
+            boolean shouldHide = org.telegram.litegram.LitegramChatLocks.getInstance().isEffectiveHidePreview(currentDialogId)
+                    && org.telegram.litegram.LitegramChatLocks.getInstance().isLocked(currentDialogId)
+                    && !org.telegram.litegram.LitegramChatLocks.getInstance().isUnlockedNow(currentDialogId);
+            litegramMsgHidden = shouldHide;
+            if (shouldHide) {
+                messageString = LocaleController.getString(R.string.LitegramChatLocked);
+                messageNameString = null;
+                thumbsCount = 0;
+            }
             CharSequence messageStringFinal;
             // Removing links and bold spans to get rid of underlining and boldness
             if (messageString instanceof Spannable) {
@@ -3934,6 +3945,46 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     canvas.restore();
                     canvas.restore();
                 }
+                try {
+                    boolean litegramNowHide = org.telegram.litegram.LitegramChatLocks.getInstance().isEffectiveHidePreview(currentDialogId)
+                            && org.telegram.litegram.LitegramChatLocks.getInstance().isLocked(currentDialogId)
+                            && !org.telegram.litegram.LitegramChatLocks.getInstance().isUnlockedNow(currentDialogId);
+                    if (litegramNowHide != litegramMsgHidden) {
+                        litegramMsgHidden = litegramNowHide;
+                        post(() -> {
+                            updateLayout = true;
+                            requestLayout();
+                        });
+                    }
+                    if (org.telegram.litegram.LitegramChatLocks.getInstance().isLocked(currentDialogId)) {
+                        boolean unlocked = org.telegram.litegram.LitegramChatLocks.getInstance().isUnlockedNow(currentDialogId);
+                        float nameTextWidth = nameLayout.getLineCount() > 0 ? nameLayout.getLineWidth(0) : 0;
+                        float lockX = nameLeft + nameLayoutTranslateX + Math.min(nameTextWidth, nameWidth) + dp(4);
+                        float lockY = nameTop + (nameLayout.getHeight() - dp(14)) / 2f;
+                        if (litegramLockPaint == null) {
+                            litegramLockPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                            litegramLockPaint.setStyle(Paint.Style.STROKE);
+                            litegramLockPaint.setStrokeCap(Paint.Cap.ROUND);
+                        }
+                        int lockColor = unlocked ? 0xFF4CAF50 : 0xFFE53935;
+                        litegramLockPaint.setColor(lockColor);
+                        litegramLockPaint.setStrokeWidth(dp(1.5f));
+                        float lw = dp(5f), lh = dp(4.5f);
+                        float lcx = lockX + dp(7);
+                        float lBodyTop = lockY + dp(6);
+                        litegramLockPaint.setStyle(Paint.Style.FILL);
+                        android.graphics.RectF bodyRect = new android.graphics.RectF(lcx - lw, lBodyTop, lcx + lw, lBodyTop + lh);
+                        canvas.drawRoundRect(bodyRect, dp(1.5f), dp(1.5f), litegramLockPaint);
+                        litegramLockPaint.setStyle(Paint.Style.STROKE);
+                        float arcR = dp(3f);
+                        if (unlocked) {
+                            canvas.drawArc(lcx - arcR, lBodyTop - arcR * 2f, lcx + arcR, lBodyTop, 180, 180, false, litegramLockPaint);
+                            canvas.drawLine(lcx + arcR, lBodyTop - arcR, lcx + arcR, lBodyTop - arcR * 2.0f, litegramLockPaint);
+                        } else {
+                            canvas.drawArc(lcx - arcR, lBodyTop - arcR * 2f, lcx + arcR, lBodyTop, 180, 180, false, litegramLockPaint);
+                        }
+                    }
+                } catch (Exception ignored) {}
             }
 
             if (timeLayout != null && currentDialogFolderId == 0) {
