@@ -163,8 +163,8 @@
             android:enabled="false"
             android:name="org.telegram.messenger.DarkIcon"
             android:targetActivity="org.telegram.ui.LaunchActivity"
-            android:icon="@mipmap/icon_2_launcher"
-            android:roundIcon="@mipmap/icon_2_launcher_round"
+            android:icon="@mipmap/icon_dark_launcher"
+            android:roundIcon="@mipmap/icon_dark_launcher_round"
             android:exported="true">
 
             <intent-filter>
