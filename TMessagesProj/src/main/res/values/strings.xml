@@ -10351,6 +10351,11 @@
     <string name="LitegramSaveTrafficBlockTitle">Save Traffic is enabled</string>
     <string name="LitegramSaveTrafficBlockDesc">While **Save Traffic** is active, data and storage settings are managed by Litegram. Tap **Save Traffic** to change this.</string>
     <string name="LitegramTryAllFeatures">Try all features</string>
+    <string name="LitegramChats">Chats</string>
+    <string name="LitegramChatsDesc">Litegram community and bots</string>
+    <string name="LitegramChatsChannel">News channel</string>
+    <string name="LitegramChatsCommunity">Community chat</string>
+    <string name="LitegramChatsBot">Litegram Bot</string>
     <string name="LitegramSupport">Support</string>
     <string name="LitegramSupportDesc">Contact us for help</string>
     <string name="LitegramSupportEmail">Email us</string>

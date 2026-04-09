@@ -275,6 +275,11 @@
     <string name="ProfileCopyId">Копировать ID</string>
     <string name="LitegramSaveTrafficDesc">Сжатие изображений и медиа.</string>
     <string name="LitegramConnection">Litegram Подключение</string>
+    <string name="LitegramChats">Чаты</string>
+    <string name="LitegramChatsDesc">Сообщество и боты Litegram</string>
+    <string name="LitegramChatsChannel">Новостной канал</string>
+    <string name="LitegramChatsCommunity">Чат сообщества</string>
+    <string name="LitegramChatsBot">Бот Litegram</string>
     <string name="LitegramSupport">Поддержка</string>
     <string name="LitegramSupportDesc">Свяжитесь с нами</string>
     <string name="LitegramSupportEmail">Написать на почту</string>

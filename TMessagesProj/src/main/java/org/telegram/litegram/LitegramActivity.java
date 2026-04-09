@@ -278,6 +278,14 @@ public class LitegramActivity extends BaseFragment {
 
         panel.addView(createPanelDivider(context));
 
+        panel.addView(createMenuItem(context, R.drawable.msg_discussion,
+                c(Theme.key_chat_messagePanelSend),
+                LocaleController.getString(R.string.LitegramChats),
+                LocaleController.getString(R.string.LitegramChatsDesc),
+                this::showChatsSheet));
+
+        panel.addView(createPanelDivider(context));
+
         panel.addView(createMenuItem(context, R.drawable.msg_help,
                 c(Theme.key_windowBackgroundWhiteGrayIcon),
                 LocaleController.getString(R.string.LitegramSupport),
@@ -429,6 +437,78 @@ public class LitegramActivity extends BaseFragment {
     private static final String LITEGRAM_BOT_USERNAME = "Litegram_robot";
     private static final String SUPPORT_BOT_USERNAME = "Litegram_support_bot";
     private static final String SUPPORT_EMAIL = "support@bubavpn.com";
+    private static final String LITEGRAM_CHANNEL_USERNAME = "litegram_news";
+    private static final String LITEGRAM_CHAT_USERNAME = "litegram_chat";
+
+    private void showChatsSheet() {
+        Context ctx = getParentActivity();
+        if (ctx == null) return;
+
+        BottomSheet.Builder builder = new BottomSheet.Builder(ctx);
+
+        LinearLayout root = new LinearLayout(ctx);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(20));
+
+        TextView title = new TextView(ctx);
+        title.setText(LocaleController.getString(R.string.LitegramChats));
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        title.setTypeface(AndroidUtilities.bold());
+        title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, getResourceProvider()));
+        title.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(8),
+                AndroidUtilities.dp(22), AndroidUtilities.dp(16));
+        root.addView(title);
+
+        final BottomSheet[] sheetHolder = new BottomSheet[1];
+
+        root.addView(createSupportRow(ctx, "\uD83D\uDCE2",
+                LocaleController.getString(R.string.LitegramChatsChannel),
+                "@" + LITEGRAM_CHANNEL_USERNAME, () -> {
+                    if (sheetHolder[0] != null) sheetHolder[0].dismiss();
+                    openChat(LITEGRAM_CHANNEL_USERNAME);
+                }));
+
+        root.addView(createSupportRow(ctx, "\uD83D\uDCAC",
+                LocaleController.getString(R.string.LitegramChatsCommunity),
+                "@" + LITEGRAM_CHAT_USERNAME, () -> {
+                    if (sheetHolder[0] != null) sheetHolder[0].dismiss();
+                    openChat(LITEGRAM_CHAT_USERNAME);
+                }));
+
+        root.addView(createSupportRow(ctx, "\uD83E\uDD16",
+                LocaleController.getString(R.string.LitegramChatsBot),
+                "@" + LITEGRAM_BOT_USERNAME, () -> {
+                    if (sheetHolder[0] != null) sheetHolder[0].dismiss();
+                    openBotChat();
+                }));
+
+        builder.setCustomView(root);
+        sheetHolder[0] = builder.create();
+        showDialog(sheetHolder[0]);
+    }
+
+    private void openChat(String username) {
+        try {
+            MessagesController.getInstance(currentAccount).getUserNameResolver().resolve(
+                    username, null, peerId -> {
+                        if (peerId == null || peerId == 0) {
+                            FileLog.e("litegram: failed to resolve @" + username);
+                            return;
+                        }
+                        AndroidUtilities.runOnUIThread(() -> {
+                            Bundle args = new Bundle();
+                            if (peerId > 0) {
+                                args.putLong("user_id", peerId);
+                            } else {
+                                args.putLong("chat_id", -peerId);
+                            }
+                            presentFragment(new ChatActivity(args));
+                        });
+                    });
+        } catch (Exception e) {
+            FileLog.e("litegram: openChat failed for @" + username, e);
+        }
+    }
 
     private void showSupportSheet() {
         Context ctx = getParentActivity();

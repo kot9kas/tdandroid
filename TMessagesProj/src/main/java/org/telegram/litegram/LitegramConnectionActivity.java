@@ -1,7 +1,10 @@
 package org.telegram.litegram;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
@@ -333,14 +336,34 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
             nlp.leftMargin = AndroidUtilities.dp(6);
             row.addView(nameView, nlp);
 
-            TextView check = new TextView(context);
-            check.setText("\u2713");
-            check.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
-            check.setTextColor(c(Theme.key_windowBackgroundWhiteGrayText4));
-            check.setGravity(Gravity.CENTER);
-            check.setVisibility(selected ? View.VISIBLE : View.INVISIBLE);
-            row.addView(check, new LinearLayout.LayoutParams(
-                    AndroidUtilities.dp(22), ViewGroup.LayoutParams.WRAP_CONTENT));
+            View checkView = new View(context) {
+                private final Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                private final Paint checkPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                {
+                    circlePaint.setColor(0xFF4CAF50);
+                    circlePaint.setStyle(Paint.Style.FILL);
+                    checkPaint.setColor(Color.WHITE);
+                    checkPaint.setStyle(Paint.Style.STROKE);
+                    checkPaint.setStrokeCap(Paint.Cap.ROUND);
+                    checkPaint.setStrokeJoin(Paint.Join.ROUND);
+                }
+                @Override
+                protected void onDraw(Canvas canvas) {
+                    float cx = getWidth() / 2f;
+                    float cy = getHeight() / 2f;
+                    float r = Math.min(cx, cy);
+                    canvas.drawCircle(cx, cy, r, circlePaint);
+                    checkPaint.setStrokeWidth(r * 0.24f);
+                    Path path = new Path();
+                    path.moveTo(cx - r * 0.35f, cy + r * 0.02f);
+                    path.lineTo(cx - r * 0.05f, cy + r * 0.32f);
+                    path.lineTo(cx + r * 0.38f, cy - r * 0.28f);
+                    canvas.drawPath(path, checkPaint);
+                }
+            };
+            checkView.setVisibility(selected ? View.VISIBLE : View.INVISIBLE);
+            row.addView(checkView, new LinearLayout.LayoutParams(
+                    AndroidUtilities.dp(22), AndroidUtilities.dp(22)));
 
             final LitegramApi.ServerInfo srv = server;
             row.setOnClickListener(v -> {
