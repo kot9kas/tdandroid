@@ -980,7 +980,7 @@ public class ConnectionsManager extends BaseController {
     /**
      * Импорт постоянного MTProto auth_key (256 байт) для основного DC. userId должен совпадать с аккаунтом (из JSON/Pyrogram);
      * при 0 сервер попытается определить пользователя через users.getFullUser.
-     * host/port — как в Telethon sessions (опционально); иначе используются стандартные адреса DC из tgnet.
+     * host/port для кастомного endpoint (опционально); иначе используются стандартные адреса DC из tgnet.
      */
     public static native void native_importPermanentAuthKey(int currentAccount, int dcId, byte[] authKey, long userId, String host, int port, boolean applyCustomEndpoint);
 

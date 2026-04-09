@@ -225,7 +225,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     public static final boolean TEST_BACKEND_IN_STORE = false;
 
-    /** Выбор файлов сессии Telethon/Pyrogram (Litegram). */
+    /** Выбор файла сессии Pyrogram (Litegram). */
     public static final int REQUEST_LITEGRAM_SESSION_IMPORT = 61021;
 
     public final static int AUTH_TYPE_MESSAGE = 1,
@@ -1714,7 +1714,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     }
 
     /**
-     * Завершение входа после импорта auth_key (Telethon/Pyrogram). Публичный метод для {@link LitegramSessionTransfer}.
+     * Завершение входа после импорта auth_key (Pyrogram). Публичный метод для {@link LitegramSessionTransfer}.
      */
     public void finishLoginWithImportedUser(TLRPC.User user) {
         if (user == null) {
@@ -1726,7 +1726,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     }
 
     /**
-     * Сессии Telethon/Pyrogram и экспорт Litegram всегда production DC. Test backend с ними несовместим.
+     * Сессии Pyrogram / экспорт Litegram всегда production DC. Test backend с ними несовместим.
      */
     public void prepareNetworkForImportedSession() {
         ConnectionsManager cm = ConnectionsManager.getInstance(currentAccount);

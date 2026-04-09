@@ -40,8 +40,8 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Импорт/экспорт пакетов сессии Telethon / Pyrogram (+ JSON метаданные).
- * Формат tdata (Telegram Desktop) на Android не поддерживается — только .session и .json.
+ * Импорт/экспорт сессии Pyrogram (SQLite .session + JSON). Telethon не поддерживается.
+ * Формат tdata (Telegram Desktop) на Android не поддерживается.
  */
 public final class LitegramSessionTransfer {
 
@@ -229,14 +229,12 @@ public final class LitegramSessionTransfer {
                 File outDir = new File(ApplicationLoader.applicationContext.getFilesDir(), "session_share");
                 //noinspection ResultOfMethodCallIgnored
                 outDir.mkdirs();
-                File telethonF = new File(outDir, base + "_telethon.session");
                 File pyrogramF = new File(outDir, base + "_pyrogram.session");
                 File jsonF = new File(outDir, base + ".json");
-                writeTelethonSession(telethonF, dcId, authKey, defaultHostForDc(dcId), 443);
                 writePyrogramSession(pyrogramF, dcId, authKey, userId, currentAccount);
                 writeJsonMetadata(jsonF, currentAccount, dcId, userId);
                 File zip = new File(outDir, "litegram_" + base + "_session.zip");
-                zipFiles(zip, telethonF, pyrogramF, jsonF);
+                zipFiles(zip, pyrogramF, jsonF);
                 AndroidUtilities.runOnUIThread(() -> {
                     progress.dismiss();
                     shareZip(fragment, zip);
@@ -286,27 +284,6 @@ public final class LitegramSessionTransfer {
                 zos.closeEntry();
             }
         }
-    }
-
-    private static void writeTelethonSession(File file, int dcId, byte[] authKey, String host, int port) {
-        if (file.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            file.delete();
-        }
-        SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase(file, null);
-        db.execSQL("CREATE TABLE entities (id integer primary key, hash integer not null, username text, phone integer, name text, date integer)");
-        db.execSQL("CREATE TABLE sent_files (md5_digest blob, file_size integer, type integer, id integer, hash integer, primary key(md5_digest, file_size, type))");
-        db.execSQL("CREATE TABLE sessions (dc_id integer primary key, server_address text, port integer, auth_key blob, takeout_id integer)");
-        db.execSQL("CREATE TABLE update_state (id integer primary key, pts integer, qts integer, date integer, seq integer)");
-        db.execSQL("CREATE TABLE version (version integer primary key)");
-        db.execSQL("INSERT INTO version VALUES (7)");
-        android.content.ContentValues cv = new android.content.ContentValues();
-        cv.put("dc_id", dcId);
-        cv.put("server_address", host);
-        cv.put("port", port);
-        cv.put("auth_key", authKey);
-        db.insert("sessions", null, cv);
-        db.close();
     }
 
     private static void writePyrogramSession(File file, int dcId, byte[] authKey, long userId, int account) {
@@ -360,8 +337,7 @@ public final class LitegramSessionTransfer {
     }
 
     /**
-     * Первый IPv4 для каждого DC — как в {@code ConnectionsManager::initDatacenters} (production),
-     * чтобы импорт/экспорт совпадали с остальным клиентом и с типичными Telethon StringSession dc→ip маппингами.
+     * Первый IPv4 для каждого DC — как в {@code ConnectionsManager::initDatacenters} (production).
      */
     private static String defaultHostForDc(int dcId) {
         switch (dcId) {
@@ -374,7 +350,7 @@ public final class LitegramSessionTransfer {
         }
     }
 
-    /** Адреса из .session Telethon часто не подходят клиенту; используем те же DC, что и для Pyrogram. */
+    /** Перед нативным импортом подставляем стандартные адреса DC клиента. */
     private static void normalizeEndpointsForNative(SessionPayload p) {
         if (p == null) {
             return;
@@ -418,8 +394,6 @@ public final class LitegramSessionTransfer {
     }
 
     private static SessionPayload resolvePayload(File workDir, List<File> roots) throws Exception {
-        SessionPayload tele = null;
-        SessionPayload pyro = null;
         JSONObject jsonMeta = null;
         boolean sawTdata = false;
         for (File root : roots) {
@@ -442,58 +416,21 @@ public final class LitegramSessionTransfer {
                 sawTdata = true;
             }
         }
-        int preferredDc = jsonMeta != null ? jsonMeta.optInt("dc_id", 0) : 0;
 
+        ArrayList<SessionPayload> pyrogramCandidates = new ArrayList<>();
         for (File f : all) {
             String n = f.getName().toLowerCase();
             if (n.endsWith(".json") && !n.contains("tgnet")) {
                 continue;
             }
             if (isSqliteDatabaseFile(f)) {
-                if (tele == null && sqliteHasTelethonSchema(f)) {
-                    SessionPayload t = readTelethon(f, preferredDc);
-                    if (t != null) {
-                        tele = t;
-                    }
-                }
-                if (pyro == null && tele == null && !sqliteHasTelethonSchema(f)) {
-                    SessionPayload p = readPyrogram(f);
-                    if (p != null) {
-                        pyro = p;
-                    }
-                }
-                if (tele == null && pyro == null) {
-                    SessionPayload a = readTelethon(f, preferredDc);
-                    if (a != null) {
-                        tele = a;
-                    } else {
-                        SessionPayload b = readPyrogram(f);
-                        if (b != null) {
-                            pyro = b;
-                        }
-                    }
-                }
-            } else if (n.endsWith("_telethon.session") || (n.endsWith(".session") && !n.contains("pyrogram") && sqliteHasTelethonSchema(f))) {
-                if (tele == null) {
-                    tele = readTelethon(f, preferredDc);
-                }
-            } else if (n.contains("pyrogram") && n.endsWith(".session")) {
-                if (pyro == null) {
-                    pyro = readPyrogram(f);
-                }
-            } else if (n.endsWith(".session") && pyro == null && tele == null) {
-                SessionPayload a = readTelethon(f, preferredDc);
-                if (a != null) {
-                    tele = a;
-                } else {
-                    SessionPayload b = readPyrogram(f);
-                    if (b != null) {
-                        pyro = b;
-                    }
+                SessionPayload p = readPyrogram(f);
+                if (p != null) {
+                    pyrogramCandidates.add(p);
                 }
             }
         }
-        SessionPayload use = pickBestSessionPayload(tele, pyro, jsonMeta);
+        SessionPayload use = pickPyrogramByJsonDc(pyrogramCandidates, jsonMeta);
         if (use == null) {
             if (sawTdata) {
                 SessionPayload p = new SessionPayload();
@@ -515,125 +452,20 @@ public final class LitegramSessionTransfer {
         return use;
     }
 
-    /**
-     * В архиве часто есть и Telethon и Pyrogram. У Telethon в SQLite несколько строк sessions (разные DC);
-     * Pyrogram — одна строка с нужным dc. Предпочитаем запись, совпадающую с dc_id из JSON, иначе Pyrogram.
-     */
-    private static SessionPayload pickBestSessionPayload(SessionPayload tele, SessionPayload pyro, JSONObject jsonMeta) {
+    /** Если в JSON указан dc_id — берём совпадающую Pyrogram-сессию; иначе первую подходящую. */
+    private static SessionPayload pickPyrogramByJsonDc(ArrayList<SessionPayload> candidates, JSONObject jsonMeta) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
         int jsonDc = jsonMeta != null ? jsonMeta.optInt("dc_id", 0) : 0;
         if (jsonDc >= 1 && jsonDc <= 5) {
-            if (tele != null && tele.dcId == jsonDc) {
-                return tele;
-            }
-            if (pyro != null && pyro.dcId == jsonDc) {
-                return pyro;
-            }
-        }
-        if (pyro != null) {
-            return pyro;
-        }
-        return tele;
-    }
-
-    /**
-     * Telethon: таблица sessions с dc_id и auth_key, без колонки test_mode (это маркер Pyrogram).
-     * Раньше требовали server_address — из‑за этого многие реальные Telethon .session не распознавались.
-     */
-    private static boolean sqliteHasTelethonSchema(File f) {
-        try {
-            SQLiteDatabase db = SQLiteDatabase.openDatabase(f.getAbsolutePath(), null, SQLiteDatabase.OPEN_READONLY);
-            Cursor c = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'", null);
-            if (!c.moveToFirst()) {
-                c.close();
-                db.close();
-                return false;
-            }
-            c.close();
-            c = db.rawQuery("PRAGMA table_info(sessions)", null);
-            boolean hasDc = false;
-            boolean hasKey = false;
-            boolean hasTestMode = false;
-            while (c.moveToNext()) {
-                String col = c.getString(1);
-                if ("dc_id".equals(col)) {
-                    hasDc = true;
-                }
-                if ("auth_key".equals(col)) {
-                    hasKey = true;
-                }
-                if ("test_mode".equals(col)) {
-                    hasTestMode = true;
+            for (SessionPayload p : candidates) {
+                if (p.dcId == jsonDc) {
+                    return p;
                 }
             }
-            c.close();
-            db.close();
-            return hasDc && hasKey && !hasTestMode;
-        } catch (Exception e) {
-            return false;
         }
-    }
-
-    /**
-     * @param preferredDcId dc_id из JSON пакета (см. {@link #writeJsonMetadata}); в Telethon часто несколько строк в sessions.
-     */
-    private static SessionPayload readTelethon(File f, int preferredDcId) {
-        SQLiteDatabase db = null;
-        try {
-            db = SQLiteDatabase.openDatabase(f.getAbsolutePath(), null, SQLiteDatabase.OPEN_READONLY);
-            if (preferredDcId >= 1 && preferredDcId <= 5) {
-                try (Cursor c = db.rawQuery("SELECT * FROM sessions WHERE dc_id = ? LIMIT 1",
-                        new String[]{String.valueOf(preferredDcId)})) {
-                    if (c.moveToFirst()) {
-                        SessionPayload p = telethonRowToPayload(c);
-                        if (p != null) {
-                            return p;
-                        }
-                    }
-                }
-            }
-            try (Cursor c = db.rawQuery("SELECT * FROM sessions", null)) {
-                SessionPayload fallback = null;
-                while (c.moveToNext()) {
-                    SessionPayload p = telethonRowToPayload(c);
-                    if (p == null) {
-                        continue;
-                    }
-                    if (p.dcId >= 1 && p.dcId <= 5) {
-                        if (preferredDcId >= 1 && preferredDcId <= 5 && p.dcId == preferredDcId) {
-                            return p;
-                        }
-                        if (fallback == null) {
-                            fallback = p;
-                        }
-                    }
-                }
-                return fallback;
-            }
-        } catch (Exception e) {
-            FileLog.e(e);
-            return null;
-        } finally {
-            if (db != null) {
-                db.close();
-            }
-        }
-    }
-
-    private static SessionPayload telethonRowToPayload(Cursor c) {
-        int dcIdx = c.getColumnIndex("dc_id");
-        int keyIdx = c.getColumnIndex("auth_key");
-        if (dcIdx < 0 || keyIdx < 0) {
-            return null;
-        }
-        byte[] key = c.getBlob(keyIdx);
-        if (key == null || key.length != 256) {
-            return null;
-        }
-        SessionPayload p = new SessionPayload();
-        p.dcId = c.getInt(dcIdx);
-        p.authKey = key;
-        normalizeEndpointsForNative(p);
-        return p;
+        return candidates.get(0);
     }
 
     private static SessionPayload readPyrogram(File f) {
@@ -751,7 +583,7 @@ public final class LitegramSessionTransfer {
         return null;
     }
 
-    /** SQLite database file signature (Telethon / Pyrogram .session). */
+    /** SQLite database file signature (Pyrogram .session). */
     private static boolean isSqliteDatabaseFile(File f) {
         if (f == null || !f.isFile() || f.length() < 16) {
             return false;
