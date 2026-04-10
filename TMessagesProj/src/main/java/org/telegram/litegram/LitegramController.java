@@ -77,17 +77,21 @@ public class LitegramController {
             api.setAccessToken(savedToken);
         }
 
-        ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
-        clearSharedConfigProxy();
         proxyAppliedByUs = false;
-        lastFullCheckMs = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        lastFullCheckMs = now;
+        lastAppForegroundCheckMs = now;
 
         resolveTelegramId();
 
-        Utilities.globalQueue.postRunnable(() -> {
-            refreshSubscriptionStatus();
-            fetchServersForCache();
-        });
+        new Thread(() -> {
+            disableProxySync();
+            Utilities.globalQueue.postRunnable(() -> {
+                refreshSubscriptionStatus();
+                fetchServersForCache();
+            });
+        }, "litegram-init").start();
+
         startDirectProbe();
         scheduleConnectionWatcher();
     }
@@ -109,11 +113,18 @@ public class LitegramController {
         reclaimScheduled = false;
         proxyAppliedByUs = false;
 
-        ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
-        clearSharedConfigProxy();
-        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
+        new Thread(() -> {
+            disableProxySync();
+            AndroidUtilities.runOnUIThread(() ->
+                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged));
+        }, "litegram-fg-cleanup").start();
 
         startDirectProbe();
+    }
+
+    private void disableProxySync() {
+        ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
+        clearSharedConfigProxy();
     }
 
     private void clearSharedConfigProxy() {
@@ -127,7 +138,7 @@ public class LitegramController {
                 .remove("proxy_user")
                 .remove("proxy_pass")
                 .remove("proxy_secret")
-                .commit();
+                .apply();
     }
 
     private void startDirectProbe() {
@@ -223,9 +234,11 @@ public class LitegramController {
         lastFullCheckMs = System.currentTimeMillis();
         noProxyConnectingSinceMs = 0;
         proxyAppliedByUs = false;
-        ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
-        clearSharedConfigProxy();
-        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
+        new Thread(() -> {
+            disableProxySync();
+            AndroidUtilities.runOnUIThread(() ->
+                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged));
+        }, "litegram-recheck").start();
         startDirectProbe();
     }
 
