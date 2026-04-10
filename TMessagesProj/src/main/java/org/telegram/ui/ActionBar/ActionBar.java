@@ -435,6 +435,12 @@ public class ActionBar extends FrameLayout implements Theme.Colorable {
         titleTextView[i].setDrawablePadding(dp(4));
         titleTextView[i].setPadding(0, dp(8), 0, dp(8));
         titleTextView[i].setRightDrawableTopPadding(-dp(1));
+        titleTextView[i].getViewTreeObserver().addOnPreDrawListener(() -> {
+            if (titleTextView[i] == null) return true;
+            android.text.TextPaint paint = titleTextView[i].getTextPaint();
+            paint.setShader(null);
+            return true;
+        });
         if (useContainerForTitles) {
             titlesContainer.addView(titleTextView[i], 0, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP));
         } else {

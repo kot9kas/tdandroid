@@ -1012,24 +1012,24 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                             listAdapter.notifyItemChanged(bubbleRadiusRow, new Object());
                         }
                         if (themesHorizontalListCell != null) {
-                            Theme.ThemeInfo themeInfo = Theme.getTheme("Blue");
+                            Theme.ThemeInfo themeInfo = Theme.getTheme("Purple Breeze");
                             Theme.ThemeInfo currentTheme = Theme.getCurrentTheme();
-                            Theme.ThemeAccent accent = themeInfo.themeAccentsMap.get(Theme.DEFALT_THEME_ACCENT_ID);
+                            Theme.ThemeAccent accent = themeInfo != null ? themeInfo.themeAccentsMap.get(0) : null;
                             if (accent != null) {
                                 Theme.OverrideWallpaperInfo info = new Theme.OverrideWallpaperInfo();
                                 info.slug = Theme.DEFAULT_BACKGROUND_SLUG;
-                                info.fileName = "Blue_99_wp.jpg";
-                                info.originalFileName = "Blue_99_wp.jpg";
+                                info.fileName = "PurpleBreeze_0_wp.jpg";
+                                info.originalFileName = "PurpleBreeze_0_wp.jpg";
                                 accent.overrideWallpaper = info;
                                 themeInfo.setOverrideWallpaper(info);
                             }
-                            if (themeInfo != currentTheme) {
-                                themeInfo.setCurrentAccentId(Theme.DEFALT_THEME_ACCENT_ID);
+                            if (themeInfo != null && themeInfo != currentTheme) {
+                                themeInfo.setCurrentAccentId(0);
                                 Theme.saveThemeAccents(themeInfo, true, false, true, false);
                                 themesHorizontalListCell.selectTheme(themeInfo);
                                 themesHorizontalListCell.smoothScrollToPosition(0);
-                            } else if (themeInfo.currentAccentId != Theme.DEFALT_THEME_ACCENT_ID) {
-                                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, currentTheme, currentType == THEME_TYPE_NIGHT, null, Theme.DEFALT_THEME_ACCENT_ID);
+                            } else if (themeInfo != null && themeInfo.currentAccentId != 0) {
+                                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needSetDayNightTheme, currentTheme, currentType == THEME_TYPE_NIGHT, null, 0);
                                 listAdapter.notifyItemChanged(themeAccentListRow);
                             } else {
                                 Theme.reloadWallpaper(true);
@@ -1045,20 +1045,20 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                     }
                 } else if (id == day_night_switch) {
                     SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-                    String dayThemeName = preferences.getString("lastDayTheme", "Blue");
+                    String dayThemeName = preferences.getString("lastDayTheme", "Purple Breeze");
                     if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                        dayThemeName = "Blue";
+                        dayThemeName = "Purple Breeze";
                     }
-                    String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
+                    String nightThemeName = preferences.getString("lastDarkTheme", "Purple Breeze");
                     if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                        nightThemeName = "Dark Blue";
+                        nightThemeName = "Purple Breeze";
                     }
                     Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
                     if (dayThemeName.equals(nightThemeName)) {
-                        if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
-                            dayThemeName = "Blue";
+                        if (themeInfo.isDark() || dayThemeName.equals("Purple Breeze")) {
+                            dayThemeName = "Purple Breeze";
                         } else {
-                            nightThemeName = "Dark Blue";
+                            nightThemeName = "Purple Breeze";
                         }
                     }
 

@@ -13,6 +13,7 @@ import android.text.TextUtils;
 import android.util.Base64;
 
 import androidx.annotation.Keep;
+import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.gms.tasks.Task;
@@ -975,6 +976,28 @@ public class ConnectionsManager extends BaseController {
     public static native void native_cancelRequestsForGuid(int currentAccount, int guid);
     public static native void native_bindRequestToGuid(int currentAccount, int requestToken, int guid);
     public static native void native_applyDatacenterAddress(int currentAccount, int datacenterId, String ipAddress, int port);
+
+    /**
+     * Импорт постоянного MTProto auth_key (256 байт) для основного DC. userId должен совпадать с аккаунтом (из JSON/Pyrogram);
+     * при 0 сервер попытается определить пользователя через users.getFullUser.
+     * host/port для кастомного endpoint (опционально); иначе используются стандартные адреса DC из tgnet.
+     */
+    public static native void native_importPermanentAuthKey(int currentAccount, int dcId, byte[] authKey, long userId, String host, int port, boolean applyCustomEndpoint);
+
+    /** Экспорт 256-байтного постоянного ключа для указанного dcId (0 = текущий выбранный DC). */
+    public static native byte[] native_exportPermanentAuthKey(int currentAccount, int dcId);
+
+    public static void importPermanentAuthKey(int currentAccount, int dcId, byte[] authKey, long userId, String host, int port, boolean applyCustomEndpoint) {
+        if (authKey == null || authKey.length != 256) {
+            return;
+        }
+        native_importPermanentAuthKey(currentAccount, dcId, authKey, userId, host != null ? host : "", port, applyCustomEndpoint);
+    }
+
+    @Nullable
+    public static byte[] exportPermanentAuthKey(int currentAccount, int dcId) {
+        return native_exportPermanentAuthKey(currentAccount, dcId);
+    }
     public static native int native_getConnectionState(int currentAccount);
     public static native void native_setUserId(int currentAccount, long id);
     public static native void native_init(int currentAccount, int version, int layer, int apiId, String deviceModel, String systemVersion, String appVersion, String langCode, String systemLangCode, String configPath, String logPath, String regId, String cFingerprint, String installer, String packageId, int timezoneOffset, long userId, boolean userPremium, boolean enablePushConnection, boolean hasNetwork, int networkType, int performanceClass);

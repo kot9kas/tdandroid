@@ -60,6 +60,9 @@ public:
     void resetInitVersion();
     bool isRepeatCheckingAddresses();
 
+    /** Копирует постоянный auth_key (обычно 256 байт) в буфер для экспорта сессии. */
+    bool copyPermanentAuthKeyForExport(uint8_t *out, uint32_t bufSize, uint32_t *outLen, int64_t *outKeyId);
+
     Connection *getDownloadConnection(uint8_t num, bool create);
     Connection *getProxyConnection(uint8_t num, bool create, bool connect);
     Connection *getUploadConnection(uint8_t num, bool create);

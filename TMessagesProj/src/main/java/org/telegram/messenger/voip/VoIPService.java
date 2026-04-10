@@ -4019,10 +4019,10 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			builder.setShowWhen(false);
 		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-			builder.setColor(0xff282e31);
+			builder.setColor(0xFF1A0F2E);
 			builder.setColorized(true);
 		} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-			builder.setColor(0xff2ca5e0);
+			builder.setColor(0xFF7B5EA7);
 		}
 		if (Build.VERSION.SDK_INT >= 26) {
 			NotificationsController.checkOtherNotificationsChannel();
@@ -5240,7 +5240,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 		CharSequence endTitle = LocaleController.getString(R.string.VoipDeclineCall);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
 			endTitle = new SpannableString(endTitle);
-			((SpannableString) endTitle).setSpan(new ForegroundColorSpan(0xFFF44336), 0, endTitle.length(), 0);
+			((SpannableString) endTitle).setSpan(new ForegroundColorSpan(0xFFC44E4E), 0, endTitle.length(), 0);
 		}
 		PendingIntent endPendingIntent = PendingIntent.getBroadcast(this, 0, endIntent, PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_CANCEL_CURRENT);
 		Intent answerIntent = new Intent(this, VoIPActionsReceiver.class);
@@ -5249,7 +5249,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 		CharSequence answerTitle = LocaleController.getString(R.string.VoipAnswerCall);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
 			answerTitle = new SpannableString(answerTitle);
-			((SpannableString) answerTitle).setSpan(new ForegroundColorSpan(0xFF00AA00), 0, answerTitle.length(), 0);
+			((SpannableString) answerTitle).setSpan(new ForegroundColorSpan(0xFF7B5EA7), 0, answerTitle.length(), 0);
 		}
 		PendingIntent answerPendingIntent = PendingIntent.getBroadcast(this, 0, answerIntent, PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_CANCEL_CURRENT);
 		builder.setPriority(Notification.PRIORITY_MAX);
@@ -5257,7 +5257,7 @@ public class VoIPService extends Service implements SensorEventListener, AudioMa
 			builder.setShowWhen(false);
 		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-			builder.setColor(0xff2ca5e0);
+			builder.setColor(0xFF7B5EA7);
 			builder.setVibrate(new long[0]);
 			builder.setCategory(Notification.CATEGORY_CALL);
 			builder.setFullScreenIntent(PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE), true);

@@ -173,6 +173,10 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     private boolean twoLinesForName;
     private boolean nameIsEllipsized;
     private Paint topicCounterPaint;
+    private Paint litegramLockPaint;
+    private boolean litegramMsgHidden;
+    private boolean drawLitegramLock;
+    private int litegramLockDrawLeft;
     private Paint counterPaintOutline;
     public float chekBoxPaddingTop = 42;
     private boolean needEmoji;
@@ -2235,6 +2239,11 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 nameLeft += w;
             }
         }
+        try {
+            drawLitegramLock = org.telegram.litegram.LitegramChatLocks.getInstance().isLocked(currentDialogId);
+        } catch (Exception ignored) {
+            drawLitegramLock = false;
+        }
         if (drawBotVerified) {
             nameWidth -= dp(21);
         }
@@ -2590,6 +2599,15 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
         }
 
         try {
+            boolean shouldHide = org.telegram.litegram.LitegramChatLocks.getInstance().isEffectiveHidePreview(currentDialogId)
+                    && org.telegram.litegram.LitegramChatLocks.getInstance().isLocked(currentDialogId)
+                    && !org.telegram.litegram.LitegramChatLocks.getInstance().isUnlockedNow(currentDialogId);
+            litegramMsgHidden = shouldHide;
+            if (shouldHide) {
+                messageString = LocaleController.getString(R.string.LitegramChatLocked);
+                messageNameString = null;
+                thumbsCount = 0;
+            }
             CharSequence messageStringFinal;
             // Removing links and bold spans to get rid of underlining and boldness
             if (messageString instanceof Spannable) {
@@ -3934,6 +3952,71 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                     canvas.restore();
                     canvas.restore();
                 }
+                try {
+                    boolean litegramNowHide = org.telegram.litegram.LitegramChatLocks.getInstance().isEffectiveHidePreview(currentDialogId)
+                            && org.telegram.litegram.LitegramChatLocks.getInstance().isLocked(currentDialogId)
+                            && !org.telegram.litegram.LitegramChatLocks.getInstance().isUnlockedNow(currentDialogId);
+                    if (litegramNowHide != litegramMsgHidden) {
+                        litegramMsgHidden = litegramNowHide;
+                        post(() -> {
+                            updateLayout = true;
+                            requestLayout();
+                        });
+                    }
+                    if (drawLitegramLock) {
+                        boolean unlocked = org.telegram.litegram.LitegramChatLocks.getInstance().isUnlockedNow(currentDialogId);
+                        if (litegramLockPaint == null) {
+                            litegramLockPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                            litegramLockPaint.setStrokeCap(Paint.Cap.ROUND);
+                            litegramLockPaint.setStrokeJoin(Paint.Join.ROUND);
+                        }
+                        int lockColor = unlocked ? 0xFF4CAF50 : 0xFFE53935;
+                        litegramLockPaint.setColor(lockColor);
+
+                        float lockX;
+                        float lockCenterY;
+                        if (!LocaleController.isRTL) {
+                            if (drawPremium) {
+                                lockX = nameMuteLeft + dp(20);
+                            } else {
+                                float ntw = nameLayout != null && nameLayout.getLineCount() > 0 ? nameLayout.getLineWidth(0) : 0;
+                                lockX = nameLeft + nameLayoutTranslateX + Math.min(ntw, nameWidth) + dp(4);
+                            }
+                        } else {
+                            if (drawPremium) {
+                                lockX = nameMuteLeft - dp(34);
+                            } else {
+                                float ntw = nameLayout != null && nameLayout.getLineCount() > 0 ? nameLayout.getLineWidth(0) : 0;
+                                lockX = nameLeft + nameLayoutTranslateX - ntw - dp(18);
+                            }
+                        }
+                        if (drawPremium) {
+                            int py = dp(useForceThreeLines || SharedConfig.useThreeLinesLayout ? 12.5f : 15.5f);
+                            if ((!(useForceThreeLines || SharedConfig.useThreeLinesLayout) || isForumCell()) && hasTags()) {
+                                py -= dp(9);
+                            }
+                            lockCenterY = py + dp(7);
+                        } else {
+                            int nameTopY = dp(useForceThreeLines || SharedConfig.useThreeLinesLayout ? 10 : 14);
+                            lockCenterY = nameTopY + dp(10);
+                        }
+
+                        float lcx = lockX + dp(7);
+                        float bTop = lockCenterY + dp(0.2f);
+                        float bw = dp(5f), bh = dp(6f);
+                        litegramLockPaint.setStyle(Paint.Style.FILL);
+                        canvas.drawRoundRect(lcx - bw, bTop, lcx + bw, bTop + bh, dp(1.8f), dp(1.8f), litegramLockPaint);
+                        litegramLockPaint.setStyle(Paint.Style.STROKE);
+                        litegramLockPaint.setStrokeWidth(dp(1.6f));
+                        float arcR = dp(3.2f);
+                        if (unlocked) {
+                            canvas.drawArc(lcx - arcR, bTop - arcR * 2f, lcx + arcR, bTop, 180, 180, false, litegramLockPaint);
+                            canvas.drawLine(lcx + arcR, bTop - arcR, lcx + arcR, bTop - arcR * 1.8f, litegramLockPaint);
+                        } else {
+                            canvas.drawArc(lcx - arcR, bTop - arcR * 2f, lcx + arcR, bTop, 180, 180, false, litegramLockPaint);
+                        }
+                    }
+                } catch (Exception ignored) {}
             }
 
             if (timeLayout != null && currentDialogFolderId == 0) {

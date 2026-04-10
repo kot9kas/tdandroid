@@ -1543,6 +1543,19 @@ public class SharedConfig {
         return proxyInfo;
     }
 
+    /**
+     * Removes all saved proxies and keeps only {@code proxyInfo} as current.
+     * Used by Litegram so previously added MTProto entries do not pile up in settings.
+     */
+    public static ProxyInfo replaceProxyListWithSingle(ProxyInfo proxyInfo) {
+        loadProxyList();
+        proxyList.clear();
+        proxyList.add(proxyInfo);
+        currentProxy = proxyInfo;
+        saveProxyList();
+        return proxyInfo;
+    }
+
     public static boolean isProxyEnabled() {
         return MessagesController.getGlobalMainSettings().getBoolean("proxy_enabled", false) && currentProxy != null;
     }

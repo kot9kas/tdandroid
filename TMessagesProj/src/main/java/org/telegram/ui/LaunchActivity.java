@@ -6795,6 +6795,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         super.onResume();
         isResumed = true;
         pipActivityHandler.onResume();
+        org.telegram.litegram.LitegramController.getInstance().onAppForeground();
         if (onResumeStaticCallback != null) {
             onResumeStaticCallback.run();
             onResumeStaticCallback = null;
@@ -8007,10 +8008,10 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                         lastFragment = mainFragmentsStack.get(mainFragmentsStack.size() - 1);
                     }
                 }
-                if (lastFragment instanceof ProxyListActivity || lastFragment instanceof ProxySettingsActivity) {
+                if (lastFragment instanceof org.telegram.litegram.LitegramConnectionActivity) {
                     return;
                 }
-                presentFragment(new ProxyListActivity());
+                presentFragment(new org.telegram.litegram.LitegramConnectionActivity());
             };
         }
         actionBarLayout.setTitleOverlayText(title, titleId, action);

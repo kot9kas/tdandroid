@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 
@@ -14,6 +15,9 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeColors;
 
 public class BottomPagesView extends View {
+
+    private static final int DOT_SIZE_DP = 8;
+    private static final int DOT_SPACING_DP = 14;
 
     private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private float progress;
@@ -32,6 +36,7 @@ public class BottomPagesView extends View {
         super(context);
         viewPager = pager;
         pagesCount = count;
+        setClickable(true);
     }
 
     public void setPageOffset(int position, float offset) {
@@ -51,38 +56,57 @@ public class BottomPagesView extends View {
     }
 
     @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_UP && viewPager != null) {
+            float totalWidth = (pagesCount - 1) * AndroidUtilities.dp(DOT_SPACING_DP) + AndroidUtilities.dp(DOT_SIZE_DP);
+            float startX = (getMeasuredWidth() - totalWidth) / 2f;
+            float touchX = event.getX();
+            for (int a = 0; a < pagesCount; a++) {
+                float dotX = startX + a * AndroidUtilities.dp(DOT_SPACING_DP);
+                if (touchX >= dotX - AndroidUtilities.dp(4) && touchX <= dotX + AndroidUtilities.dp(DOT_SIZE_DP + 4)) {
+                    viewPager.setCurrentItem(a, true);
+                    break;
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
     protected void onDraw(Canvas canvas) {
-        float d = AndroidUtilities.dp(5);
+        float totalWidth = (pagesCount - 1) * AndroidUtilities.dp(DOT_SPACING_DP) + AndroidUtilities.dp(DOT_SIZE_DP);
+        float startX = (getMeasuredWidth() - totalWidth) / 2f;
+        float centerY = getMeasuredHeight() / 2f;
+        float radius = AndroidUtilities.dp(DOT_SIZE_DP) / 2f;
+
         if (colorKey >= 0) {
             paint.setColor((Theme.getColor(colorKey) & 0x00ffffff) | 0xb4000000);
         } else {
             paint.setColor(Theme.getCurrentTheme().isDark() ? 0xff555555 : 0xffbbbbbb);
         }
-        int x;
         currentPage = viewPager.getCurrentItem();
         for (int a = 0; a < pagesCount; a++) {
             if (a == currentPage) {
                 continue;
             }
-            x = a * AndroidUtilities.dp(11);
-            rect.set(x, 0, x + AndroidUtilities.dp(5), AndroidUtilities.dp(5));
-            canvas.drawRoundRect(rect, AndroidUtilities.dp(2.5f), AndroidUtilities.dp(2.5f), paint);
+            float cx = startX + a * AndroidUtilities.dp(DOT_SPACING_DP) + radius;
+            canvas.drawCircle(cx, centerY, radius, paint);
         }
         if (selectedColorKey >= 0) {
             paint.setColor(Theme.getColor(selectedColorKey));
         } else {
-            paint.setColor(ThemeColors.TELEGRAM_COLOR);
+            paint.setColor(0xFF9E84B6);
         }
-        x = currentPage * AndroidUtilities.dp(11);
+        float cx = startX + currentPage * AndroidUtilities.dp(DOT_SPACING_DP);
         if (progress != 0) {
             if (scrollPosition >= currentPage) {
-                rect.set(x, 0, x + AndroidUtilities.dp(5) + AndroidUtilities.dp(11) * progress, AndroidUtilities.dp(5));
+                rect.set(cx, centerY - radius, cx + AndroidUtilities.dp(DOT_SIZE_DP) + AndroidUtilities.dp(DOT_SPACING_DP) * progress, centerY + radius);
             } else {
-                rect.set(x - AndroidUtilities.dp(11) * (1.0f - progress), 0, x + AndroidUtilities.dp(5), AndroidUtilities.dp(5));
+                rect.set(cx - AndroidUtilities.dp(DOT_SPACING_DP) * (1.0f - progress), centerY - radius, cx + AndroidUtilities.dp(DOT_SIZE_DP), centerY + radius);
             }
         } else {
-            rect.set(x, 0, x + AndroidUtilities.dp(5), AndroidUtilities.dp(5));
+            rect.set(cx, centerY - radius, cx + AndroidUtilities.dp(DOT_SIZE_DP), centerY + radius);
         }
-        canvas.drawRoundRect(rect, AndroidUtilities.dp(2.5f), AndroidUtilities.dp(2.5f), paint);
+        canvas.drawRoundRect(rect, radius, radius, paint);
     }
 }

@@ -17,6 +17,7 @@ import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -73,6 +74,8 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
 
     private TabAnimation tabAnimation;
     private TLRPC.TL_attachMenuBot tabAnimationBot;
+    /** Статическая иконка (вкладка Litegram); Lottie скрыт. */
+    private ImageView staticTabIcon;
 
     private final TextPaint defaultTextPaint;
 
@@ -124,6 +127,9 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
             final float offset = (visualWidth - getMeasuredWidth()) / 2f;
             imageView.setTranslationX(offset);
             textView.setTranslationX(offset);
+            if (staticTabIcon != null) {
+                staticTabIcon.setTranslationX(offset);
+            }
         }
     }
 
@@ -252,6 +258,11 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
             backupImageView.invalidate();
         }
         imageView.setColorFilter(filter);
+        if (staticTabIcon != null) {
+            staticTabIcon.setAlpha(1f);
+            staticTabIcon.setColorFilter(filter);
+            staticTabIcon.invalidate();
+        }
         textView.setTextColor(colorText);
     }
 
@@ -396,6 +407,26 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         return tab;
     }
 
+    public static GlassTabView createLitegramMainTab(Context context, Theme.ResourcesProvider resourcesProvider, @StringRes int stringRes) {
+        GlassTabView tab = new GlassTabView(context);
+        tab.resourcesProvider = resourcesProvider;
+        tab.tabAnimation = null;
+        tab.imageView.setVisibility(GONE);
+
+        tab.staticTabIcon = new ImageView(context);
+        tab.staticTabIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        tab.staticTabIcon.setImageDrawable(context.getResources().getDrawable(R.drawable.litegram_tab_logo).mutate());
+        tab.addView(tab.staticTabIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 4, 0, 0));
+
+        tab.textView.setText(LocaleController.getString(stringRes));
+        tab.checkPlayAnimation(false);
+        tab.colorDefault = Theme.getColor(Theme.key_glass_tabUnselected, resourcesProvider);
+        tab.colorSelected = Theme.getColor(Theme.key_glass_tabSelected, resourcesProvider);
+        tab.colorSelectedText = Theme.getColor(Theme.key_glass_tabSelectedText, resourcesProvider);
+        tab.updateColors();
+        return tab;
+    }
+
     public static GlassTabView createAvatar(Context context, Theme.ResourcesProvider resourcesProvider, int currentAccount, @StringRes int stringRes) {
         GlassTabView tab = new GlassTabView(context);
         tab.textView.setText(LocaleController.getString(stringRes));
@@ -479,6 +510,10 @@ public class GlassTabView extends FrameLayout implements MainTabsLayout.Tab, Fac
         textView.setScaleY(scale);
         imageView.setScaleX(scale);
         imageView.setScaleY(scale);
+        if (staticTabIcon != null) {
+            staticTabIcon.setScaleX(scale);
+            staticTabIcon.setScaleY(scale);
+        }
         if (backupImageView != null) {
             backupImageView.setScaleX(scale);
             backupImageView.setScaleY(scale);

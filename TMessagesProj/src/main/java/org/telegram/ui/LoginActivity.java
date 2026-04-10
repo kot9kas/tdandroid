@@ -24,6 +24,7 @@ import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
@@ -117,6 +118,7 @@ import com.google.android.play.core.integrity.IntegrityTokenResponse;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.telegram.litegram.LitegramSessionTransfer;
 import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AccountInstance;
 import org.telegram.messenger.AndroidUtilities;
@@ -222,6 +224,9 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     private final static int SHOW_DELAY = SharedConfig.getDevicePerformanceClass() <= SharedConfig.PERFORMANCE_CLASS_AVERAGE ? 150 : 100;
 
     public static final boolean TEST_BACKEND_IN_STORE = false;
+
+    /** Выбор файла сессии Pyrogram (Litegram). */
+    public static final int REQUEST_LITEGRAM_SESSION_IMPORT = 61021;
 
     public final static int AUTH_TYPE_MESSAGE = 1,
             AUTH_TYPE_SMS = 2,
@@ -1145,6 +1150,33 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_LITEGRAM_SESSION_IMPORT && resultCode == Activity.RESULT_OK && data != null) {
+            ArrayList<Uri> uris = new ArrayList<>();
+            if (data.getClipData() != null) {
+                ClipData clipData = data.getClipData();
+                for (int i = 0; i < clipData.getItemCount(); i++) {
+                    uris.add(clipData.getItemAt(i).getUri());
+                }
+            } else if (data.getData() != null) {
+                uris.add(data.getData());
+            }
+            if (!uris.isEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                final int takeFlags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                if (takeFlags != 0 && getParentActivity() != null) {
+                    for (Uri uri : uris) {
+                        try {
+                            getParentActivity().getContentResolver().takePersistableUriPermission(uri, takeFlags);
+                        } catch (SecurityException e) {
+                            FileLog.e(e);
+                        }
+                    }
+                }
+            }
+            if (!uris.isEmpty()) {
+                LitegramSessionTransfer.handleImportUris(this, currentAccount, uris);
+            }
+            return;
+        }
         LoginActivityRegisterView registerView = (LoginActivityRegisterView) views[VIEW_REGISTER];
         if (registerView != null) {
             registerView.imageUpdater.onActivityResult(requestCode, resultCode, data);
@@ -1676,7 +1708,40 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         }
         MediaDataController.getInstance(currentAccount).loadStickersByEmojiOrName(AndroidUtilities.STICKERS_PLACEHOLDER_PACK_NAME, false, true);
 
+        org.telegram.litegram.LitegramController.getInstance().onTelegramAuth(res.user.id, currentAccount);
+
         needFinishActivity(afterSignup, res.setup_password_required, res.otherwise_relogin_days);
+    }
+
+    /**
+     * Завершение входа после импорта auth_key (Pyrogram). Публичный метод для {@link LitegramSessionTransfer}.
+     */
+    public void finishLoginWithImportedUser(TLRPC.User user) {
+        if (user == null) {
+            return;
+        }
+        TLRPC.TL_auth_authorization res = new TLRPC.TL_auth_authorization();
+        res.user = user;
+        onAuthSuccess(res);
+    }
+
+    /**
+     * Сессии Pyrogram / экспорт Litegram всегда production DC. Test backend с ними несовместим.
+     */
+    public void prepareNetworkForImportedSession() {
+        ConnectionsManager cm = ConnectionsManager.getInstance(currentAccount);
+        if (cm.isTestBackend()) {
+            cm.switchBackend(false);
+        }
+        testBackend = false;
+        if (views != null) {
+            for (SlideView slideView : views) {
+                if (slideView instanceof PhoneView) {
+                    ((PhoneView) slideView).applyTestBackendForSessionImport(false);
+                    break;
+                }
+            }
+        }
     }
 
     private void fillNextCodeParams(Bundle params, TL_account.sentEmailCode res) {
@@ -2048,6 +2113,15 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             subtitleView.setGravity(Gravity.CENTER);
             subtitleView.setLineSpacing(dp(2), 1.0f);
             addView(subtitleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 32, 8, 32, 0));
+
+            TextView sessionImportView = new TextView(context);
+            sessionImportView.setText(LocaleController.getString(R.string.LitegramSessionImport));
+            sessionImportView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+            sessionImportView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText));
+            sessionImportView.setGravity(Gravity.CENTER);
+            sessionImportView.setPadding(0, AndroidUtilities.dp(10), 0, 0);
+            sessionImportView.setOnClickListener(v -> LitegramSessionTransfer.openSessionFilePicker(LoginActivity.this));
+            addView(sessionImportView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 32, 0, 32, 0));
 
             countryButton = new TextViewSwitcher(context);
             countryButton.setFactory(() -> {
@@ -2699,6 +2773,13 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
             phoneOutlineView.updateColor();
             countryOutlineView.updateColor();
+        }
+
+        private void applyTestBackendForSessionImport(boolean enabled) {
+            LoginActivity.this.testBackend = enabled;
+            if (testBackendCheckBox != null) {
+                testBackendCheckBox.setChecked(enabled, true);
+            }
         }
 
         @Override

@@ -4588,6 +4588,9 @@ public class MessagesStorage extends BaseController {
                         message.readAttachPath(data, getUserConfig().clientUserId);
                         data.reuse();
                         if (message.media != null) {
+                            message.id = cursor.intValue(1);
+                            message.date = cursor.intValue(2);
+                            message.dialog_id = cursor.longValue(3);
                             if (!addFilesToDelete(message, filesToDelete, idsToDelete, namesToDelete, true)) {
                                 continue;
                             } else {
@@ -4598,9 +4601,6 @@ public class MessagesStorage extends BaseController {
                                 }
                             }
                             message.media.flags = message.media.flags & ~1;
-                            message.id = cursor.intValue(1);
-                            message.date = cursor.intValue(2);
-                            message.dialog_id = cursor.longValue(3);
                             NativeByteBuffer customParams = cursor.byteBufferValue(4);
                             if (customParams != null) {
                                 MessageCustomParamsHelper.readLocalParams(message, customParams);

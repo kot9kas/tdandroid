@@ -620,6 +620,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private boolean checkPermission = true;
 
     private int currentConnectionState;
+    private long proxyConnectingSinceMs;
+    private boolean proxySwitchHintShown;
 
     private boolean disableActionBarScrolling;
 
@@ -627,6 +629,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private String selectAlertStringGroup;
     private String addToGroupAlertString;
     public boolean resetDelegate = true;
+    private boolean litegramPinPicker;
 
     public static boolean[] dialogsLoaded = new boolean[UserConfig.MAX_ACCOUNT_COUNT];
     private boolean searching;
@@ -2777,6 +2780,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             selectAlertString = arguments.getString("selectAlertString");
             selectAlertStringGroup = arguments.getString("selectAlertStringGroup");
             addToGroupAlertString = arguments.getString("addToGroupAlertString");
+            litegramPinPicker = arguments.getBoolean("litegramPinPicker", false);
             allowSwitchAccount = arguments.getBoolean("allowSwitchAccount");
             checkCanWrite = arguments.getBoolean("checkCanWrite", true);
             afterSignup = arguments.getBoolean("afterSignup", false);
@@ -3415,7 +3419,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             } else if (isQuote) {
                 actionBar.setTitle(getString(R.string.QuoteTo));
             } else if (initialDialogsType == DIALOGS_TYPE_FORWARD && selectAlertString == null) {
-                actionBar.setTitle(getString(R.string.ForwardTo));
+                actionBar.setTitle(litegramPinPicker
+                        ? LocaleController.getString(R.string.LitegramSelectChats)
+                        : getString(R.string.ForwardTo));
             } else if (initialDialogsType == DIALOGS_TYPE_WIDGET) {
                 actionBar.setTitle(getString(R.string.SelectChats));
             } else if (initialDialogsType == DIALOGS_TYPE_START_ATTACH_BOT) {
@@ -3457,12 +3463,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             } else {
                 statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
                 statusDrawable.center = true;
-                logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo_2).mutate();
-                logoDrawable.setBounds(0, dp(2), logoDrawable.getIntrinsicWidth(), dp(2) + logoDrawable.getIntrinsicHeight());
-                logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);
-                SpannableStringBuilder ssb = new SpannableStringBuilder(getString(R.string.AppName));
-                ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                actionBar.setTitle(ssb, statusDrawable);
+                actionBar.setTitle(LocaleController.getString(R.string.AppName), statusDrawable);
+                actionBar.getTitleTextView().setTextSize(22);
                 updateStatus(UserConfig.getInstance(currentAccount).getCurrentUser(), false);
             }
             if (folderId == 0) {
@@ -3571,6 +3573,37 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     if (!tab.isDefault && (tab.id < 0 || tab.id >= dialogFilters.size())) {
                         return;
                     }
+
+                    if (!tab.isDefault && tab.id >= 0 && tab.id < dialogFilters.size()) {
+                        int filterId = dialogFilters.get(tab.id).id;
+                        org.telegram.litegram.LitegramChatLocks locks = org.telegram.litegram.LitegramChatLocks.getInstance();
+                        if (locks.isFolderLocked(filterId) && !locks.isFolderUnlockedNow(filterId)) {
+                            final FilterTabsView.Tab capturedTab = tab;
+                            org.telegram.litegram.LitegramPinDialog.showVerify(
+                                    getParentActivity(),
+                                    org.telegram.litegram.LitegramChatLocks.folderDialogId(filterId),
+                                    (pin, dlg) -> {
+                                if ("__biometric__".equals(pin) || locks.checkFolderPin(filterId, pin)) {
+                                    locks.markFolderUnlocked(filterId);
+                                    dlg.playUnlockAnimation();
+                                    AndroidUtilities.runOnUIThread(() -> {
+                                        filterTabsView.selectTabWithId(capturedTab.id, 1.0f);
+                                        viewPages[0].selectedType = capturedTab.id;
+                                        viewPages[1].selectedType = capturedTab.id;
+                                        switchToCurrentSelectedMode(false);
+                                        viewPages[0].setTranslationX(0f);
+                                        viewPages[1].setVisibility(View.GONE);
+                                        showScrollbars(true);
+                                        updateCounters(true);
+                                    }, 550);
+                                } else {
+                                    dlg.showWrongPin();
+                                }
+                            });
+                            return;
+                        }
+                    }
+
                     viewPages[1].selectedType = tab.id;
                     viewPages[1].setVisibility(View.VISIBLE);
                     viewPages[1].setTranslationX(viewPages[0].getMeasuredWidth());
@@ -4814,7 +4847,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 updateDialogsHint();
             });
             topPanelLayout.addView(dialogsHintCell);
-        } else if (initialDialogsType == DIALOGS_TYPE_FORWARD || clickSelectsDialog()) {
+        } else if ((initialDialogsType == DIALOGS_TYPE_FORWARD && !litegramPinPicker) || clickSelectsDialog()) {
             chatInputViewsContainer = new ChatInputViewsContainer(context);
             chatInputViewsContainer.setClipChildren(false);
             chatInputViewsContainer.setWindowInsetsProvider(windowInsetsStateHolder);
@@ -5064,7 +5097,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 for (int i = 0; i < selectedDialogs.size(); i++) {
                     topicKeys.add(MessagesStorage.TopicKey.of(selectedDialogs.get(i), 0));
                 }
-                delegate.didSelectDialogs(DialogsActivity.this, topicKeys, commentView.getFieldText(), false, notify, scheduleDate, scheduleRepeatPeriod, null);
+                delegate.didSelectDialogs(DialogsActivity.this, topicKeys, commentView != null ? commentView.getFieldText() : null, false, notify, scheduleDate, scheduleRepeatPeriod, null);
             });
             writeButton.setOnLongClickListener(v -> {
                 if (isNextButton) {
@@ -5080,6 +5113,37 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
             textPaint.setTextSize(dp(12));
             textPaint.setTypeface(AndroidUtilities.bold());
+        } else if (litegramPinPicker) {
+            writeButton = new ChatActivityEnterView.SendButton(context, R.drawable.msg_arrow_forward, resourceProvider) {
+                @Override
+                public boolean isOpen() {
+                    return true;
+                }
+                @Override
+                public boolean isInactive() {
+                    return false;
+                }
+                @Override
+                public boolean shouldDrawBackground() {
+                    return true;
+                }
+            };
+            writeButton.setCircleSize(dp(52), dp(38));
+            writeButton.setCirclePadding(dp(7), dp(8));
+            writeButton.newCounterPos = true;
+            contentView.addView(writeButton, LayoutHelper.createFrame(110, 50, Gravity.RIGHT | Gravity.BOTTOM));
+            writeButton.setOnClickListener(v -> {
+                if (delegate == null || selectedDialogs.isEmpty()) return;
+                ArrayList<MessagesStorage.TopicKey> topicKeys = new ArrayList<>();
+                for (int i = 0; i < selectedDialogs.size(); i++) {
+                    topicKeys.add(MessagesStorage.TopicKey.of(selectedDialogs.get(i), 0));
+                }
+                delegate.didSelectDialogs(DialogsActivity.this, topicKeys, null, false, notify, scheduleDate, scheduleRepeatPeriod, null);
+            });
+            writeButton.setVisibility(View.GONE);
+            writeButton.setScaleX(.2f);
+            writeButton.setScaleY(.2f);
+            writeButton.setAlpha(0);
         }
 
         if (filterTabsView != null) {
@@ -5283,7 +5347,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         if (hasMainTabs) {
             actionBar.getTitlesContainer().setTranslationX(dp(4));
-            actionBar.setTitleColor(getThemedColor(Theme.key_telegram_color_dialogsLogo));
+            actionBar.setTitleColor(0xFF9E84B6);
         }
 
         if (folderId != 0) {
@@ -6906,6 +6970,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onResume() {
         super.onResume();
+        try {
+            org.telegram.litegram.LitegramChatLocks.getInstance().onAppResumed();
+        } catch (Exception ignored) {}
         if (dialogStoriesCell != null) {
             dialogStoriesCell.onResume();
         }
@@ -7048,6 +7115,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         }
         showNextSupportedSuggestion();
+        if (!onlySelect && folderId == 0) {
+            org.telegram.litegram.LitegramAdManager.getInstance().tryShowAd(this);
+        }
         Bulletin.addDelegate(this, new Bulletin.Delegate() {
             @Override
             public void onBottomOffsetChange(float offset) {
@@ -7878,7 +7948,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (!validateSlowModeDialog(dialogId)) {
                 return;
             }
-            if (!getMessagesController().isForum(dialogId) && (!selectedDialogs.isEmpty() || (initialDialogsType == DIALOGS_TYPE_FORWARD && selectAlertString != null))) {
+            if (!getMessagesController().isForum(dialogId) && (!selectedDialogs.isEmpty() || (initialDialogsType == DIALOGS_TYPE_FORWARD && selectAlertString != null) || litegramPinPicker)) {
                 if (!selectedDialogs.contains(dialogId) && !checkCanWrite(dialogId)) {
                     return;
                 }
@@ -7905,6 +7975,27 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
             }
         } else {
+            if (dialogId != 0
+                    && org.telegram.litegram.LitegramChatLocks.getInstance().isLocked(dialogId)
+                    && !org.telegram.litegram.LitegramChatLocks.getInstance().isUnlockedNow(dialogId)) {
+                final long lockedDialogId = dialogId;
+                final int lockedMessageId = message_id;
+                final boolean lockedIsGlobalSearch = isGlobalSearch;
+                final int lockedFolderId = folderId;
+                final int lockedFilterId = filterId;
+                final MessageObject lockedMsg = msg;
+                org.telegram.litegram.LitegramPinDialog.showVerify(getParentActivity(), lockedDialogId, (pin, dlg) -> {
+                    if ("__biometric__".equals(pin) || org.telegram.litegram.LitegramChatLocks.getInstance().checkPin(lockedDialogId, pin)) {
+                        org.telegram.litegram.LitegramChatLocks.getInstance().markUnlocked(lockedDialogId);
+                        dlg.playUnlockAnimation();
+                        AndroidUtilities.runOnUIThread(() -> openChatAfterPinVerify(lockedDialogId, lockedMessageId, lockedIsGlobalSearch,
+                                lockedFolderId, lockedFilterId, lockedMsg), 550);
+                    } else {
+                        dlg.showWrongPin();
+                    }
+                });
+                return;
+            }
             Bundle args = new Bundle();
             if (DialogObject.isEncryptedDialog(dialogId)) {
                 args.putInt("enc_id", DialogObject.getEncryptedChatId(dialogId));
@@ -8297,6 +8388,15 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return false;
         }
         long dialogId = cell.getDialogId();
+        if (org.telegram.litegram.LitegramChatLocks.getInstance().isLocked(dialogId)
+                && !org.telegram.litegram.LitegramChatLocks.getInstance().isUnlockedNow(dialogId)) {
+            try {
+                android.widget.Toast.makeText(getParentActivity(),
+                        LocaleController.getString(R.string.LitegramChatsPinProtected),
+                        android.widget.Toast.LENGTH_SHORT).show();
+            } catch (Exception ignored) {}
+            return false;
+        }
         Bundle args = new Bundle();
         int message_id = cell.getMessageId();
         if (DialogObject.isEncryptedDialog(dialogId)) {
@@ -10008,6 +10108,33 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         final boolean connected = currentConnectionState == ConnectionsManager.ConnectionStateConnected || currentConnectionState == ConnectionsManager.ConnectionStateUpdating;
         proxyMenuSubItem.setSubtext(getString(connected ? R.string.MenuProxyConnected : R.string.MenuProxyConnecting));
         proxyDrawable.setConnected(proxyEnabled, connected, animated);
+        if (proxyEnabled && !connected) {
+            long now = System.currentTimeMillis();
+            if (proxyConnectingSinceMs == 0) {
+                proxyConnectingSinceMs = now;
+            } else if (!proxySwitchHintShown && now - proxyConnectingSinceMs >= 5_000) {
+                proxySwitchHintShown = true;
+                showProxySwitchHintDialog();
+            }
+        } else {
+            proxyConnectingSinceMs = 0;
+            if (connected) {
+                proxySwitchHintShown = false;
+            }
+        }
+    }
+
+    private void showProxySwitchHintDialog() {
+        if (onlySelect || getParentActivity() == null || isPaused || fragmentView == null) {
+            return;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(LocaleController.getString(R.string.LitegramProxySuggestTitle));
+        builder.setMessage(LocaleController.getString(R.string.LitegramProxySuggestMessage));
+        builder.setPositiveButton(LocaleController.getString(R.string.LitegramProxySuggestOpen), (d, w) ->
+                presentFragment(new org.telegram.litegram.LitegramConnectionActivity()));
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        showDialog(builder.create());
     }
 
     private AnimatorSet doneItemAnimator;
@@ -10057,7 +10184,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (commentView != null) {
             animatorForwardButtonVisible.setValue(!selectedDialogs.isEmpty(), true);
             if (selectedDialogs.isEmpty()) {
-                if (initialDialogsType == 3 && selectAlertString == null) {
+                if (litegramPinPicker) {
+                    actionBar.setTitle(LocaleController.getString(R.string.LitegramSelectChats));
+                } else if (initialDialogsType == 3 && selectAlertString == null) {
                     actionBar.setTitle(LocaleController.getString(R.string.ForwardTo));
                 } else {
                     actionBar.setTitle(LocaleController.getString(R.string.SelectChat));
@@ -10069,30 +10198,46 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     fragmentView.requestLayout();
                 }
             } else {
-                if (commentView.getTag() == null) {
-                    commentView.setFieldText("");
-                    commentView.setTag(1);
-                }
-                writeButton.setCount(Math.max(1, selectedDialogs.size()), true);
-                long price = 0;
-                final int messagesCount = this.messagesCount + (TextUtils.isEmpty(commentView.getFieldText()) ? 0 : 1);
-                for (final long did : selectedDialogs) {
-                    long dialogPrice = getMessagesController().getSendPaidMessagesStars(did);
-                    if (dialogPrice <= 0 && did > 0) {
-                        dialogPrice = DialogObject.getMessagesStarsPrice(getMessagesController().isUserContactBlocked(did));
+                if (litegramPinPicker) {
+                    actionBar.setTitle(LocaleController.getString(R.string.LitegramSelectChats));
+                    writeButton.setCount(Math.max(1, selectedDialogs.size()), true);
+                } else {
+                    if (commentView.getTag() == null) {
+                        commentView.setFieldText("");
+                        commentView.setTag(1);
                     }
-                    price += dialogPrice;
+                    writeButton.setCount(Math.max(1, selectedDialogs.size()), true);
+                    long price = 0;
+                    final int messagesCount = this.messagesCount + (TextUtils.isEmpty(commentView.getFieldText()) ? 0 : 1);
+                    for (final long did : selectedDialogs) {
+                        long dialogPrice = getMessagesController().getSendPaidMessagesStars(did);
+                        if (dialogPrice <= 0 && did > 0) {
+                            dialogPrice = DialogObject.getMessagesStarsPrice(getMessagesController().isUserContactBlocked(did));
+                        }
+                        price += dialogPrice;
+                    }
+                    writeButton.setStarsPrice(price, messagesCount);
+                    commentView.updateSendButtonPaid();
+                    actionBar.setTitle(LocaleController.formatPluralString("Recipient", selectedDialogs.size()));
                 }
-                writeButton.setStarsPrice(price, messagesCount);
-                commentView.updateSendButtonPaid();
-                actionBar.setTitle(LocaleController.formatPluralString("Recipient", selectedDialogs.size()));
+            }
+        } else if (litegramPinPicker && writeButton != null) {
+            animatorForwardButtonVisible.setValue(!selectedDialogs.isEmpty(), true);
+            if (selectedDialogs.isEmpty()) {
+                actionBar.setTitle(LocaleController.getString(R.string.LitegramSelectChats));
+            } else {
+                actionBar.setTitle(LocaleController.getString(R.string.LitegramSelectChats));
+                writeButton.setCount(Math.max(1, selectedDialogs.size()), true);
             }
         } else if (initialDialogsType == DIALOGS_TYPE_WIDGET) {
             hideFloatingButton(selectedDialogs.isEmpty());
         }
 
         isNextButton = shouldShowNextButton(this, selectedDialogs, commentView != null ? commentView.getFieldText() : "", false);
-        writeButton.setResourceId(isNextButton ? R.drawable.msg_arrow_forward : R.drawable.send_plane_24);
+        if (writeButton != null) {
+            writeButton.setResourceId(litegramPinPicker ? R.drawable.msg_arrow_forward :
+                    (isNextButton ? R.drawable.msg_arrow_forward : R.drawable.send_plane_24));
+        }
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -10688,6 +10833,37 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         public DialogsHeader(int type) {
             this.headerType = type;
+        }
+    }
+
+    private void openChatAfterPinVerify(long dialogId, int messageId, boolean isGlobalSearch,
+                                         int folderId, int filterId, MessageObject msg) {
+        Bundle args = new Bundle();
+        if (DialogObject.isEncryptedDialog(dialogId)) {
+            args.putInt("enc_id", DialogObject.getEncryptedChatId(dialogId));
+        } else if (DialogObject.isUserDialog(dialogId)) {
+            args.putLong("user_id", dialogId);
+        } else {
+            long did = dialogId;
+            if (messageId != 0) {
+                TLRPC.Chat chat = getMessagesController().getChat(-did);
+                if (chat != null && chat.migrated_to != null) {
+                    args.putLong("migrated_to", did);
+                    did = -chat.migrated_to.channel_id;
+                }
+            }
+            args.putLong("chat_id", -did);
+        }
+        if (messageId != 0) {
+            args.putInt("message_id", messageId);
+        } else if (!isGlobalSearch) {
+            closeSearch();
+        }
+        args.putInt("dialog_folder_id", folderId);
+        args.putInt("dialog_filter_id", filterId);
+        if (getMessagesController().checkCanOpenChat(args, DialogsActivity.this)) {
+            ChatActivity chatActivity = new ChatActivity(args);
+            presentFragment(highlightFoundQuote(chatActivity, msg));
         }
     }
 
@@ -11396,7 +11572,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             for (int i = 0; i < selectedDialogs.size(); i++) {
                 topicKeys.add(MessagesStorage.TopicKey.of(selectedDialogs.get(i), 0));
             }
-            delegate.didSelectDialogs(DialogsActivity.this, topicKeys, commentView.getFieldText(), false, notify, scheduleDate, scheduleRepeatPeriod, null);
+            delegate.didSelectDialogs(DialogsActivity.this, topicKeys, commentView != null ? commentView.getFieldText() : null, false, notify, scheduleDate, scheduleRepeatPeriod, null);
         });
 
         boolean onlyMyself = false;
@@ -11435,7 +11611,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         for (int i = 0; i < selectedDialogs.size(); i++) {
                             topicKeys.add(MessagesStorage.TopicKey.of(selectedDialogs.get(i), 0));
                         }
-                        delegate.didSelectDialogs(DialogsActivity.this, topicKeys, commentView.getFieldText(), false, notify, scheduleDate, scheduleRepeatPeriod, null);
+                        delegate.didSelectDialogs(DialogsActivity.this, topicKeys, commentView != null ? commentView.getFieldText() : null, false, notify, scheduleDate, scheduleRepeatPeriod, null);
                     }
                 }, resourcesProvider);
             });
@@ -11601,7 +11777,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 dialogStoriesCell.updateColors();
             }
             if (logoDrawable != null) {
-                logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);
+                logoDrawable.setColorFilter(0xFF9E84B6, PorterDuff.Mode.MULTIPLY);
             }
             if (actionModeCloseView != null) {
                 actionModeCloseView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_actionBarActionModeDefaultIcon), PorterDuff.Mode.MULTIPLY));
@@ -13142,20 +13318,20 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
                 switchingTheme = true;
                 SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-                String dayThemeName = preferences.getString("lastDayTheme", "Blue");
+                String dayThemeName = preferences.getString("lastDayTheme", "Purple Breeze");
                 if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                    dayThemeName = "Blue";
+                    dayThemeName = "Purple Breeze";
                 }
-                String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
+                String nightThemeName = preferences.getString("lastDarkTheme", "Purple Breeze");
                 if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                    nightThemeName = "Dark Blue";
+                    nightThemeName = "Purple Breeze";
                 }
                 Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
                 if (dayThemeName.equals(nightThemeName)) {
-                    if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
-                        dayThemeName = "Blue";
+                    if (themeInfo.isDark() || dayThemeName.equals("Purple Breeze")) {
+                        dayThemeName = "Purple Breeze";
                     } else {
-                        nightThemeName = "Dark Blue";
+                        nightThemeName = "Purple Breeze";
                     }
                 }
 
@@ -13216,7 +13392,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (proxyMenuSubItem != null) {
                 proxyMenuSubItem.setOnClickListener(v -> {
                     io.dismiss();
-                    presentFragment(new ProxyListActivity());
+                    presentFragment(new org.telegram.litegram.LitegramConnectionActivity());
                 });
 
                 final SharedPreferences preferences = ApplicationLoader.applicationContext
