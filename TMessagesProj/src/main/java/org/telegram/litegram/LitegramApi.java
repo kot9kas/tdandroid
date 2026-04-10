@@ -43,13 +43,19 @@ public class LitegramApi {
         public final String secret;
         public final String name;
         public final String country;
+        public final int priority;
 
-        public ServerInfo(String host, int port, String secret, String name, String country) {
+        public ServerInfo(String host, int port, String secret, String name, String country, int priority) {
             this.host = host;
             this.port = port;
             this.secret = secret;
             this.name = name;
             this.country = country;
+            this.priority = priority;
+        }
+
+        public ServerInfo(String host, int port, String secret, String name, String country) {
+            this(host, port, secret, name, country, Integer.MAX_VALUE);
         }
 
         public String getFlagEmoji() {
@@ -176,7 +182,8 @@ public class LitegramApi {
                         s.optInt("port", 443),
                         s.getString("secret"),
                         s.optString("name", null),
-                        s.optString("country", null)
+                        s.optString("country", null),
+                        s.optInt("priority", i)
                 ));
             }
         }
@@ -190,7 +197,8 @@ public class LitegramApi {
                         s.optInt("port", 443),
                         s.getString("secret"),
                         s.optString("name", null),
-                        s.optString("country", null)
+                        s.optString("country", null),
+                        s.optInt("priority", i)
                 ));
             }
         }

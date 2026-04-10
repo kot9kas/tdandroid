@@ -1,7 +1,10 @@
 package org.telegram.litegram;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
@@ -32,6 +35,9 @@ import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.RLottieImageView;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class LitegramConnectionActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
     private int c(int key) {
@@ -54,9 +60,12 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private RLottieImageView lottieView;
     private int headerLottieRes;
 
+    private LinearLayout serversListContainer;
+
     private boolean connected;
     private boolean connecting;
     private Runnable pollRunnable;
+    private List<LitegramApi.ServerInfo> availableServers = new ArrayList<>();
 
     @Override
     public boolean onFragmentCreate() {
@@ -126,6 +135,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         content.setPadding(hPad, AndroidUtilities.dp(8), hPad, AndroidUtilities.dp(28));
 
         content.addView(createConnectionCard(context));
+        content.addView(createServersSection(context));
         content.addView(createActionButton(context));
         content.addView(createFeaturesSection(context));
 
@@ -133,7 +143,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        refreshCacheInBackground();
+        loadServers();
 
         updateUI();
 
@@ -239,6 +249,149 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
             badgeBg.setStroke(AndroidUtilities.dp(1), 0x5CFFFFFF);
             planBadge.setBackground(badgeBg);
         }
+    }
+
+    private View createServersSection(Context context) {
+        LinearLayout section = new LinearLayout(context);
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setPadding(0, AndroidUtilities.dp(18), 0, 0);
+
+        TextView sectionTitle = new TextView(context);
+        sectionTitle.setText(LocaleController.getString(R.string.LitegramConnServersSection));
+        sectionTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+        sectionTitle.setTypeface(AndroidUtilities.bold());
+        sectionTitle.setTextColor(c(Theme.key_windowBackgroundWhiteGrayText2));
+        sectionTitle.setAllCaps(true);
+        sectionTitle.setLetterSpacing(0.12f);
+        sectionTitle.setPadding(AndroidUtilities.dp(4), 0, 0, AndroidUtilities.dp(10));
+        section.addView(sectionTitle);
+
+        GradientDrawable panelBg = new GradientDrawable();
+        panelBg.setCornerRadius(AndroidUtilities.dp(16));
+        panelBg.setColor(c(Theme.key_windowBackgroundWhite));
+
+        serversListContainer = new LinearLayout(context);
+        serversListContainer.setOrientation(LinearLayout.VERTICAL);
+        serversListContainer.setBackground(panelBg);
+        int ph = AndroidUtilities.dp(2);
+        serversListContainer.setPadding(ph, AndroidUtilities.dp(4), ph, AndroidUtilities.dp(4));
+
+        section.addView(serversListContainer);
+        return section;
+    }
+
+    private void rebuildServersList() {
+        if (serversListContainer == null) {
+            return;
+        }
+        serversListContainer.removeAllViews();
+        Context context = serversListContainer.getContext();
+
+        if (availableServers.isEmpty()) {
+            TextView empty = new TextView(context);
+            empty.setText(LocaleController.getString(R.string.LitegramConnLoadingServers));
+            empty.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+            empty.setTextColor(c(Theme.key_windowBackgroundWhiteGrayText2));
+            empty.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+            serversListContainer.addView(empty);
+            return;
+        }
+
+        String currentHost = LitegramConfig.getProxyHost();
+        for (int i = 0; i < availableServers.size(); i++) {
+            LitegramApi.ServerInfo server = availableServers.get(i);
+            if (i > 0) {
+                View div = new View(context);
+                div.setBackgroundColor(c(Theme.key_divider));
+                LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1);
+                dlp.leftMargin = AndroidUtilities.dp(52);
+                dlp.rightMargin = AndroidUtilities.dp(12);
+                serversListContainer.addView(div, dlp);
+            }
+
+            boolean selected = server.host.equals(currentHost) && LitegramConfig.isProxyEnabled();
+
+            LinearLayout row = new LinearLayout(context);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
+            row.setBackground(Theme.createSelectorDrawable(c(Theme.key_listSelector), 2));
+
+            TextView flagView = new TextView(context);
+            flagView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22);
+            flagView.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
+            flagView.setIncludeFontPadding(false);
+            flagView.setText(Emoji.replaceEmoji(server.getFlagEmoji(),
+                    flagView.getPaint().getFontMetricsInt(), false));
+            NotificationCenter.listenEmojiLoading(flagView);
+            LinearLayout.LayoutParams flp = new LinearLayout.LayoutParams(
+                    AndroidUtilities.dp(40), ViewGroup.LayoutParams.WRAP_CONTENT);
+            row.addView(flagView, flp);
+
+            TextView nameView = new TextView(context);
+            nameView.setText(formatServerLabel(server));
+            nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+            nameView.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
+            if (selected) {
+                nameView.setTypeface(AndroidUtilities.bold());
+            }
+            LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            nlp.leftMargin = AndroidUtilities.dp(6);
+            row.addView(nameView, nlp);
+
+            View checkView = new View(context) {
+                private final Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                private final Paint checkPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                {
+                    circlePaint.setColor(0xFF4CAF50);
+                    circlePaint.setStyle(Paint.Style.FILL);
+                    checkPaint.setColor(Color.WHITE);
+                    checkPaint.setStyle(Paint.Style.STROKE);
+                    checkPaint.setStrokeCap(Paint.Cap.ROUND);
+                    checkPaint.setStrokeJoin(Paint.Join.ROUND);
+                }
+                @Override
+                protected void onDraw(Canvas canvas) {
+                    float cx = getWidth() / 2f;
+                    float cy = getHeight() / 2f;
+                    float r = Math.min(cx, cy);
+                    canvas.drawCircle(cx, cy, r, circlePaint);
+                    checkPaint.setStrokeWidth(r * 0.24f);
+                    Path path = new Path();
+                    path.moveTo(cx - r * 0.35f, cy + r * 0.02f);
+                    path.lineTo(cx - r * 0.05f, cy + r * 0.32f);
+                    path.lineTo(cx + r * 0.38f, cy - r * 0.28f);
+                    canvas.drawPath(path, checkPaint);
+                }
+            };
+            checkView.setVisibility(selected ? View.VISIBLE : View.INVISIBLE);
+            row.addView(checkView, new LinearLayout.LayoutParams(
+                    AndroidUtilities.dp(22), AndroidUtilities.dp(22)));
+
+            final LitegramApi.ServerInfo srv = server;
+            row.setOnClickListener(v -> {
+                actionButton.setText(LocaleController.getString(R.string.LitegramConnConnecting));
+                LitegramController.getInstance().connectToServer(srv, (success, err) -> {
+                    if (!success && getParentActivity() != null) {
+                        String msg = err != null ? err : LocaleController.getString(R.string.LitegramConnUnknownError);
+                        Toast.makeText(getParentActivity(),
+                                LocaleController.formatString(R.string.LitegramConnFailed, msg), Toast.LENGTH_LONG).show();
+                    }
+                    updateUI();
+                });
+            });
+
+            serversListContainer.addView(row);
+        }
+    }
+
+    private static String formatServerLabel(LitegramApi.ServerInfo s) {
+        String name = (s.name != null && !s.name.isEmpty()) ? s.name : (s.country != null ? s.country : s.host);
+        String cc = s.country != null ? s.country.toUpperCase() : "";
+        if (cc.isEmpty()) {
+            return name;
+        }
+        return name + " (" + cc + ")";
     }
 
     private View createActionButton(Context context) {
@@ -458,8 +611,18 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         showDialog(sheet);
     }
 
-    private void refreshCacheInBackground() {
-        LitegramController.getInstance().fetchServers((servers, error) -> {});
+    private void loadServers() {
+        List<LitegramApi.ServerInfo> cached = LitegramConfig.loadServersCache();
+        if (!cached.isEmpty() && availableServers.isEmpty()) {
+            availableServers.addAll(cached);
+        }
+        LitegramController.getInstance().fetchServers((servers, error) -> {
+            if (servers != null && !servers.isEmpty()) {
+                availableServers.clear();
+                availableServers.addAll(servers);
+            }
+            AndroidUtilities.runOnUIThread(this::updateUI);
+        });
         LitegramController.getInstance().refreshSubscription();
     }
 
@@ -516,6 +679,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
             actionButton.setAlpha(1f);
         }
 
+        rebuildServersList();
         updateHeaderLottie();
     }
 

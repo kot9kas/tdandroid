@@ -174,6 +174,7 @@ public final class LitegramConfig {
                 obj.put("secret", s.secret);
                 if (s.name != null) obj.put("name", s.name);
                 if (s.country != null) obj.put("country", s.country);
+                obj.put("priority", s.priority);
                 arr.put(obj);
             }
             getPrefs().edit().putString(KEY_SERVERS_CACHE, arr.toString()).apply();
@@ -193,7 +194,8 @@ public final class LitegramConfig {
                         obj.optInt("port", 443),
                         obj.getString("secret"),
                         obj.optString("name", null),
-                        obj.optString("country", null)
+                        obj.optString("country", null),
+                        obj.optInt("priority", i)
                 ));
             }
         } catch (Exception ignored) {}
