@@ -18,22 +18,46 @@ import java.util.TimeZone;
 public final class LitegramConfig {
 
     public static final String API_BASE_URL = "https://test.enderfall.net";
-    public static final String API_FALLBACK_URL = "https://64.188.60.243";
+    public static final String API_FALLBACK_URL = "https://51.250.22.10";
     public static final String API_VERSION = "v1";
     public static final String PLATFORM = "android";
 
     public static final int CONNECTION_TIMEOUT_MS = 10_000;
     public static final int ANON_CONNECTION_TIMEOUT_MS = 5_000;
 
+    private static final byte[] _BH = {0x35, 0x31, 0x2E, 0x32, 0x35, 0x30, 0x2E, 0x32, 0x32, 0x2E, 0x31, 0x30};
+    private static final int _BP = 443;
+    private static final byte _K = 0x5A;
+    private static final byte[] _BS = {
+            (byte)(0xdd^0x5A), (byte)(0x81^0x5A), (byte)(0x68^0x5A), (byte)(0x99^0x5A),
+            (byte)(0xb8^0x5A), (byte)(0x54^0x5A), (byte)(0xa7^0x5A), (byte)(0x18^0x5A),
+            (byte)(0x54^0x5A), (byte)(0xae^0x5A), (byte)(0x7c^0x5A), (byte)(0xcf^0x5A),
+            (byte)(0x37^0x5A), (byte)(0x75^0x5A), (byte)(0x1d^0x5A), (byte)(0xdf^0x5A),
+            (byte)(0xc9^0x5A),
+    };
+
+    public static String getBootstrapHost() {
+        return new String(_BH, java.nio.charset.StandardCharsets.US_ASCII);
+    }
+
+    public static int getBootstrapPort() {
+        return _BP;
+    }
+
+    public static String getBootstrapSecret() {
+        StringBuilder sb = new StringBuilder(_BS.length * 2);
+        for (byte b : _BS) {
+            int v = (b ^ _K) & 0xFF;
+            sb.append(String.format("%02x", v));
+        }
+        return sb.toString();
+    }
+
     /**
      * Emergency fallback proxy servers hardcoded in the client.
      * Used when the backend API is completely unreachable (e.g. white-list blocking in RU).
-     * To add servers: new LitegramApi.ServerInfo(host, port, secret, name, country, priority)
      */
-    public static final LitegramApi.ServerInfo[] HARDCODED_FALLBACK_SERVERS = {
-            // TODO: populate with emergency proxy servers
-            // new LitegramApi.ServerInfo("proxy.example.com", 443, "ee...", "Emergency RU", "RU", 0),
-    };
+    public static final LitegramApi.ServerInfo[] HARDCODED_FALLBACK_SERVERS = {};
 
     private static final String KEY_SAVE_TRAFFIC = "litegram_save_traffic";
     private static final String KEY_PROXY_HOST = "litegram_proxy_host";

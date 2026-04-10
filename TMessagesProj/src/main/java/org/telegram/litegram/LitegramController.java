@@ -66,7 +66,6 @@ public class LitegramController {
     private volatile long lastProxyAttemptAtMs;
     private volatile long lastAppForegroundCheckMs;
     private volatile long lastUnauthorizedProxyAttemptMs;
-    private volatile boolean startupConnect = true;
     private volatile boolean proxyAppliedByUs;
     private volatile long lastDirectConnectedMs;
     private volatile long lastFullCheckMs;
@@ -113,6 +112,11 @@ public class LitegramController {
             return;
         }
         lastAppForegroundCheckMs = now;
+
+        if (UserConfig.getActivatedAccountsCount() == 0) {
+            FileLog.d("litegram: app foreground — no accounts, keeping proxy for auth flow");
+            return;
+        }
 
         FileLog.d("litegram: app foreground — probing direct connection");
         noProxyConnectingSinceMs = 0;
@@ -426,29 +430,6 @@ public class LitegramController {
     private static final int AUTO_SWITCH_POLL_MS = 150;
     private static final int QUICK_PROBE_TIMEOUT_MS = 500;
 
-    private LitegramApi.ServerInfo pickServerForContext(List<LitegramApi.ServerInfo> servers) {
-        if (startupConnect) {
-            startupConnect = false;
-            String savedHost = LitegramConfig.getProxyHost();
-            if (!TextUtils.isEmpty(savedHost)) {
-                for (LitegramApi.ServerInfo s : servers) {
-                    if (savedHost.equals(s.host)) {
-                        FileLog.d("litegram: startup — restoring user's saved server " + s.host);
-                        return s;
-                    }
-                }
-            }
-            for (LitegramApi.ServerInfo s : servers) {
-                if (DEFAULT_COUNTRY.equalsIgnoreCase(s.country)) {
-                    FileLog.d("litegram: startup — default country server " + s.host);
-                    return s;
-                }
-            }
-            return servers.get(0);
-        }
-        return pickPreferredServer(servers);
-    }
-
     private LitegramApi.ServerInfo pickPreferredServer(List<LitegramApi.ServerInfo> servers) {
         String savedHost = LitegramConfig.getProxyHost();
         if (!TextUtils.isEmpty(savedHost)) {
@@ -625,7 +606,23 @@ public class LitegramController {
     private String connectAnonymous() {
         String deviceToken = LitegramDeviceToken.getDeviceToken();
 
-        // 1. Try claiming from backend (short timeout)
+        // 1. Bootstrap proxy — instant, no API call needed
+        try {
+            String bHost = LitegramConfig.getBootstrapHost();
+            int bPort = LitegramConfig.getBootstrapPort();
+            String bSecret = LitegramConfig.getBootstrapSecret();
+            LitegramApi.ServerInfo bootstrap = new LitegramApi.ServerInfo(
+                    bHost, bPort, bSecret, "Bootstrap", "RU", 0);
+            List<LitegramApi.ServerInfo> bList = new ArrayList<>();
+            bList.add(bootstrap);
+            FileLog.d("litegram: anon — trying bootstrap proxy");
+            LitegramApi.ServerInfo connected = connectWithAutoFallback(bList);
+            if (connected != null) return null;
+        } catch (Exception e) {
+            FileLog.e("litegram: bootstrap proxy failed: " + e.getMessage());
+        }
+
+        // 2. Try claiming personal temp secret from backend
         try {
             List<LitegramApi.ServerInfo> servers = api.claimTempProxyAll(
                     deviceToken, LitegramConfig.ANON_CONNECTION_TIMEOUT_MS);
@@ -638,7 +635,7 @@ public class LitegramController {
             FileLog.e("litegram: claimTempProxy failed: " + e.getMessage());
         }
 
-        // 2. Try fallback API URL
+        // 3. Try fallback API URL
         if (!LitegramConfig.isFallback()) {
             FileLog.d("litegram: anon — switching to fallback API URL");
             LitegramConfig.enableFallback();
@@ -655,20 +652,11 @@ public class LitegramController {
             }
         }
 
-        // 3. Try cached servers from a previous session
+        // 4. Try cached servers from a previous session
         List<LitegramApi.ServerInfo> cached = LitegramConfig.loadServersCache();
         if (!cached.isEmpty()) {
             FileLog.d("litegram: anon — trying " + cached.size() + " cached server(s)");
             LitegramApi.ServerInfo connected = connectWithAutoFallback(cached);
-            if (connected != null) return null;
-        }
-
-        // 4. Last resort: hardcoded emergency fallback servers
-        if (LitegramConfig.HARDCODED_FALLBACK_SERVERS.length > 0) {
-            FileLog.d("litegram: anon — trying " + LitegramConfig.HARDCODED_FALLBACK_SERVERS.length + " hardcoded fallback server(s)");
-            List<LitegramApi.ServerInfo> hardcoded = new ArrayList<>();
-            Collections.addAll(hardcoded, LitegramConfig.HARDCODED_FALLBACK_SERVERS);
-            LitegramApi.ServerInfo connected = connectWithAutoFallback(hardcoded);
             if (connected != null) return null;
         }
 
