@@ -95,11 +95,15 @@ public final class LitegramChatLocks {
 
     // --- Unlock state with timer ---
 
+    private static final long INSTANT_LOCK_GRACE_MS = 2_000;
+
     public boolean isUnlockedNow(long dialogId) {
         Long ts = lastUnlockTime.get(dialogId);
         if (ts == null) return false;
         int seconds = getEffectiveAutolockSeconds(dialogId);
-        if (seconds == 0) return false;
+        if (seconds == 0) {
+            return System.currentTimeMillis() - ts < INSTANT_LOCK_GRACE_MS;
+        }
         return System.currentTimeMillis() - ts < (long) seconds * 1000;
     }
 
@@ -271,7 +275,9 @@ public final class LitegramChatLocks {
         Long ts = lastUnlockTime.get(folderDialogId(filterId));
         if (ts == null) return false;
         int seconds = getEffectiveFolderAutolockSeconds(filterId);
-        if (seconds == 0) return false;
+        if (seconds == 0) {
+            return System.currentTimeMillis() - ts < INSTANT_LOCK_GRACE_MS;
+        }
         return System.currentTimeMillis() - ts < (long) seconds * 1000;
     }
 

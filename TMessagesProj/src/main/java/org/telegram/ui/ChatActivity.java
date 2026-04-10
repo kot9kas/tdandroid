@@ -29015,8 +29015,7 @@ public class ChatActivity extends BaseFragment implements
         try {
             org.telegram.litegram.LitegramChatLocks locks = org.telegram.litegram.LitegramChatLocks.getInstance();
             if (locks.isLocked(dialog_id) && !locks.isUnlockedNow(dialog_id)) {
-                litegramShowPinOverlay();
-                return;
+                AndroidUtilities.runOnUIThread(this::litegramShowPinOverlay, 150);
             }
         } catch (Exception ignored) {}
         if (openImport && getSendMessagesHelper().getImportingHistory(dialog_id) != null) {

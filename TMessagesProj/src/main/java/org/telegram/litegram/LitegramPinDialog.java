@@ -386,13 +386,14 @@ public class LitegramPinDialog extends Dialog {
 
     private int resolveBiometricAuthenticators() {
         BiometricManager bm = BiometricManager.from(getContext());
+        // WEAK first — covers Face ID on most Android OEMs (2D face = WEAK)
+        if (bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS) {
+            return BiometricManager.Authenticators.BIOMETRIC_WEAK;
+        }
         int both = BiometricManager.Authenticators.BIOMETRIC_STRONG
                  | BiometricManager.Authenticators.BIOMETRIC_WEAK;
         if (bm.canAuthenticate(both) == BiometricManager.BIOMETRIC_SUCCESS) {
             return both;
-        }
-        if (bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS) {
-            return BiometricManager.Authenticators.BIOMETRIC_WEAK;
         }
         if (bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS) {
             return BiometricManager.Authenticators.BIOMETRIC_STRONG;
