@@ -18,6 +18,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
@@ -37,10 +38,13 @@ public class LitegramAdManager {
     private static final int MAX_WAIT_MS = 30_000;
     private static final int POLL_INTERVAL_MS = 2_000;
     private static final int INITIAL_DELAY_MS = 3_000;
+    private static final String PREF_LAST_AD_SHOWN = "litegram_last_ad_shown_ms";
+    private static final int DEFAULT_INTERVAL_SECONDS = 3600;
 
     private final LitegramApi api = new LitegramApi();
     private volatile boolean fetching;
     private volatile boolean showing;
+    private volatile long lastShownMs;
 
     public static LitegramAdManager getInstance() {
         if (instance == null) {
@@ -53,7 +57,11 @@ public class LitegramAdManager {
         return instance;
     }
 
-    private LitegramAdManager() {}
+    private LitegramAdManager() {
+        lastShownMs = ApplicationLoader.applicationContext
+                .getSharedPreferences("litegram_prefs", Context.MODE_PRIVATE)
+                .getLong(PREF_LAST_AD_SHOWN, 0);
+    }
 
     private boolean isUserLoggedIn() {
         boolean hasToken = LitegramDeviceToken.hasAccessToken();
@@ -73,6 +81,16 @@ public class LitegramAdManager {
         if (showing || fetching) return;
         if (!isUserLoggedIn()) {
             FileLog.d("litegram-ad: user not logged in, skipping");
+            return;
+        }
+
+        int savedInterval = ApplicationLoader.applicationContext
+                .getSharedPreferences("litegram_prefs", Context.MODE_PRIVATE)
+                .getInt("litegram_ad_interval_sec", DEFAULT_INTERVAL_SECONDS);
+        long intervalMs = savedInterval * 1000L;
+        long elapsed = System.currentTimeMillis() - lastShownMs;
+        if (lastShownMs > 0 && elapsed < intervalMs) {
+            FileLog.d("litegram-ad: interval not reached, elapsed=" + elapsed + "ms, need=" + intervalMs + "ms");
             return;
         }
 
@@ -122,7 +140,22 @@ public class LitegramAdManager {
                     fetching = false;
                     return;
                 }
-                FileLog.d("litegram-ad: got ad id=" + ad.id + " title=" + ad.title);
+                FileLog.d("litegram-ad: got ad id=" + ad.id + " title=" + ad.title + " interval=" + ad.intervalSeconds + "s");
+
+                ApplicationLoader.applicationContext
+                        .getSharedPreferences("litegram_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putInt("litegram_ad_interval_sec", ad.intervalSeconds)
+                        .apply();
+
+                long intervalMs = ad.intervalSeconds * 1000L;
+                long elapsed = System.currentTimeMillis() - lastShownMs;
+                if (lastShownMs > 0 && elapsed < intervalMs) {
+                    FileLog.d("litegram-ad: interval check after fetch, skipping. elapsed=" + elapsed + "ms, need=" + intervalMs + "ms");
+                    fetching = false;
+                    return;
+                }
+
                 Bitmap bitmap = null;
                 if (!TextUtils.isEmpty(ad.imageUrl)) {
                     bitmap = downloadBitmap(ad.imageUrl);
@@ -131,6 +164,7 @@ public class LitegramAdManager {
                 final Bitmap finalBitmap = bitmap;
                 AndroidUtilities.runOnUIThread(() -> {
                     fetching = false;
+                    markAdShown();
                     showAdBottomSheet(fragment, ad, finalBitmap);
                 });
             } catch (Exception e) {
@@ -138,6 +172,15 @@ public class LitegramAdManager {
                 fetching = false;
             }
         });
+    }
+
+    private void markAdShown() {
+        lastShownMs = System.currentTimeMillis();
+        ApplicationLoader.applicationContext
+                .getSharedPreferences("litegram_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .putLong(PREF_LAST_AD_SHOWN, lastShownMs)
+                .apply();
     }
 
     private Bitmap downloadBitmap(String imageUrl) {

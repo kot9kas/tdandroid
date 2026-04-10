@@ -95,13 +95,15 @@ public class LitegramApi {
         public final String description;
         public final String imageUrl;
         public final String linkUrl;
+        public final int intervalSeconds;
 
-        public AdInfo(String id, String title, String description, String imageUrl, String linkUrl) {
+        public AdInfo(String id, String title, String description, String imageUrl, String linkUrl, int intervalSeconds) {
             this.id = id;
             this.title = title;
             this.description = description;
             this.imageUrl = imageUrl;
             this.linkUrl = linkUrl;
+            this.intervalSeconds = intervalSeconds;
         }
     }
 
@@ -302,7 +304,8 @@ public class LitegramApi {
                 json.optString("title", ""),
                 json.optString("description", ""),
                 json.optString("imageUrl", null),
-                json.optString("linkUrl", null)
+                json.optString("linkUrl", null),
+                json.optInt("intervalSeconds", 3600)
         );
     }
 
