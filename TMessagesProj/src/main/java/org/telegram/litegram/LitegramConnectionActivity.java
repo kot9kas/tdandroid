@@ -64,8 +64,14 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
     private boolean connected;
     private boolean connecting;
+    private boolean pendingConnectedTransition;
     private Runnable pollRunnable;
     private List<LitegramApi.ServerInfo> availableServers = new ArrayList<>();
+
+    private static final int LOTTIE_DISCONNECTED = 0;
+    private static final int LOTTIE_CONNECTING = 1;
+    private static final int LOTTIE_CONNECTED = 2;
+    private int currentLottieState = -1;
 
     @Override
     public boolean onFragmentCreate() {
@@ -165,13 +171,6 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         card.setPadding(cardPad, AndroidUtilities.dp(24), cardPad, AndroidUtilities.dp(20));
 
         lottieView = new RLottieImageView(context);
-        lottieView.setAutoRepeat(true);
-        lottieView.setOnClickListener(v -> {
-            if (lottieView.getAnimatedDrawable() != null) {
-                lottieView.getAnimatedDrawable().setCurrentFrame(0, false);
-            }
-            lottieView.playAnimation();
-        });
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 AndroidUtilities.dp(108), AndroidUtilities.dp(108));
         lp.gravity = Gravity.CENTER_HORIZONTAL;
@@ -687,14 +686,59 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         if (lottieView == null) {
             return;
         }
-        int want = connected ? R.raw.utyan_streaming : R.raw.litegram_disconnected;
-        if (want == headerLottieRes) {
+
+        int wantState;
+        if (connected) {
+            wantState = LOTTIE_CONNECTED;
+        } else if (connecting) {
+            wantState = LOTTIE_CONNECTING;
+        } else {
+            wantState = LOTTIE_DISCONNECTED;
+        }
+
+        if (wantState == currentLottieState) {
             return;
         }
-        headerLottieRes = want;
-        lottieView.setAnimation(want, 100, 100);
-        lottieView.setAutoRepeat(true);
-        lottieView.playAnimation();
+
+        if (wantState == LOTTIE_DISCONNECTED) {
+            pendingConnectedTransition = false;
+            currentLottieState = LOTTIE_DISCONNECTED;
+            lottieView.setAutoRepeat(true);
+            lottieView.setAnimation(R.raw.litegram_disconnected, 100, 100);
+            lottieView.playAnimation();
+            return;
+        }
+
+        if (wantState == LOTTIE_CONNECTING) {
+            pendingConnectedTransition = false;
+            currentLottieState = LOTTIE_CONNECTING;
+            lottieView.setAutoRepeat(true);
+            lottieView.setAnimation(R.raw.litegram_connecting, 100, 100);
+            lottieView.playAnimation();
+            return;
+        }
+
+        if (wantState == LOTTIE_CONNECTED) {
+            if (currentLottieState == LOTTIE_CONNECTING) {
+                pendingConnectedTransition = true;
+                lottieView.setAutoRepeat(false);
+                lottieView.setOnAnimationEndListener(() -> {
+                    if (pendingConnectedTransition && lottieView != null) {
+                        pendingConnectedTransition = false;
+                        currentLottieState = LOTTIE_CONNECTED;
+                        lottieView.setOnAnimationEndListener(null);
+                        lottieView.setAutoRepeat(true);
+                        lottieView.setAnimation(R.raw.litegram_connected, 100, 100);
+                        lottieView.playAnimation();
+                    }
+                });
+            } else {
+                currentLottieState = LOTTIE_CONNECTED;
+                lottieView.setAutoRepeat(true);
+                lottieView.setAnimation(R.raw.litegram_connected, 100, 100);
+                lottieView.playAnimation();
+            }
+        }
     }
 
     @Override

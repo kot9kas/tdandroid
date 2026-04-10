@@ -593,14 +593,13 @@ public class LitegramController {
                 }
             }
         } catch (Exception e) {
-            FileLog.e("litegram: getProxyServers failed, falling back to claim", e);
+            FileLog.e("litegram: getProxyServers failed", e);
             lastError = e;
         }
-        String anonResult = connectAnonymous();
-        if (anonResult != null && lastError != null) {
-            return "servers: " + lastError.getMessage() + "; claim: " + anonResult;
+        if (lastError != null) {
+            return "servers: " + lastError.getMessage();
         }
-        return anonResult;
+        return "No proxy servers available";
     }
 
     private String connectAnonymous() {
