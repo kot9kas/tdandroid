@@ -165,7 +165,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         card.setPadding(cardPad, AndroidUtilities.dp(24), cardPad, AndroidUtilities.dp(20));
 
         lottieView = new RLottieImageView(context);
-        lottieView.setAutoRepeat(false);
+        lottieView.setAutoRepeat(true);
         lottieView.setOnClickListener(v -> {
             if (lottieView.getAnimatedDrawable() != null) {
                 lottieView.getAnimatedDrawable().setCurrentFrame(0, false);
@@ -693,7 +693,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         }
         headerLottieRes = want;
         lottieView.setAnimation(want, 100, 100);
-        lottieView.setAutoRepeat(false);
+        lottieView.setAutoRepeat(true);
         lottieView.playAnimation();
     }
 
