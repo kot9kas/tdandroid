@@ -1,7 +1,7 @@
 package org.telegram.tlrpc.models
 
 object RULES {
-    val rules = Rules(
+    val rules = RulesConfig(
         databaseTypes = setOf(
             "Message", "StoryItem", "Theme",
             "Chat", "User",
@@ -82,7 +82,7 @@ object RULES {
     )
 }
 
-data class Rules(
+data class RulesConfig(
     val databaseTypes: Set<String>,
     val ignoredTypes: Set<String>,
     val ignoredConstructors: Map<String, Set<String>>,

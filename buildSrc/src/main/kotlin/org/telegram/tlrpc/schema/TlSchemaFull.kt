@@ -1,7 +1,7 @@
 package org.telegram.tlrpc.schema
 
 import org.telegram.tlrpc.SchemeTlValidator
-import org.telegram.tlrpc.models.Rules
+import org.telegram.tlrpc.models.RulesConfig
 
 data class TlSchemaFull(
     val schema: TlSchema,
@@ -11,7 +11,7 @@ data class TlSchemaFull(
 ) {
     val magicsAll = (schema.magics + encrypted.magics + history.values.map { it.magics }.flatten()).toSet()
 
-    fun applyRules(rules: Rules): TlSchemaFull {
+    fun applyRules(rules: RulesConfig): TlSchemaFull {
         val history = this.history.mapValues { it.value
          .applyTypesFilter(rules.ignoredTypes)
          .applyConstructorsFilter(rules.ignoredConstructors)
