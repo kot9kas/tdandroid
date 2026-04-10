@@ -36,6 +36,7 @@ import org.telegram.tgnet.tl.TL_phone;
 import org.telegram.ui.Components.voip.VoIPHelper;
 import org.telegram.ui.GroupCallSheet;
 import org.telegram.ui.LaunchActivity;
+import org.telegram.ui.LauncherIconController;
 import org.telegram.ui.VoIPFragment;
 
 import java.util.ArrayList;
@@ -278,7 +279,7 @@ public class VoIPGroupNotification {
             builder.setShowWhen(false);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            builder.setColor(0xff2ca5e0);
+            builder.setColor(LauncherIconController.getNotificationColor());
             builder.setVibrate(new long[0]);
             builder.setCategory(Notification.CATEGORY_CALL);
             builder.setFullScreenIntent(PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_MUTABLE), true);

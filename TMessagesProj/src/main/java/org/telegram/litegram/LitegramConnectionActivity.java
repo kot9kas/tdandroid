@@ -64,7 +64,6 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
     private boolean connected;
     private boolean connecting;
-    private boolean pendingConnectedTransition;
     private Runnable pollRunnable;
     private List<LitegramApi.ServerInfo> availableServers = new ArrayList<>();
 
@@ -700,42 +699,17 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
             return;
         }
 
-        if (wantState == LOTTIE_DISCONNECTED) {
-            pendingConnectedTransition = false;
-            currentLottieState = LOTTIE_DISCONNECTED;
-            setLottie(R.raw.litegram_disconnected, true);
-            return;
-        }
-
-        if (wantState == LOTTIE_CONNECTING) {
-            pendingConnectedTransition = false;
-            currentLottieState = LOTTIE_CONNECTING;
-            setLottie(R.raw.litegram_connecting, true);
-            return;
-        }
-
-        if (wantState == LOTTIE_CONNECTED) {
-            if (currentLottieState == LOTTIE_CONNECTING) {
-                pendingConnectedTransition = true;
-                if (lottieView.getAnimatedDrawable() != null) {
-                    lottieView.getAnimatedDrawable().setAutoRepeat(0);
-                    lottieView.getAnimatedDrawable().setOnAnimationEndListener(() ->
-                        AndroidUtilities.runOnUIThread(() -> {
-                            if (pendingConnectedTransition && lottieView != null) {
-                                pendingConnectedTransition = false;
-                                currentLottieState = LOTTIE_CONNECTED;
-                                setLottie(R.raw.litegram_connected, true);
-                            }
-                        })
-                    );
-                } else {
-                    currentLottieState = LOTTIE_CONNECTED;
-                    setLottie(R.raw.litegram_connected, true);
-                }
-            } else {
-                currentLottieState = LOTTIE_CONNECTED;
+        currentLottieState = wantState;
+        switch (wantState) {
+            case LOTTIE_DISCONNECTED:
+                setLottie(R.raw.litegram_disconnected, true);
+                break;
+            case LOTTIE_CONNECTING:
+                setLottie(R.raw.litegram_connecting, true);
+                break;
+            case LOTTIE_CONNECTED:
                 setLottie(R.raw.litegram_connected, true);
-            }
+                break;
         }
     }
 

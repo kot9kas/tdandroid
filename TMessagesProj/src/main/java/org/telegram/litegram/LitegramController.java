@@ -32,7 +32,7 @@ public class LitegramController {
     private final LitegramApi api = new LitegramApi();
     private volatile boolean initialized;
     private final ExecutorService executor = new ThreadPoolExecutor(
-            0, 4, 30, TimeUnit.SECONDS, new SynchronousQueue<>(),
+            0, 10, 30, TimeUnit.SECONDS, new SynchronousQueue<>(),
             r -> { Thread t = new Thread(r); t.setDaemon(true); t.setName("litegram-pool"); return t; },
             new ThreadPoolExecutor.CallerRunsPolicy());
 
@@ -71,6 +71,8 @@ public class LitegramController {
     private volatile long lastFullCheckMs;
     private volatile boolean directProbeInProgress;
     private volatile long probeVerifiedAtMs;
+    private volatile long proxyDisconnectedSinceMs;
+    private static final long PROXY_SWITCH_GRACE_MS = 5_000;
 
     public void init() {
         if (initialized) {
@@ -88,10 +90,19 @@ public class LitegramController {
         lastFullCheckMs = now;
         lastAppForegroundCheckMs = now;
 
+        boolean hasToken = LitegramDeviceToken.hasAccessToken();
+        List<LitegramApi.ServerInfo> cached = hasToken ? LitegramConfig.loadServersCache() : null;
+
         executor.execute(() -> {
             resolveTelegramId();
             LitegramChatLocks.getInstance();
-            disableProxySync();
+
+            if (hasToken && cached != null && !cached.isEmpty()) {
+                LitegramApi.ServerInfo preferred = pickPreferredServer(cached);
+                FileLog.d("litegram: init — restoring cached proxy " + preferred.host + " instantly");
+                applyProxySync(preferred);
+            }
+
             Utilities.globalQueue.postRunnable(() -> {
                 refreshSubscriptionStatus();
                 fetchServersForCache();
@@ -118,8 +129,14 @@ public class LitegramController {
             return;
         }
 
-        FileLog.d("litegram: app foreground — probing direct connection");
+        if (proxyAppliedByUs && isConnectedState()) {
+            FileLog.d("litegram: app foreground — proxy connected, skipping reset");
+            return;
+        }
+
+        FileLog.d("litegram: app foreground — not connected, probing direct");
         noProxyConnectingSinceMs = 0;
+        proxyDisconnectedSinceMs = 0;
         lastFullCheckMs = now;
         reclaimScheduled = false;
         proxyAppliedByUs = false;
@@ -167,9 +184,22 @@ public class LitegramController {
                 probeVerifiedAtMs = System.currentTimeMillis();
                 lastDirectConnectedMs = System.currentTimeMillis();
                 noProxyConnectingSinceMs = 0;
+                if (proxyAppliedByUs) {
+                    FileLog.d("litegram: direct OK, disabling proxy");
+                    proxyAppliedByUs = false;
+                    executor.execute(() -> {
+                        disableProxySync();
+                        AndroidUtilities.runOnUIThread(() ->
+                                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged));
+                    });
+                }
             } else {
-                FileLog.d("litegram: direct probe FAILED — Telegram not reachable, enabling proxy");
-                triggerProxyFallback("litegram: direct probe failed, enabling proxy", System.currentTimeMillis());
+                if (proxyAppliedByUs && isConnectedState()) {
+                    FileLog.d("litegram: direct probe FAILED but proxy already connected, keeping proxy");
+                } else {
+                    FileLog.d("litegram: direct probe FAILED — enabling proxy");
+                    triggerProxyFallback("litegram: direct probe failed, enabling proxy", System.currentTimeMillis());
+                }
             }
         });
     }
@@ -235,6 +265,23 @@ public class LitegramController {
                     }
                 } else {
                     noProxyConnectingSinceMs = 0;
+
+                    if (connected) {
+                        proxyDisconnectedSinceMs = 0;
+                    } else if (waitingForNetwork) {
+                        proxyDisconnectedSinceMs = 0;
+                    } else if (connecting) {
+                        if (proxyDisconnectedSinceMs == 0) {
+                            proxyDisconnectedSinceMs = now;
+                        } else if (now - proxyDisconnectedSinceMs >= PROXY_SWITCH_GRACE_MS) {
+                            FileLog.d("litegram: proxy disconnected >" + (PROXY_SWITCH_GRACE_MS / 1000) + "s, switching server");
+                            proxyDisconnectedSinceMs = 0;
+                            proxyAppliedByUs = false;
+                            reclaimScheduled = false;
+                            triggerProxyFallback("litegram: proxy lost, reconnecting", now);
+                        }
+                    }
+
                     if (lastFullCheckMs > 0 && now - lastFullCheckMs >= PROXY_RECHECK_INTERVAL_MS) {
                         recheckDirectConnection();
                     }
@@ -258,6 +305,9 @@ public class LitegramController {
     }
 
     private void triggerProxyFallback(String reason, long nowMs) {
+        if (proxyAppliedByUs && isConnectedState()) {
+            return;
+        }
         if (reclaimScheduled || nowMs - lastProxyAttemptAtMs < PROXY_RETRY_COOLDOWN_MS) {
             return;
         }
