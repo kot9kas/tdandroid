@@ -175,6 +175,8 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
     private Paint topicCounterPaint;
     private Paint litegramLockPaint;
     private boolean litegramMsgHidden;
+    private boolean drawLitegramLock;
+    private int litegramLockDrawLeft;
     private Paint counterPaintOutline;
     public float chekBoxPaddingTop = 42;
     private boolean needEmoji;
@@ -2237,6 +2239,11 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                 nameLeft += w;
             }
         }
+        try {
+            drawLitegramLock = org.telegram.litegram.LitegramChatLocks.getInstance().isLocked(currentDialogId);
+        } catch (Exception ignored) {
+            drawLitegramLock = false;
+        }
         if (drawBotVerified) {
             nameWidth -= dp(21);
         }
@@ -3956,32 +3963,57 @@ public class DialogCell extends BaseCell implements StoriesListPlaceProvider.Ava
                             requestLayout();
                         });
                     }
-                    if (org.telegram.litegram.LitegramChatLocks.getInstance().isLocked(currentDialogId)) {
+                    if (drawLitegramLock) {
                         boolean unlocked = org.telegram.litegram.LitegramChatLocks.getInstance().isUnlockedNow(currentDialogId);
-                        float nameTextWidth = nameLayout.getLineCount() > 0 ? nameLayout.getLineWidth(0) : 0;
-                        float lockX = nameLeft + nameLayoutTranslateX + Math.min(nameTextWidth, nameWidth) + dp(4);
-                        float lockY = nameTop + (nameLayout.getHeight() - dp(14)) / 2f;
                         if (litegramLockPaint == null) {
                             litegramLockPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-                            litegramLockPaint.setStyle(Paint.Style.STROKE);
                             litegramLockPaint.setStrokeCap(Paint.Cap.ROUND);
+                            litegramLockPaint.setStrokeJoin(Paint.Join.ROUND);
                         }
                         int lockColor = unlocked ? 0xFF4CAF50 : 0xFFE53935;
                         litegramLockPaint.setColor(lockColor);
-                        litegramLockPaint.setStrokeWidth(dp(1.5f));
-                        float lw = dp(5f), lh = dp(4.5f);
-                        float lcx = lockX + dp(7);
-                        float lBodyTop = lockY + dp(6);
-                        litegramLockPaint.setStyle(Paint.Style.FILL);
-                        android.graphics.RectF bodyRect = new android.graphics.RectF(lcx - lw, lBodyTop, lcx + lw, lBodyTop + lh);
-                        canvas.drawRoundRect(bodyRect, dp(1.5f), dp(1.5f), litegramLockPaint);
-                        litegramLockPaint.setStyle(Paint.Style.STROKE);
-                        float arcR = dp(3f);
-                        if (unlocked) {
-                            canvas.drawArc(lcx - arcR, lBodyTop - arcR * 2f, lcx + arcR, lBodyTop, 180, 180, false, litegramLockPaint);
-                            canvas.drawLine(lcx + arcR, lBodyTop - arcR, lcx + arcR, lBodyTop - arcR * 2.0f, litegramLockPaint);
+
+                        float lockX;
+                        float lockCenterY;
+                        if (!LocaleController.isRTL) {
+                            if (drawPremium) {
+                                lockX = nameMuteLeft + dp(20);
+                            } else {
+                                float ntw = nameLayout != null && nameLayout.getLineCount() > 0 ? nameLayout.getLineWidth(0) : 0;
+                                lockX = nameLeft + nameLayoutTranslateX + Math.min(ntw, nameWidth) + dp(4);
+                            }
                         } else {
-                            canvas.drawArc(lcx - arcR, lBodyTop - arcR * 2f, lcx + arcR, lBodyTop, 180, 180, false, litegramLockPaint);
+                            if (drawPremium) {
+                                lockX = nameMuteLeft - dp(34);
+                            } else {
+                                float ntw = nameLayout != null && nameLayout.getLineCount() > 0 ? nameLayout.getLineWidth(0) : 0;
+                                lockX = nameLeft + nameLayoutTranslateX - ntw - dp(18);
+                            }
+                        }
+                        if (drawPremium) {
+                            int py = dp(useForceThreeLines || SharedConfig.useThreeLinesLayout ? 12.5f : 15.5f);
+                            if ((!(useForceThreeLines || SharedConfig.useThreeLinesLayout) || isForumCell()) && hasTags()) {
+                                py -= dp(9);
+                            }
+                            lockCenterY = py + dp(7);
+                        } else {
+                            int nameTopY = dp(useForceThreeLines || SharedConfig.useThreeLinesLayout ? 10 : 14);
+                            lockCenterY = nameTopY + dp(10);
+                        }
+
+                        float lcx = lockX + dp(7);
+                        float bTop = lockCenterY + dp(0.2f);
+                        float bw = dp(5f), bh = dp(6f);
+                        litegramLockPaint.setStyle(Paint.Style.FILL);
+                        canvas.drawRoundRect(lcx - bw, bTop, lcx + bw, bTop + bh, dp(1.8f), dp(1.8f), litegramLockPaint);
+                        litegramLockPaint.setStyle(Paint.Style.STROKE);
+                        litegramLockPaint.setStrokeWidth(dp(1.6f));
+                        float arcR = dp(3.2f);
+                        if (unlocked) {
+                            canvas.drawArc(lcx - arcR, bTop - arcR * 2f, lcx + arcR, bTop, 180, 180, false, litegramLockPaint);
+                            canvas.drawLine(lcx + arcR, bTop - arcR, lcx + arcR, bTop - arcR * 1.8f, litegramLockPaint);
+                        } else {
+                            canvas.drawArc(lcx - arcR, bTop - arcR * 2f, lcx + arcR, bTop, 180, 180, false, litegramLockPaint);
                         }
                     }
                 } catch (Exception ignored) {}

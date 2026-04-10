@@ -45,6 +45,7 @@ public class LitegramController {
     private static final long PROXY_RETRY_COOLDOWN_MS = 3_000;
     private static final long APP_FOREGROUND_RECHECK_MS = 2_000;
     private static final long UNAUTHORIZED_PROXY_RETRY_MS = 7_000;
+    private static final long PROXY_RECHECK_INTERVAL_MS = 30 * 60 * 1_000;
     private volatile boolean reclaimScheduled;
     private volatile long noProxyConnectingSinceMs;
     private volatile long lastProxyAttemptAtMs;
@@ -54,6 +55,7 @@ public class LitegramController {
     private volatile long directCheckStartedAtMs;
     private volatile boolean proxyAppliedByUs;
     private volatile long lastDirectConnectedMs;
+    private volatile long lastFullCheckMs;
 
     public void init() {
         if (initialized) {
@@ -74,6 +76,7 @@ public class LitegramController {
         clearSharedConfigProxy();
         proxyAppliedByUs = false;
         directCheckStartedAtMs = System.currentTimeMillis();
+        lastFullCheckMs = System.currentTimeMillis();
 
         resolveTelegramId();
 
@@ -95,8 +98,10 @@ public class LitegramController {
         }
         lastAppForegroundCheckMs = now;
 
+        FileLog.d("litegram: app foreground — testing direct connection");
         noProxyConnectingSinceMs = 0;
         directCheckStartedAtMs = now;
+        lastFullCheckMs = now;
         reclaimScheduled = false;
         proxyAppliedByUs = false;
 
@@ -134,7 +139,6 @@ public class LitegramController {
                 long now = System.currentTimeMillis();
 
                 if (!proxyAppliedByUs) {
-                    // Direct mode: proxy is off, check if direct connection works
                     if (connected) {
                         noProxyConnectingSinceMs = 0;
                         lastDirectConnectedMs = now;
@@ -149,21 +153,20 @@ public class LitegramController {
                                 grace = DIRECT_RECONNECT_GRACE_MS;
                             }
                             if (now - noProxyConnectingSinceMs >= grace) {
-                                maybeReconnectProxy("litegram: direct connection >" + (grace / 1000) + "s, enabling proxy fallback", now);
+                                triggerProxyFallback("litegram: direct connection >" + (grace / 1000) + "s, enabling proxy fallback", now);
                             }
                         }
                     } else {
                         if (directCheckStartedAtMs > 0 && now - directCheckStartedAtMs >= NO_PROXY_GRACE_MS) {
-                            maybeReconnectProxy("litegram: startup direct check timeout, enabling proxy fallback", now);
+                            triggerProxyFallback("litegram: startup direct check timeout, enabling proxy fallback", now);
                             directCheckStartedAtMs = 0;
                         }
                     }
                 } else {
-                    // Proxy mode: proxy was applied by us, monitor its health
                     noProxyConnectingSinceMs = 0;
                     directCheckStartedAtMs = 0;
-                    if (!connected) {
-                        maybeReconnectProxy("litegram: proxy disconnected, re-claim", now);
+                    if (lastFullCheckMs > 0 && now - lastFullCheckMs >= PROXY_RECHECK_INTERVAL_MS) {
+                        recheckDirectConnection();
                     }
                 }
                 AndroidUtilities.runOnUIThread(this, WATCHER_POLL_MS);
@@ -171,7 +174,18 @@ public class LitegramController {
         }, WATCHER_POLL_MS);
     }
 
-    private void maybeReconnectProxy(String reason, long nowMs) {
+    private void recheckDirectConnection() {
+        FileLog.d("litegram: 30-min recheck — testing direct connection");
+        lastFullCheckMs = System.currentTimeMillis();
+        noProxyConnectingSinceMs = 0;
+        directCheckStartedAtMs = System.currentTimeMillis();
+        proxyAppliedByUs = false;
+        ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
+        clearSharedConfigProxy();
+        NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
+    }
+
+    private void triggerProxyFallback(String reason, long nowMs) {
         if (reclaimScheduled || nowMs - lastProxyAttemptAtMs < PROXY_RETRY_COOLDOWN_MS) {
             return;
         }
@@ -181,6 +195,7 @@ public class LitegramController {
         }
         reclaimScheduled = true;
         lastProxyAttemptAtMs = nowMs;
+        lastFullCheckMs = nowMs;
         if (UserConfig.getActivatedAccountsCount() == 0) {
             lastUnauthorizedProxyAttemptMs = nowMs;
         }
