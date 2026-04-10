@@ -703,42 +703,49 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         if (wantState == LOTTIE_DISCONNECTED) {
             pendingConnectedTransition = false;
             currentLottieState = LOTTIE_DISCONNECTED;
-            lottieView.setAutoRepeat(true);
-            lottieView.setAnimation(R.raw.litegram_disconnected, 100, 100);
-            lottieView.playAnimation();
+            setLottie(R.raw.litegram_disconnected, true);
             return;
         }
 
         if (wantState == LOTTIE_CONNECTING) {
             pendingConnectedTransition = false;
             currentLottieState = LOTTIE_CONNECTING;
-            lottieView.setAutoRepeat(true);
-            lottieView.setAnimation(R.raw.litegram_connecting, 100, 100);
-            lottieView.playAnimation();
+            setLottie(R.raw.litegram_connecting, true);
             return;
         }
 
         if (wantState == LOTTIE_CONNECTED) {
             if (currentLottieState == LOTTIE_CONNECTING) {
                 pendingConnectedTransition = true;
-                lottieView.setAutoRepeat(false);
-                lottieView.setOnAnimationEndListener(() -> {
-                    if (pendingConnectedTransition && lottieView != null) {
-                        pendingConnectedTransition = false;
-                        currentLottieState = LOTTIE_CONNECTED;
-                        lottieView.setOnAnimationEndListener(null);
-                        lottieView.setAutoRepeat(true);
-                        lottieView.setAnimation(R.raw.litegram_connected, 100, 100);
-                        lottieView.playAnimation();
-                    }
-                });
+                if (lottieView.getAnimatedDrawable() != null) {
+                    lottieView.getAnimatedDrawable().setAutoRepeat(0);
+                    lottieView.getAnimatedDrawable().setOnAnimationEndListener(() ->
+                        AndroidUtilities.runOnUIThread(() -> {
+                            if (pendingConnectedTransition && lottieView != null) {
+                                pendingConnectedTransition = false;
+                                currentLottieState = LOTTIE_CONNECTED;
+                                setLottie(R.raw.litegram_connected, true);
+                            }
+                        })
+                    );
+                } else {
+                    currentLottieState = LOTTIE_CONNECTED;
+                    setLottie(R.raw.litegram_connected, true);
+                }
             } else {
                 currentLottieState = LOTTIE_CONNECTED;
-                lottieView.setAutoRepeat(true);
-                lottieView.setAnimation(R.raw.litegram_connected, 100, 100);
-                lottieView.playAnimation();
+                setLottie(R.raw.litegram_connected, true);
             }
         }
+    }
+
+    private void setLottie(int resId, boolean loop) {
+        lottieView.setAutoRepeat(loop);
+        lottieView.setAnimation(resId, 100, 100);
+        if (loop && lottieView.getAnimatedDrawable() != null) {
+            lottieView.getAnimatedDrawable().setAutoRepeat(1);
+        }
+        lottieView.playAnimation();
     }
 
     @Override
