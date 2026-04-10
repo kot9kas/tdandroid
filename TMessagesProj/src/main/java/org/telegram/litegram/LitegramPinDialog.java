@@ -68,6 +68,8 @@ public class LitegramPinDialog extends Dialog {
     private View lockIcon;
     private LinearLayout rootLayout;
     private FrameLayout wrapper;
+    private Runnable onDismissWithoutSuccess;
+    private boolean successfullyVerified;
 
     public interface OnPinResult {
         void onPin(String pin);
@@ -89,8 +91,13 @@ public class LitegramPinDialog extends Dialog {
     }
 
     public static void showVerify(Context context, long dialogId, OnPinVerify callback) {
+        showVerify(context, dialogId, callback, null);
+    }
+
+    public static void showVerify(Context context, long dialogId, OnPinVerify callback, Runnable onDismissWithoutSuccess) {
         LitegramPinDialog dialog = new LitegramPinDialog(context, MODE_VERIFY, dialogId, null);
         dialog.callback2 = callback;
+        dialog.onDismissWithoutSuccess = onDismissWithoutSuccess;
         dialog.show();
     }
 
@@ -377,12 +384,25 @@ public class LitegramPinDialog extends Dialog {
 
     // --- Biometric ---
 
+    private int resolveBiometricAuthenticators() {
+        BiometricManager bm = BiometricManager.from(getContext());
+        int both = BiometricManager.Authenticators.BIOMETRIC_STRONG
+                 | BiometricManager.Authenticators.BIOMETRIC_WEAK;
+        if (bm.canAuthenticate(both) == BiometricManager.BIOMETRIC_SUCCESS) {
+            return both;
+        }
+        if (bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS) {
+            return BiometricManager.Authenticators.BIOMETRIC_WEAK;
+        }
+        if (bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS) {
+            return BiometricManager.Authenticators.BIOMETRIC_STRONG;
+        }
+        return 0;
+    }
+
     private boolean isBiometricAvailable() {
         try {
-            int canAuth = BiometricManager.from(getContext()).canAuthenticate(
-                    BiometricManager.Authenticators.BIOMETRIC_STRONG |
-                    BiometricManager.Authenticators.BIOMETRIC_WEAK);
-            return canAuth == BiometricManager.BIOMETRIC_SUCCESS;
+            return resolveBiometricAuthenticators() != 0;
         } catch (Exception e) {
             return false;
         }
@@ -392,11 +412,10 @@ public class LitegramPinDialog extends Dialog {
         FragmentActivity activity = LaunchActivity.instance;
         if (activity == null || activity.isFinishing()) return;
 
+        int authenticators;
         try {
-            int canAuth = BiometricManager.from(activity).canAuthenticate(
-                    BiometricManager.Authenticators.BIOMETRIC_STRONG |
-                    BiometricManager.Authenticators.BIOMETRIC_WEAK);
-            if (canAuth != BiometricManager.BIOMETRIC_SUCCESS) return;
+            authenticators = resolveBiometricAuthenticators();
+            if (authenticators == 0) return;
         } catch (Exception e) {
             return;
         }
@@ -405,9 +424,8 @@ public class LitegramPinDialog extends Dialog {
                 .setTitle(LocaleController.getString(R.string.LitegramPinBiometricTitle))
                 .setDescription(LocaleController.getString(R.string.LitegramPinBiometricDesc))
                 .setNegativeButtonText(LocaleController.getString("Cancel", R.string.Cancel))
-                .setAllowedAuthenticators(
-                        BiometricManager.Authenticators.BIOMETRIC_STRONG |
-                        BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                .setConfirmationRequired(false)
+                .setAllowedAuthenticators(authenticators)
                 .build();
 
         BiometricPrompt prompt = new BiometricPrompt(activity,
@@ -422,6 +440,7 @@ public class LitegramPinDialog extends Dialog {
     }
 
     private void onBiometricSuccess() {
+        successfullyVerified = true;
         if (callback2 != null) {
             callback2.onPin("__biometric__", LitegramPinDialog.this);
         } else {
@@ -657,6 +676,7 @@ public class LitegramPinDialog extends Dialog {
     }
 
     public void playUnlockAnimation() {
+        successfullyVerified = true;
         if (lockIcon == null) {
             dismiss();
             return;
@@ -683,6 +703,15 @@ public class LitegramPinDialog extends Dialog {
             }
         });
         combined.start();
+    }
+
+    @Override
+    public void dismiss() {
+        super.dismiss();
+        if (!successfullyVerified && onDismissWithoutSuccess != null) {
+            onDismissWithoutSuccess.run();
+            onDismissWithoutSuccess = null;
+        }
     }
 
     private void resetInput() {

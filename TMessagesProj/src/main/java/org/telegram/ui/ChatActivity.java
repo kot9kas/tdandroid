@@ -29011,6 +29011,14 @@ public class ChatActivity extends BaseFragment implements
         super.onResume();
         checkShowBlur(false);
         activityResumeTime = System.currentTimeMillis();
+
+        try {
+            org.telegram.litegram.LitegramChatLocks locks = org.telegram.litegram.LitegramChatLocks.getInstance();
+            if (locks.isLocked(dialog_id) && !locks.isUnlockedNow(dialog_id)) {
+                litegramShowPinOverlay();
+                return;
+            }
+        } catch (Exception ignored) {}
         if (openImport && getSendMessagesHelper().getImportingHistory(dialog_id) != null) {
             ImportingAlert alert = new ImportingAlert(getParentActivity(), null, this, themeDelegate);
             alert.setOnHideListener(dialog -> {
@@ -45565,5 +45573,30 @@ public class ChatActivity extends BaseFragment implements
 
         abstract void drawChatBackgroundElements(Canvas canvas, @Nullable RectF position);
         abstract void drawChatForegroundElements(Canvas canvas, @Nullable RectF position);
+    }
+
+    private boolean litegramPinShowing;
+
+    private void litegramShowPinOverlay() {
+        if (litegramPinShowing) return;
+        litegramPinShowing = true;
+        android.app.Activity activity = getParentActivity();
+        if (activity == null || activity.isFinishing()) {
+            finishFragment();
+            return;
+        }
+        org.telegram.litegram.LitegramPinDialog.showVerify(activity, dialog_id, (pin, dlg) -> {
+            org.telegram.litegram.LitegramChatLocks locks = org.telegram.litegram.LitegramChatLocks.getInstance();
+            if ("__biometric__".equals(pin) || locks.checkPin(dialog_id, pin)) {
+                locks.markUnlocked(dialog_id);
+                litegramPinShowing = false;
+                dlg.playUnlockAnimation();
+            } else {
+                dlg.showWrongPin();
+            }
+        }, () -> {
+            litegramPinShowing = false;
+            AndroidUtilities.runOnUIThread(() -> finishFragment());
+        });
     }
 }
