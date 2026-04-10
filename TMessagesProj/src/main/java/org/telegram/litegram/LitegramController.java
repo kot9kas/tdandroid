@@ -19,6 +19,9 @@ import java.util.List;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -28,6 +31,10 @@ public class LitegramController {
 
     private final LitegramApi api = new LitegramApi();
     private volatile boolean initialized;
+    private final ExecutorService executor = new ThreadPoolExecutor(
+            0, 4, 30, TimeUnit.SECONDS, new SynchronousQueue<>(),
+            r -> { Thread t = new Thread(r); t.setDaemon(true); t.setName("litegram-pool"); return t; },
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     public static LitegramController getInstance() {
         if (instance == null) {
@@ -82,15 +89,15 @@ public class LitegramController {
         lastFullCheckMs = now;
         lastAppForegroundCheckMs = now;
 
-        resolveTelegramId();
-
-        new Thread(() -> {
+        executor.execute(() -> {
+            resolveTelegramId();
+            LitegramChatLocks.getInstance();
             disableProxySync();
             Utilities.globalQueue.postRunnable(() -> {
                 refreshSubscriptionStatus();
                 fetchServersForCache();
             });
-        }, "litegram-init").start();
+        });
 
         startDirectProbe();
         scheduleConnectionWatcher();
@@ -113,17 +120,21 @@ public class LitegramController {
         reclaimScheduled = false;
         proxyAppliedByUs = false;
 
-        new Thread(() -> {
+        executor.execute(() -> {
             disableProxySync();
             AndroidUtilities.runOnUIThread(() ->
                     NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged));
-        }, "litegram-fg-cleanup").start();
+        });
 
         startDirectProbe();
     }
 
     private void disableProxySync() {
-        ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
+        boolean proxyWasEnabled = LitegramConfig.isProxyEnabled()
+                || MessagesController.getGlobalMainSettings().getBoolean("proxy_enabled", false);
+        if (proxyWasEnabled) {
+            ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
+        }
         clearSharedConfigProxy();
     }
 
@@ -144,7 +155,7 @@ public class LitegramController {
     private void startDirectProbe() {
         directProbeInProgress = true;
         probeVerifiedAtMs = 0;
-        new Thread(() -> {
+        executor.execute(() -> {
             boolean reachable = canReachTelegramDirectly();
             directProbeInProgress = false;
             if (reachable) {
@@ -156,21 +167,21 @@ public class LitegramController {
                 FileLog.d("litegram: direct probe FAILED — Telegram not reachable, enabling proxy");
                 triggerProxyFallback("litegram: direct probe failed, enabling proxy", System.currentTimeMillis());
             }
-        }, "litegram-probe").start();
+        });
     }
 
     private boolean canReachTelegramDirectly() {
         AtomicBoolean reached = new AtomicBoolean(false);
         CountDownLatch latch = new CountDownLatch(1);
         for (String ip : TELEGRAM_DC_IPS) {
-            new Thread(() -> {
+            executor.execute(() -> {
                 try (Socket socket = new Socket()) {
                     socket.connect(new InetSocketAddress(ip, 443), DIRECT_PROBE_TIMEOUT_MS);
                     if (reached.compareAndSet(false, true)) {
                         latch.countDown();
                     }
                 } catch (Exception ignored) {}
-            }, "litegram-dc-probe").start();
+            });
         }
         try {
             return latch.await(DIRECT_PROBE_TIMEOUT_MS + 500, TimeUnit.MILLISECONDS) && reached.get();
@@ -234,11 +245,11 @@ public class LitegramController {
         lastFullCheckMs = System.currentTimeMillis();
         noProxyConnectingSinceMs = 0;
         proxyAppliedByUs = false;
-        new Thread(() -> {
+        executor.execute(() -> {
             disableProxySync();
             AndroidUtilities.runOnUIThread(() ->
                     NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged));
-        }, "litegram-recheck").start();
+        });
         startDirectProbe();
     }
 
@@ -257,10 +268,10 @@ public class LitegramController {
             lastUnauthorizedProxyAttemptMs = nowMs;
         }
         FileLog.d(reason);
-        new Thread(() -> {
+        executor.execute(() -> {
             connectProxy();
             reclaimScheduled = false;
-        }, "litegram-proxy").start();
+        });
     }
 
     public interface ReconnectCallback {
@@ -340,7 +351,7 @@ public class LitegramController {
             api.setAccessToken(savedToken);
         }
         forceApply = true;
-        new Thread(() -> {
+        executor.execute(() -> {
             String error = connectProxy();
             AndroidUtilities.runOnUIThread(() -> {
                 forceApply = false;
@@ -354,7 +365,7 @@ public class LitegramController {
                     }
                 }
             });
-        }, "litegram-reconnect").start();
+        });
     }
 
     private static final int PROXY_CONNECT_TIMEOUT_MS = 5_000;
@@ -516,7 +527,7 @@ public class LitegramController {
         List<ServerPingResult> results = Collections.synchronizedList(new ArrayList<>());
         CountDownLatch latch = new CountDownLatch(servers.size());
         for (LitegramApi.ServerInfo s : servers) {
-            new Thread(() -> {
+            executor.execute(() -> {
                 try {
                     if (s == null || TextUtils.isEmpty(s.host) || s.port <= 0) return;
                     long start = System.currentTimeMillis();
@@ -528,7 +539,7 @@ public class LitegramController {
                 } finally {
                     latch.countDown();
                 }
-            }, "litegram-ping").start();
+            });
         }
         try {
             latch.await(QUICK_PROBE_TIMEOUT_MS + 300, TimeUnit.MILLISECONDS);
@@ -670,7 +681,7 @@ public class LitegramController {
      */
     public void onTelegramAuth(long telegramId, int account) {
         LitegramDeviceToken.saveTelegramId(String.valueOf(telegramId));
-        new Thread(() -> {
+        executor.execute(() -> {
             try {
                 String deviceToken = LitegramDeviceToken.getDeviceToken();
                 LitegramApi.AuthResult result = api.register(
@@ -702,7 +713,7 @@ public class LitegramController {
             } catch (Exception e) {
                 FileLog.e("litegram: onTelegramAuth failed", e);
             }
-        }, "litegram-auth").start();
+        });
     }
 
     private String resolveTelegramId() {
