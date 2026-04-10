@@ -44,6 +44,7 @@ import androidx.fragment.app.FragmentActivity;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
+import org.telegram.ui.LaunchActivity;
 
 public class LitegramPinDialog extends Dialog {
 
@@ -388,12 +389,11 @@ public class LitegramPinDialog extends Dialog {
     }
 
     private void tryBiometric() {
-        Context ctx = getContext();
-        if (!(ctx instanceof FragmentActivity)) return;
-        FragmentActivity activity = (FragmentActivity) ctx;
+        FragmentActivity activity = LaunchActivity.instance;
+        if (activity == null || activity.isFinishing()) return;
 
         try {
-            int canAuth = BiometricManager.from(ctx).canAuthenticate(
+            int canAuth = BiometricManager.from(activity).canAuthenticate(
                     BiometricManager.Authenticators.BIOMETRIC_STRONG |
                     BiometricManager.Authenticators.BIOMETRIC_WEAK);
             if (canAuth != BiometricManager.BIOMETRIC_SUCCESS) return;
@@ -405,10 +405,13 @@ public class LitegramPinDialog extends Dialog {
                 .setTitle(LocaleController.getString(R.string.LitegramPinBiometricTitle))
                 .setDescription(LocaleController.getString(R.string.LitegramPinBiometricDesc))
                 .setNegativeButtonText(LocaleController.getString("Cancel", R.string.Cancel))
+                .setAllowedAuthenticators(
+                        BiometricManager.Authenticators.BIOMETRIC_STRONG |
+                        BiometricManager.Authenticators.BIOMETRIC_WEAK)
                 .build();
 
         BiometricPrompt prompt = new BiometricPrompt(activity,
-                ContextCompat.getMainExecutor(ctx),
+                ContextCompat.getMainExecutor(activity),
                 new BiometricPrompt.AuthenticationCallback() {
                     @Override
                     public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
