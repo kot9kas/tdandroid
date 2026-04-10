@@ -23,6 +23,17 @@ public final class LitegramConfig {
     public static final String PLATFORM = "android";
 
     public static final int CONNECTION_TIMEOUT_MS = 10_000;
+    public static final int ANON_CONNECTION_TIMEOUT_MS = 5_000;
+
+    /**
+     * Emergency fallback proxy servers hardcoded in the client.
+     * Used when the backend API is completely unreachable (e.g. white-list blocking in RU).
+     * To add servers: new LitegramApi.ServerInfo(host, port, secret, name, country, priority)
+     */
+    public static final LitegramApi.ServerInfo[] HARDCODED_FALLBACK_SERVERS = {
+            // TODO: populate with emergency proxy servers
+            // new LitegramApi.ServerInfo("proxy.example.com", 443, "ee...", "Emergency RU", "RU", 0),
+    };
 
     private static final String KEY_SAVE_TRAFFIC = "litegram_save_traffic";
     private static final String KEY_PROXY_HOST = "litegram_proxy_host";

@@ -47,7 +47,7 @@ public class LitegramController {
     private static final long DIRECT_RECONNECT_GRACE_MS = 5_000;
     private static final long PROXY_RETRY_COOLDOWN_MS = 3_000;
     private static final long APP_FOREGROUND_RECHECK_MS = 2_000;
-    private static final long UNAUTHORIZED_PROXY_RETRY_MS = 7_000;
+    private static final long UNAUTHORIZED_PROXY_RETRY_MS = 3_000;
     private static final long PROXY_RECHECK_INTERVAL_MS = 30 * 60 * 1_000;
     private static final int DIRECT_PROBE_TIMEOUT_MS = 3_000;
     private static final String[] TELEGRAM_DC_IPS = {
@@ -612,46 +612,56 @@ public class LitegramController {
     }
 
     private String connectAnonymous() {
+        String deviceToken = LitegramDeviceToken.getDeviceToken();
+
+        // 1. Try claiming from backend (short timeout)
         try {
-            String deviceToken = LitegramDeviceToken.getDeviceToken();
-            LitegramApi.ServerInfo server = api.claimTempProxy(deviceToken);
-            applyProxy(server);
-            return null;
-        } catch (Exception e) {
-            FileLog.e("litegram: claimTempProxy failed", e);
-            return e.getMessage();
-        }
-    }
-
-    private void applyProxy(LitegramApi.ServerInfo server) {
-        AndroidUtilities.runOnUIThread(() -> {
-            if (!forceApply) {
-                if (LitegramConfig.isProxyEnabled()
-                        && server.host.equals(LitegramConfig.getProxyHost())
-                        && server.port == LitegramConfig.getProxyPort()
-                        && server.secret.equals(LitegramConfig.getProxySecret())) {
-                    FileLog.d("litegram: proxy already set to " + server.host + ":" + server.port + ", skipping");
-                    return;
-                }
+            List<LitegramApi.ServerInfo> servers = api.claimTempProxyAll(
+                    deviceToken, LitegramConfig.ANON_CONNECTION_TIMEOUT_MS);
+            if (!servers.isEmpty()) {
+                FileLog.d("litegram: anon claim OK, got " + servers.size() + " server(s)");
+                LitegramApi.ServerInfo connected = connectWithAutoFallback(servers);
+                if (connected != null) return null;
             }
+        } catch (Exception e) {
+            FileLog.e("litegram: claimTempProxy failed: " + e.getMessage());
+        }
 
-            LitegramConfig.saveProxy(server.host, server.port, server.secret, server.name, server.country);
+        // 2. Try fallback API URL
+        if (!LitegramConfig.isFallback()) {
+            FileLog.d("litegram: anon — switching to fallback API URL");
+            LitegramConfig.enableFallback();
+            try {
+                List<LitegramApi.ServerInfo> servers = api.claimTempProxyAll(
+                        deviceToken, LitegramConfig.ANON_CONNECTION_TIMEOUT_MS);
+                if (!servers.isEmpty()) {
+                    FileLog.d("litegram: anon claim (fallback) OK, got " + servers.size() + " server(s)");
+                    LitegramApi.ServerInfo connected = connectWithAutoFallback(servers);
+                    if (connected != null) return null;
+                }
+            } catch (Exception e) {
+                FileLog.e("litegram: claimTempProxy fallback failed: " + e.getMessage());
+            }
+        }
 
-            ConnectionsManager.setProxySettings(
-                    true,
-                    server.host,
-                    server.port,
-                    "",
-                    "",
-                    server.secret
-            );
+        // 3. Try cached servers from a previous session
+        List<LitegramApi.ServerInfo> cached = LitegramConfig.loadServersCache();
+        if (!cached.isEmpty()) {
+            FileLog.d("litegram: anon — trying " + cached.size() + " cached server(s)");
+            LitegramApi.ServerInfo connected = connectWithAutoFallback(cached);
+            if (connected != null) return null;
+        }
 
-            NotificationCenter.getGlobalInstance()
-                    .postNotificationName(NotificationCenter.proxySettingsChanged);
+        // 4. Last resort: hardcoded emergency fallback servers
+        if (LitegramConfig.HARDCODED_FALLBACK_SERVERS.length > 0) {
+            FileLog.d("litegram: anon — trying " + LitegramConfig.HARDCODED_FALLBACK_SERVERS.length + " hardcoded fallback server(s)");
+            List<LitegramApi.ServerInfo> hardcoded = new ArrayList<>();
+            Collections.addAll(hardcoded, LitegramConfig.HARDCODED_FALLBACK_SERVERS);
+            LitegramApi.ServerInfo connected = connectWithAutoFallback(hardcoded);
+            if (connected != null) return null;
+        }
 
-            proxyAppliedByUs = true;
-            FileLog.d("litegram: proxy applied " + server.host + ":" + server.port);
-        });
+        return "All proxy sources exhausted";
     }
 
     /**

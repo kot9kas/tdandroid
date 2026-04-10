@@ -114,20 +114,70 @@ public class LitegramApi {
     }
 
     /**
-     * POST /proxy/public/claim — get a temporary proxy for unauthenticated device
+     * POST /proxy/public/claim — get temporary proxy servers for unauthenticated device.
+     * Returns all servers from the response (not just the first one).
      */
-    public ServerInfo claimTempProxy(String deviceToken) throws Exception {
+    public List<ServerInfo> claimTempProxyAll(String deviceToken, int timeoutMs) throws Exception {
         JSONObject body = new JSONObject();
         body.put("deviceToken", deviceToken);
 
-        String response = httpPost("/proxy/public/claim", body.toString());
+        String response = httpPostWithTimeout("/proxy/public/claim", body.toString(), timeoutMs);
         JSONObject json = new JSONObject(response);
 
         if (json.has("error")) {
             throw new Exception("claim failed: " + json.getString("error"));
         }
 
-        return parseFirstServer(json);
+        List<ServerInfo> servers = new ArrayList<>();
+        JSONArray regular = json.optJSONArray("regular");
+        if (regular != null) {
+            for (int i = 0; i < regular.length(); i++) {
+                JSONObject s = regular.getJSONObject(i);
+                servers.add(new ServerInfo(
+                        s.getString("host"),
+                        s.optInt("port", 443),
+                        s.getString("secret"),
+                        s.optString("name", null),
+                        s.optString("country", null),
+                        s.optInt("priority", i)
+                ));
+            }
+        }
+        JSONArray bypass = json.optJSONArray("bypass");
+        if (bypass != null) {
+            for (int i = 0; i < bypass.length(); i++) {
+                JSONObject s = bypass.getJSONObject(i);
+                servers.add(new ServerInfo(
+                        s.getString("host"),
+                        s.optInt("port", 443),
+                        s.getString("secret"),
+                        s.optString("name", null),
+                        s.optString("country", null),
+                        s.optInt("priority", i)
+                ));
+            }
+        }
+        if (servers.isEmpty() && json.has("host") && json.has("secret")) {
+            servers.add(new ServerInfo(
+                    json.getString("host"),
+                    json.optInt("port", 443),
+                    json.getString("secret"),
+                    json.optString("name", null),
+                    json.optString("country", null)
+            ));
+        }
+        if (servers.isEmpty()) {
+            throw new Exception("No server in claim response");
+        }
+        return servers;
+    }
+
+    /**
+     * @deprecated Use {@link #claimTempProxyAll(String, int)} for multi-server support.
+     */
+    public ServerInfo claimTempProxy(String deviceToken) throws Exception {
+        List<ServerInfo> servers = claimTempProxyAll(deviceToken, LitegramConfig.CONNECTION_TIMEOUT_MS);
+        return servers.get(0);
     }
 
     /**
@@ -285,13 +335,17 @@ public class LitegramApi {
     }
 
     private String httpPost(String path, String jsonBody) throws Exception {
+        return httpPostWithTimeout(path, jsonBody, LitegramConfig.CONNECTION_TIMEOUT_MS);
+    }
+
+    private String httpPostWithTimeout(String path, String jsonBody, int timeoutMs) throws Exception {
         URL url = new URL(LitegramConfig.apiUrl(path));
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         try {
             configureFallbackSsl(conn);
             conn.setRequestMethod("POST");
-            conn.setConnectTimeout(LitegramConfig.CONNECTION_TIMEOUT_MS);
-            conn.setReadTimeout(LitegramConfig.CONNECTION_TIMEOUT_MS);
+            conn.setConnectTimeout(timeoutMs);
+            conn.setReadTimeout(timeoutMs);
             conn.setRequestProperty("Content-Type", "application/json");
             if (!TextUtils.isEmpty(accessToken)) {
                 conn.setRequestProperty("Authorization", "Bearer " + accessToken);
