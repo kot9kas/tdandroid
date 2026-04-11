@@ -880,7 +880,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         overlay.setBackgroundColor(0xFF000000);
         overlay.setClickable(true);
 
-        int dp = AndroidUtilities.dp(140);
+        int dp = AndroidUtilities.dp(210);
         org.telegram.ui.Components.RLottieImageView lottieView = new org.telegram.ui.Components.RLottieImageView(this);
         lottieView.setAnimation(R.raw.litegram_splash, dp, dp);
         lottieView.setAutoRepeat(false);
