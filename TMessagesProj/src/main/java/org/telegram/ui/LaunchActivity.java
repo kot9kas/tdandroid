@@ -880,18 +880,14 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         overlay.setBackgroundColor(0xFF000000);
         overlay.setClickable(true);
 
-        ImageView iconView = new ImageView(this);
-        iconView.setScaleType(ImageView.ScaleType.CENTER);
-        if (Build.VERSION.SDK_INT >= 21) {
-            android.graphics.drawable.Drawable avd = getResources().getDrawable(R.drawable.tg_splash_320, getTheme());
-            iconView.setImageDrawable(avd);
-            if (avd instanceof android.graphics.drawable.Animatable) {
-                ((android.graphics.drawable.Animatable) avd).start();
-            }
-        }
-        overlay.addView(iconView, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
+        int dp = AndroidUtilities.dp(140);
+        org.telegram.ui.Components.RLottieImageView lottieView = new org.telegram.ui.Components.RLottieImageView(this);
+        lottieView.setAnimation(R.raw.litegram_splash, dp, dp);
+        lottieView.setAutoRepeat(false);
+        lottieView.playAnimation();
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp, dp);
+        lp.gravity = android.view.Gravity.CENTER;
+        overlay.addView(lottieView, lp);
 
         decorView.addView(overlay, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
