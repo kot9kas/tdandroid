@@ -295,6 +295,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     private FrameLayout shadowTabletSide;
     private SizeNotifierFrameLayout backgroundTablet;
     public FrameLayout frameLayout;
+    private View litegramSplashOverlay;
     private FireworksOverlay fireworksOverlay;
     private BottomSheetTabsOverlay bottomSheetTabsOverlay;
     public DrawerLayoutContainer drawerLayoutContainer;
@@ -445,6 +446,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         frameLayout.setClipToPadding(false);
         frameLayout.setClipChildren(false);
         setContentView(frameLayout);
+        showLitegramSplash();
         rootAnimatedInsetsListener = new WindowAnimatedInsetsProvider(frameLayout);
         pipActivityController.addPipListener(new IPipActivityListener() {
             @Override
@@ -863,6 +865,57 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         if (PhotoViewer.hasInstance()) {
             PhotoViewer.getInstance().updateColors();
         }
+    }
+
+    private static boolean litegramSplashShown;
+
+    private void showLitegramSplash() {
+        if (litegramSplashShown) {
+            return;
+        }
+        litegramSplashShown = true;
+        ViewGroup decorView = (ViewGroup) getWindow().getDecorView();
+
+        FrameLayout overlay = new FrameLayout(this);
+        overlay.setBackgroundColor(0xFF000000);
+        overlay.setClickable(true);
+
+        ImageView iconView = new ImageView(this);
+        iconView.setScaleType(ImageView.ScaleType.CENTER);
+        if (Build.VERSION.SDK_INT >= 21) {
+            android.graphics.drawable.Drawable avd = getResources().getDrawable(R.drawable.tg_splash_320, getTheme());
+            iconView.setImageDrawable(avd);
+            if (avd instanceof android.graphics.drawable.Animatable) {
+                ((android.graphics.drawable.Animatable) avd).start();
+            }
+        }
+        overlay.addView(iconView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
+        decorView.addView(overlay, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+        litegramSplashOverlay = overlay;
+
+        int duration = getResources().getInteger(R.integer.splash_screen_duration);
+        AndroidUtilities.runOnUIThread(() -> {
+            if (litegramSplashOverlay != null) {
+                litegramSplashOverlay.animate()
+                        .alpha(0f)
+                        .setDuration(300)
+                        .setListener(new AnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(Animator animation) {
+                                if (litegramSplashOverlay != null && litegramSplashOverlay.getParent() != null) {
+                                    ((ViewGroup) litegramSplashOverlay.getParent()).removeView(litegramSplashOverlay);
+                                }
+                                litegramSplashOverlay = null;
+                            }
+                        })
+                        .start();
+            }
+        }, duration);
     }
 
     private void setupActionBarLayout() {

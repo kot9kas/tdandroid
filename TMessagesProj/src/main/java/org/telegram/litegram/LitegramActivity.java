@@ -137,8 +137,6 @@ public class LitegramActivity extends BaseFragment {
         content.addView(wrapWithSideMargin(context, createProfileSection(context), 16));
         content.addView(createSpacer(context, 12));
         content.addView(wrapWithSideMargin(context, createMenuSection(context), 16));
-        content.addView(createSpacer(context, 20));
-        content.addView(wrapWithSideMargin(context, createTryAllButton(context), 16));
         content.addView(createSpacer(context, 24));
 
         fragmentView = scrollView;
@@ -505,35 +503,8 @@ public class LitegramActivity extends BaseFragment {
         return item;
     }
 
-    private static final String LITEGRAM_BOT_USERNAME = "Litegram_robot";
     private static final String SUPPORT_BOT_USERNAME = "Litegram_support_bot";
     private static final String SUPPORT_EMAIL = "support@bubavpn.com";
-    private static final String LITEGRAM_CHANNEL_USERNAME = "litegram_news";
-    private static final String LITEGRAM_CHAT_USERNAME = "litegram_chat";
-
-    private void openChat(String username) {
-        try {
-            MessagesController.getInstance(currentAccount).getUserNameResolver().resolve(
-                    username, null, peerId -> {
-                        if (peerId == null || peerId == 0) {
-                            FileLog.e("litegram: failed to resolve @" + username);
-                            return;
-                        }
-                        AndroidUtilities.runOnUIThread(() -> {
-                            Bundle args = new Bundle();
-                            if (peerId > 0) {
-                                args.putLong("user_id", peerId);
-                            } else {
-                                args.putLong("chat_id", -peerId);
-                            }
-                            presentFragment(new ChatActivity(args));
-                        });
-                    });
-        } catch (Exception e) {
-            FileLog.e("litegram: openChat failed for @" + username, e);
-        }
-    }
-
     private void showSupportSheet() {
         Context ctx = getParentActivity();
         if (ctx == null) return;
@@ -661,56 +632,6 @@ public class LitegramActivity extends BaseFragment {
                     });
         } catch (Exception e) {
             FileLog.e("litegram: openSupportBot failed", e);
-        }
-    }
-
-    private View createTryAllButton(Context context) {
-        FrameLayout container = new FrameLayout(context);
-
-        TextView button = new TextView(context);
-        button.setText("\u2728 " + LocaleController.getString(R.string.LitegramTryAllFeatures));
-        button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
-        button.setTextColor(Color.WHITE);
-        button.setTypeface(AndroidUtilities.bold());
-        button.setGravity(Gravity.CENTER);
-        button.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(14),
-                AndroidUtilities.dp(24), AndroidUtilities.dp(14));
-
-        GradientDrawable btnBg = new GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{0xFF5B2D8E, 0xFF9E84B6});
-        btnBg.setCornerRadius(AndroidUtilities.dp(14));
-        button.setBackground(btnBg);
-
-        button.setOnClickListener(v -> openBotChat());
-
-        container.addView(button, LayoutHelper.createFrame(
-                LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
-
-        return container;
-    }
-
-    private void openBotChat() {
-        try {
-            MessagesController.getInstance(currentAccount).getUserNameResolver().resolve(
-                    LITEGRAM_BOT_USERNAME, null, peerId -> {
-                        if (peerId == null || peerId == 0) {
-                            FileLog.e("litegram: failed to resolve bot @" + LITEGRAM_BOT_USERNAME);
-                            return;
-                        }
-                        AndroidUtilities.runOnUIThread(() -> {
-                            Bundle args = new Bundle();
-                            args.putLong("user_id", peerId);
-                            ChatActivity chatActivity = new ChatActivity(args);
-                            presentFragment(chatActivity);
-
-                            SendMessagesHelper.getInstance(currentAccount).sendMessage(
-                                    SendMessagesHelper.SendMessageParams.of("/start", peerId)
-                            );
-                        });
-                    });
-        } catch (Exception e) {
-            FileLog.e("litegram: openBotChat failed", e);
         }
     }
 

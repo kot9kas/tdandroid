@@ -16,10 +16,6 @@ import java.util.List;
 import java.util.Locale;
 
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import javax.net.ssl.HostnameVerifier;
 
 public class LitegramApi {
 
@@ -175,14 +171,6 @@ public class LitegramApi {
     }
 
     /**
-     * @deprecated Use {@link #claimTempProxyAll(String, int)} for multi-server support.
-     */
-    public ServerInfo claimTempProxy(String deviceToken) throws Exception {
-        List<ServerInfo> servers = claimTempProxyAll(deviceToken, LitegramConfig.CONNECTION_TIMEOUT_MS);
-        return servers.get(0);
-    }
-
-    /**
      * POST /auth/register — register device and claim temp proxy to user
      */
     public AuthResult register(String telegramId, String deviceToken) throws Exception {
@@ -274,20 +262,6 @@ public class LitegramApi {
     }
 
     /**
-     * GET /user/me — get current user profile
-     */
-    public SubscriptionInfo getUserProfile() throws Exception {
-        String response = httpGet("/user/me");
-        JSONObject json = new JSONObject(response);
-        return new SubscriptionInfo(
-                json.optString("subscriptionStatus", "none"),
-                json.has("subscriptionExpiresAt") && !json.isNull("subscriptionExpiresAt")
-                        ? json.optString("subscriptionExpiresAt", null) : null,
-                null
-        );
-    }
-
-    /**
      * GET /advertising/active — get the currently active advertisement
      */
     public AdInfo getActiveAd() throws Exception {
@@ -375,7 +349,11 @@ public class LitegramApi {
         if (code >= 200 && code < 300) {
             reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
         } else {
-            reader = new BufferedReader(new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
+            java.io.InputStream errStream = conn.getErrorStream();
+            if (errStream == null) {
+                errStream = conn.getInputStream();
+            }
+            reader = new BufferedReader(new InputStreamReader(errStream, StandardCharsets.UTF_8));
         }
         StringBuilder sb = new StringBuilder();
         String line;
@@ -393,41 +371,4 @@ public class LitegramApi {
         return sb.toString();
     }
 
-    private ServerInfo parseFirstServer(JSONObject json) throws Exception {
-        JSONArray regular = json.optJSONArray("regular");
-        if (regular != null && regular.length() > 0) {
-            JSONObject s = regular.getJSONObject(0);
-            return new ServerInfo(
-                    s.getString("host"),
-                    s.optInt("port", 443),
-                    s.getString("secret"),
-                    s.optString("name", null),
-                    s.optString("country", null)
-            );
-        }
-
-        JSONArray bypass = json.optJSONArray("bypass");
-        if (bypass != null && bypass.length() > 0) {
-            JSONObject s = bypass.getJSONObject(0);
-            return new ServerInfo(
-                    s.getString("host"),
-                    s.optInt("port", 443),
-                    s.getString("secret"),
-                    s.optString("name", null),
-                    s.optString("country", null)
-            );
-        }
-
-        if (json.has("host") && json.has("secret")) {
-            return new ServerInfo(
-                    json.getString("host"),
-                    json.optInt("port", 443),
-                    json.getString("secret"),
-                    json.optString("name", null),
-                    json.optString("country", null)
-            );
-        }
-
-        throw new Exception("No server in claim response");
-    }
 }

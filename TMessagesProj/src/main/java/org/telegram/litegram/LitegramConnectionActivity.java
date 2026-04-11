@@ -33,6 +33,7 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.BottomSheet;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.RLottieImageView;
 
 import java.util.ArrayList;
@@ -58,7 +59,6 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private TextView actionButton;
     private GradientDrawable actionBtnBg;
     private RLottieImageView lottieView;
-    private int headerLottieRes;
 
     private LinearLayout serversListContainer;
 
@@ -69,8 +69,13 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
     private static final int LOTTIE_DISCONNECTED = 0;
     private static final int LOTTIE_CONNECTING = 1;
-    private static final int LOTTIE_CONNECTED = 2;
+    private static final int LOTTIE_CONNECTED_ARROW = 2;
+    private static final int LOTTIE_CONNECTED = 3;
     private int currentLottieState = -1;
+    private boolean connectingAnimPlaying;
+    private boolean pendingConnected;
+    private RLottieDrawable preloadedArrow;
+    private RLottieDrawable preloadedCheckmark;
 
     @Override
     public boolean onFragmentCreate() {
@@ -368,6 +373,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
             final LitegramApi.ServerInfo srv = server;
             row.setOnClickListener(v -> {
+                resetAnimState();
                 actionButton.setText(LocaleController.getString(R.string.LitegramConnConnecting));
                 LitegramController.getInstance().connectToServer(srv, (success, err) -> {
                     if (!success && getParentActivity() != null) {
@@ -411,12 +417,14 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
         actionButton.setOnClickListener(v -> {
             if (connected || connecting) {
+                resetAnimState();
                 LitegramConfig.setProxyEnabled(false);
                 ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
                 NotificationCenter.getGlobalInstance()
                         .postNotificationName(NotificationCenter.proxySettingsChanged);
                 updateUI();
             } else {
+                resetAnimState();
                 actionButton.setText(LocaleController.getString(R.string.LitegramConnConnecting));
                 LitegramController.getInstance().reconnect((success, error) -> {
                     if (!success && getParentActivity() != null) {
@@ -681,39 +689,114 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
         updateHeaderLottie();
     }
 
+    private void resetAnimState() {
+        currentLottieState = -1;
+        connectingAnimPlaying = false;
+        pendingConnected = false;
+        if (lottieView != null) {
+            lottieView.setOnAnimationEndListener(null);
+        }
+    }
+
     private void updateHeaderLottie() {
         if (lottieView == null) {
             return;
         }
 
-        int wantState;
         if (connected) {
-            wantState = LOTTIE_CONNECTED;
+            if (connectingAnimPlaying) {
+                pendingConnected = true;
+                return;
+            }
+            if (currentLottieState == LOTTIE_CONNECTED || currentLottieState == LOTTIE_CONNECTED_ARROW) {
+                return;
+            }
+            startArrowAnim();
         } else if (connecting) {
-            wantState = LOTTIE_CONNECTING;
+            if (currentLottieState == LOTTIE_CONNECTING) {
+                return;
+            }
+            pendingConnected = false;
+            startConnectingAnim();
         } else {
-            wantState = LOTTIE_DISCONNECTED;
-        }
-
-        if (wantState == currentLottieState) {
-            return;
-        }
-
-        currentLottieState = wantState;
-        switch (wantState) {
-            case LOTTIE_DISCONNECTED:
-                setLottie(R.raw.litegram_disconnected, true);
-                break;
-            case LOTTIE_CONNECTING:
-                setLottie(R.raw.litegram_connecting, true);
-                break;
-            case LOTTIE_CONNECTED:
-                setLottie(R.raw.litegram_connected, true);
-                break;
+            if (currentLottieState == LOTTIE_DISCONNECTED) {
+                return;
+            }
+            pendingConnected = false;
+            connectingAnimPlaying = false;
+            currentLottieState = LOTTIE_DISCONNECTED;
+            setLottie(R.raw.litegram_disconnected, true);
         }
     }
 
+    private void preloadNextAnimations() {
+        int dp = AndroidUtilities.dp(100);
+        AndroidUtilities.runOnUIThread(() -> {
+            if (preloadedArrow == null) {
+                preloadedArrow = new RLottieDrawable(R.raw.litegram_connected_arrow,
+                        "" + R.raw.litegram_connected_arrow, dp, dp, false, null);
+                preloadedArrow.setAllowDecodeSingleFrame(true);
+            }
+            if (preloadedCheckmark == null) {
+                preloadedCheckmark = new RLottieDrawable(R.raw.litegram_connected,
+                        "" + R.raw.litegram_connected, dp, dp, false, null);
+                preloadedCheckmark.setAutoRepeat(1);
+                preloadedCheckmark.setAllowDecodeSingleFrame(true);
+            }
+        });
+    }
+
+    private void startConnectingAnim() {
+        currentLottieState = LOTTIE_CONNECTING;
+        connectingAnimPlaying = true;
+        pendingConnected = false;
+        setLottie(R.raw.litegram_connecting, false);
+        preloadNextAnimations();
+        lottieView.setOnAnimationEndListener(() -> {
+            connectingAnimPlaying = false;
+            if (pendingConnected) {
+                pendingConnected = false;
+                startArrowAnim();
+            } else if (connecting) {
+                connectingAnimPlaying = true;
+                lottieView.setProgress(0);
+                lottieView.playAnimation();
+            }
+        });
+    }
+
+    private void startArrowAnim() {
+        currentLottieState = LOTTIE_CONNECTED_ARROW;
+        if (preloadedArrow != null) {
+            applyDrawable(preloadedArrow, false);
+            preloadedArrow = null;
+        } else {
+            setLottie(R.raw.litegram_connected_arrow, false);
+        }
+        lottieView.setOnAnimationEndListener(() -> {
+            currentLottieState = LOTTIE_CONNECTED;
+            if (preloadedCheckmark != null) {
+                applyDrawable(preloadedCheckmark, true);
+                preloadedCheckmark = null;
+            } else {
+                setLottie(R.raw.litegram_connected, true);
+            }
+            lottieView.setOnAnimationEndListener(null);
+        });
+    }
+
+    private void applyDrawable(RLottieDrawable drawable, boolean loop) {
+        lottieView.setOnAnimationEndListener(null);
+        lottieView.setAutoRepeat(loop);
+        lottieView.setAnimation(drawable);
+        if (loop) {
+            drawable.setAutoRepeat(1);
+        }
+        lottieView.playAnimation();
+    }
+
     private void setLottie(int resId, boolean loop) {
+        lottieView.setOnAnimationEndListener(null);
         lottieView.setAutoRepeat(loop);
         lottieView.setAnimation(resId, 100, 100);
         if (loop && lottieView.getAnimatedDrawable() != null) {

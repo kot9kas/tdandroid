@@ -878,6 +878,10 @@ public class ConnectionsManager extends BaseController {
     }
 
     public static void onProxyError() {
+        if (org.telegram.litegram.LitegramController.getInstance().isProxyManagedByLitegram()) {
+            org.telegram.messenger.FileLog.d("litegram: suppressing proxy error dialog (proxy managed by litegram)");
+            return;
+        }
         AndroidUtilities.runOnUIThread(() -> NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.needShowAlert, 3));
     }
 

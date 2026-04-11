@@ -25,7 +25,6 @@ public final class LitegramChatLocks {
     private static final String KEY_GRP_NEXT_ID = "grp_next_id";
     private static final String KEY_AUTOLOCK = "autolock_seconds";
     private static final String KEY_USE_BIOMETRIC = "use_biometric";
-    private static final String KEY_HIDE_PREVIEW = "hide_preview";
     private static final long FOLDER_ID_OFFSET = 0x7F00000000L;
 
     private static final String KEY_PIN_SALT = "pin_salt";
@@ -107,18 +106,8 @@ public final class LitegramChatLocks {
         return System.currentTimeMillis() - ts < (long) seconds * 1000;
     }
 
-    /** @deprecated use isUnlockedNow */
-    public boolean isUnlockedThisSession(long dialogId) {
-        return isUnlockedNow(dialogId);
-    }
-
     public void markUnlocked(long dialogId) {
         lastUnlockTime.put(dialogId, System.currentTimeMillis());
-    }
-
-    /** @deprecated use markUnlocked */
-    public void markUnlockedThisSession(long dialogId) {
-        markUnlocked(dialogId);
     }
 
     public void relockAll() {
@@ -220,14 +209,6 @@ public final class LitegramChatLocks {
 
     public void setBiometricEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_USE_BIOMETRIC, enabled).apply();
-    }
-
-    public boolean isHidePreview() {
-        return prefs.getBoolean(KEY_HIDE_PREVIEW, true);
-    }
-
-    public void setHidePreview(boolean enabled) {
-        prefs.edit().putBoolean(KEY_HIDE_PREVIEW, enabled).apply();
     }
 
     // --- Folder locks ---

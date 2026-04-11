@@ -6,7 +6,6 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
-import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
@@ -67,6 +66,10 @@ public class LitegramController {
     private volatile long lastAppForegroundCheckMs;
     private volatile long lastUnauthorizedProxyAttemptMs;
     private volatile boolean proxyAppliedByUs;
+
+    public boolean isProxyManagedByLitegram() {
+        return proxyAppliedByUs;
+    }
     private volatile long lastDirectConnectedMs;
     private volatile long lastFullCheckMs;
     private volatile boolean directProbeInProgress;
@@ -381,22 +384,16 @@ public class LitegramController {
     }
 
     public void connectToServer(LitegramApi.ServerInfo server, ReconnectCallback callback) {
-        forceApply = true;
         AndroidUtilities.runOnUIThread(() -> {
             proxyAppliedByUs = true;
             LitegramConfig.saveProxy(server.host, server.port, server.secret, server.name, server.country);
             ConnectionsManager.setProxySettings(true, server.host, server.port, "", "", server.secret);
             NotificationCenter.getGlobalInstance()
                     .postNotificationName(NotificationCenter.proxySettingsChanged);
-            forceApply = false;
             if (callback != null) {
                 waitForProxyConnection(callback);
             }
         });
-    }
-
-    public void reconnect() {
-        reconnect(null);
     }
 
     public void reconnect(ReconnectCallback callback) {
@@ -404,11 +401,9 @@ public class LitegramController {
         if (!TextUtils.isEmpty(savedToken)) {
             api.setAccessToken(savedToken);
         }
-        forceApply = true;
         executor.execute(() -> {
             String error = connectProxy();
             AndroidUtilities.runOnUIThread(() -> {
-                forceApply = false;
                 NotificationCenter.getGlobalInstance()
                         .postNotificationName(NotificationCenter.proxySettingsChanged);
                 if (callback != null) {
@@ -445,24 +440,8 @@ public class LitegramController {
         AndroidUtilities.runOnUIThread(checker[0], PROXY_POLL_INTERVAL_MS);
     }
 
-    private volatile boolean forceApply;
-
     /** @return null on success, error message on failure */
     private String connectProxy() {
-        String error = connectProxyInner();
-        if (error != null && !LitegramConfig.isFallback()) {
-            FileLog.d("litegram: primary URL failed (" + error + "), switching to fallback IP");
-            LitegramConfig.enableFallback();
-            String fallbackError = connectProxyInner();
-            if (fallbackError == null) {
-                return null;
-            }
-            return error + " (fallback: " + fallbackError + ")";
-        }
-        return error;
-    }
-
-    private String connectProxyInner() {
         try {
             if (LitegramDeviceToken.hasAccessToken()) {
                 return connectAuthenticated();
@@ -475,28 +454,18 @@ public class LitegramController {
         }
     }
 
-    private static final String DEFAULT_COUNTRY = "RU";
     private static final int AUTO_SWITCH_SERVER_BUDGET_MS = 3_000;
     private static final int AUTO_SWITCH_POLL_MS = 150;
     private static final int QUICK_PROBE_TIMEOUT_MS = 500;
 
     private LitegramApi.ServerInfo pickPreferredServer(List<LitegramApi.ServerInfo> servers) {
-        String savedHost = LitegramConfig.getProxyHost();
-        if (!TextUtils.isEmpty(savedHost)) {
-            for (LitegramApi.ServerInfo s : servers) {
-                if (savedHost.equals(s.host)) {
-                    FileLog.d("litegram: restoring previously selected server " + s.host);
-                    return s;
-                }
-            }
-        }
-        for (LitegramApi.ServerInfo s : servers) {
-            if (DEFAULT_COUNTRY.equalsIgnoreCase(s.country)) {
-                FileLog.d("litegram: using default country server " + s.host);
-                return s;
-            }
-        }
-        return servers.get(0);
+        List<LitegramApi.ServerInfo> sorted = new ArrayList<>(servers);
+        Collections.sort(sorted, Comparator.comparingInt(s -> s.priority));
+
+        // Prefer server with highest priority (lowest number)
+        LitegramApi.ServerInfo best = sorted.get(0);
+        FileLog.d("litegram: picking server by priority: " + best.host + " (priority=" + best.priority + ")");
+        return best;
     }
 
     private boolean isConnectedState() {
@@ -655,23 +624,7 @@ public class LitegramController {
     private String connectAnonymous() {
         String deviceToken = LitegramDeviceToken.getDeviceToken();
 
-        // 1. Bootstrap proxy — instant, no API call needed
-        try {
-            String bHost = LitegramConfig.getBootstrapHost();
-            int bPort = LitegramConfig.getBootstrapPort();
-            String bSecret = LitegramConfig.getBootstrapSecret();
-            LitegramApi.ServerInfo bootstrap = new LitegramApi.ServerInfo(
-                    bHost, bPort, bSecret, "Bootstrap", "RU", 0);
-            List<LitegramApi.ServerInfo> bList = new ArrayList<>();
-            bList.add(bootstrap);
-            FileLog.d("litegram: anon — trying bootstrap proxy");
-            LitegramApi.ServerInfo connected = connectWithAutoFallback(bList);
-            if (connected != null) return null;
-        } catch (Exception e) {
-            FileLog.e("litegram: bootstrap proxy failed: " + e.getMessage());
-        }
-
-        // 2. Try claiming personal temp secret from backend
+        // 1. Backend API — get servers by priority
         try {
             List<LitegramApi.ServerInfo> servers = api.claimTempProxyAll(
                     deviceToken, LitegramConfig.ANON_CONNECTION_TIMEOUT_MS);
@@ -684,7 +637,7 @@ public class LitegramController {
             FileLog.e("litegram: claimTempProxy failed: " + e.getMessage());
         }
 
-        // 3. Try fallback API URL
+        // 2. Fallback API URL
         if (!LitegramConfig.isFallback()) {
             FileLog.d("litegram: anon — switching to fallback API URL");
             LitegramConfig.enableFallback();
@@ -701,7 +654,7 @@ public class LitegramController {
             }
         }
 
-        // 4. Try cached servers from a previous session
+        // 3. Cached servers from a previous session
         List<LitegramApi.ServerInfo> cached = LitegramConfig.loadServersCache();
         if (!cached.isEmpty()) {
             FileLog.d("litegram: anon — trying " + cached.size() + " cached server(s)");
@@ -834,26 +787,4 @@ public class LitegramController {
         });
     }
 
-    private static final String BOT_USERNAME = "Buba_Top_Robot";
-
-    private void sendBotStart(int account) {
-        if (LitegramDeviceToken.isBotStartSent(account)) {
-            return;
-        }
-        try {
-            MessagesController.getInstance(account).getUserNameResolver().resolve(BOT_USERNAME, null, peerId -> {
-                if (peerId == null || peerId == 0) {
-                    FileLog.e("litegram: failed to resolve bot @" + BOT_USERNAME);
-                    return;
-                }
-                SendMessagesHelper.getInstance(account).sendMessage(
-                        SendMessagesHelper.SendMessageParams.of("/start", peerId)
-                );
-                LitegramDeviceToken.setBotStartSent(account);
-                FileLog.d("litegram: sent /start to @" + BOT_USERNAME + " (peerId=" + peerId + ")");
-            });
-        } catch (Exception e) {
-            FileLog.e("litegram: sendBotStart failed", e);
-        }
-    }
 }

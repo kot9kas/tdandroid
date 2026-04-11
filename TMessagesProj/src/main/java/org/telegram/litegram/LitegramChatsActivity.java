@@ -149,52 +149,6 @@ public class LitegramChatsActivity extends BaseFragment {
         return section;
     }
 
-    private LinearLayout createPanel(Context context) {
-        LinearLayout panel = new LinearLayout(context);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        GradientDrawable panelBg = new GradientDrawable();
-        panelBg.setCornerRadius(AndroidUtilities.dp(14));
-        panelBg.setColor(c(Theme.key_windowBackgroundWhite));
-        panel.setBackground(panelBg);
-        LinearLayout.LayoutParams panelLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        panelLp.leftMargin = AndroidUtilities.dp(12);
-        panelLp.rightMargin = AndroidUtilities.dp(12);
-        panelLp.bottomMargin = AndroidUtilities.dp(12);
-        panel.setLayoutParams(panelLp);
-        return panel;
-    }
-
-    private View createAutolockRow(Context context, LitegramChatLocks locks) {
-        LinearLayout row = new LinearLayout(context);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14),
-                AndroidUtilities.dp(16), AndroidUtilities.dp(14));
-
-        TextView label = new TextView(context);
-        label.setText(LocaleController.getString(R.string.LitegramChatsAutolock));
-        label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        label.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
-        row.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-
-        TextView value = new TextView(context);
-        value.setText(autolockLabel(locks.getAutolockSeconds()));
-        value.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        value.setTextColor(COLOR_ACCENT);
-        row.addView(value);
-
-        row.setOnClickListener(v -> showGlobalTimerPicker(locks, value));
-        return row;
-    }
-
-    private void showGlobalTimerPicker(LitegramChatLocks locks, TextView valueView) {
-        showTimerPicker(locks.getAutolockSeconds(), seconds -> {
-            locks.setAutolockSeconds(seconds);
-            valueView.setText(autolockLabel(seconds));
-        });
-    }
-
     private void showTimerPicker(int current, OnTimerSelected listener) {
         Context ctx = getParentActivity();
         if (ctx == null) return;
@@ -234,35 +188,6 @@ public class LitegramChatsActivity extends BaseFragment {
         ss.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), start, full.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         ss.setSpan(new android.text.style.RelativeSizeSpan(1.15f), start, full.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return ss;
-    }
-
-    private View createBiometricRow(Context context, LitegramChatLocks locks) {
-        boolean available = false;
-        try {
-            int result = BiometricManager.from(context).canAuthenticate(
-                    BiometricManager.Authenticators.BIOMETRIC_STRONG |
-                    BiometricManager.Authenticators.BIOMETRIC_WEAK);
-            available = (result == BiometricManager.BIOMETRIC_SUCCESS);
-        } catch (Exception ignored) {}
-
-        boolean finalAvailable = available;
-        LinearLayout row = (LinearLayout) createToggleRow(context,
-                LocaleController.getString(R.string.LitegramChatsBiometric),
-                locks.isBiometricEnabled() && available,
-                (sw, checked) -> {
-                    if (checked && !finalAvailable) {
-                        sw.setChecked(false, true);
-                        Toast.makeText(context,
-                                LocaleController.getString(R.string.LitegramChatsBiometricUnavailable),
-                                Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    locks.setBiometricEnabled(checked);
-                });
-        if (!available) {
-            row.setAlpha(0.5f);
-        }
-        return row;
     }
 
     interface ToggleListener {
@@ -1145,17 +1070,6 @@ public class LitegramChatsActivity extends BaseFragment {
         tv.setTypeface(AndroidUtilities.bold());
         header.addView(tv);
         return header;
-    }
-
-    private View createDivider(Context context) {
-        View d = new View(context);
-        d.setBackgroundColor(c(Theme.key_divider));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 1);
-        lp.leftMargin = AndroidUtilities.dp(16);
-        lp.rightMargin = AndroidUtilities.dp(16);
-        d.setLayoutParams(lp);
-        return d;
     }
 
     private void setDialogInfo(BackupImageView avatar, TextView nameView, long dialogId) {
