@@ -45,7 +45,6 @@ import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.Switch;
-import org.telegram.ui.SettingsActivity;
 
 public class LitegramActivity extends BaseFragment {
 
@@ -317,7 +316,7 @@ public class LitegramActivity extends BaseFragment {
         panel.setOrientation(LinearLayout.VERTICAL);
 
         GradientDrawable panelBg = new GradientDrawable();
-        panelBg.setCornerRadius(AndroidUtilities.dp(12));
+        panelBg.setCornerRadius(AndroidUtilities.dp(16));
         panelBg.setColor(c(Theme.key_windowBackgroundWhite));
         panel.setBackground(panelBg);
         int ph = AndroidUtilities.dp(4);
@@ -370,8 +369,8 @@ public class LitegramActivity extends BaseFragment {
         divider.setBackgroundColor(c(Theme.key_divider));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 1);
-        params.leftMargin = AndroidUtilities.dp(64);
-        params.rightMargin = AndroidUtilities.dp(18);
+        params.leftMargin = AndroidUtilities.dp(72);
+        params.rightMargin = AndroidUtilities.dp(16);
         divider.setLayoutParams(params);
         return divider;
     }
@@ -379,34 +378,37 @@ public class LitegramActivity extends BaseFragment {
     private View createMenuItem(Context context, int iconRes, int iconBoxColor,
                                 String title, String subtitle, Runnable onClick) {
         FrameLayout item = new FrameLayout(context);
-        item.setPadding(AndroidUtilities.dp(18), 0, AndroidUtilities.dp(18), 0);
-        item.setMinimumHeight(AndroidUtilities.dp(subtitle != null ? 60 : 50));
+        item.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12),
+                AndroidUtilities.dp(12), AndroidUtilities.dp(12));
         item.setBackground(Theme.createSelectorDrawable(c(Theme.key_listSelector), 2));
         item.setOnClickListener(v -> onClick.run());
 
+        FrameLayout iconBox = new FrameLayout(context);
+        GradientDrawable ibg = new GradientDrawable();
+        ibg.setCornerRadius(AndroidUtilities.dp(12));
+        ibg.setColor(iconBoxColor);
+        iconBox.setBackground(ibg);
         ImageView icon = new ImageView(context);
         icon.setScaleType(ImageView.ScaleType.CENTER);
-        icon.setPadding(AndroidUtilities.dp(2), AndroidUtilities.dp(2),
-                AndroidUtilities.dp(2), AndroidUtilities.dp(2));
-        icon.setImageResource(iconRes);
-        icon.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
-        SettingsActivity.SettingCell.Background iconBg = new SettingsActivity.SettingCell.Background();
-        iconBg.setColor(iconBoxColor, iconBoxColor);
-        iconBg.setDrawBorder(Theme.isCurrentThemeDark());
-        icon.setBackground(iconBg);
-        item.addView(icon, LayoutHelper.createFrame(28, 28,
+        Drawable d = context.getResources().getDrawable(iconRes).mutate();
+        d.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
+        icon.setImageDrawable(d);
+        iconBox.addView(icon, LayoutHelper.createFrame(
+                LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        item.addView(iconBox, LayoutHelper.createFrame(44, 44,
                 Gravity.CENTER_VERTICAL | Gravity.START));
 
         LinearLayout textContainer = new LinearLayout(context);
         textContainer.setOrientation(LinearLayout.VERTICAL);
         FrameLayout.LayoutParams textParams = LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
-                Gravity.CENTER_VERTICAL, 64, 0, 36, 0);
+                Gravity.CENTER_VERTICAL, 72, 0, 36, 0);
         item.addView(textContainer, textParams);
 
         TextView titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         titleView.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.setTypeface(AndroidUtilities.bold());
         titleView.setText(title);
         textContainer.addView(titleView);
 
@@ -445,32 +447,35 @@ public class LitegramActivity extends BaseFragment {
     private View createToggleItem(Context context, int iconRes, String title, String subtitle,
                                   boolean initialState, ToggleCallback callback) {
         FrameLayout item = new FrameLayout(context);
-        item.setPadding(AndroidUtilities.dp(18), 0, AndroidUtilities.dp(18), 0);
-        item.setMinimumHeight(AndroidUtilities.dp(subtitle != null ? 60 : 50));
+        item.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12),
+                AndroidUtilities.dp(12), AndroidUtilities.dp(12));
 
+        FrameLayout iconBox = new FrameLayout(context);
+        GradientDrawable ibg = new GradientDrawable();
+        ibg.setCornerRadius(AndroidUtilities.dp(12));
+        ibg.setColor(0xFF4CAF50);
+        iconBox.setBackground(ibg);
         ImageView icon = new ImageView(context);
         icon.setScaleType(ImageView.ScaleType.CENTER);
-        icon.setPadding(AndroidUtilities.dp(2), AndroidUtilities.dp(2),
-                AndroidUtilities.dp(2), AndroidUtilities.dp(2));
-        icon.setImageResource(iconRes);
-        icon.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
-        SettingsActivity.SettingCell.Background iconBg = new SettingsActivity.SettingCell.Background();
-        iconBg.setColor(0xFF4CAF50, 0xFF4CAF50);
-        iconBg.setDrawBorder(Theme.isCurrentThemeDark());
-        icon.setBackground(iconBg);
-        item.addView(icon, LayoutHelper.createFrame(28, 28,
+        Drawable d = context.getResources().getDrawable(iconRes).mutate();
+        d.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
+        icon.setImageDrawable(d);
+        iconBox.addView(icon, LayoutHelper.createFrame(
+                LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        item.addView(iconBox, LayoutHelper.createFrame(44, 44,
                 Gravity.CENTER_VERTICAL | Gravity.START));
 
         LinearLayout textContainer = new LinearLayout(context);
         textContainer.setOrientation(LinearLayout.VERTICAL);
         FrameLayout.LayoutParams textParams = LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
-                Gravity.CENTER_VERTICAL, 64, 0, 58, 0);
+                Gravity.CENTER_VERTICAL, 72, 0, 58, 0);
         item.addView(textContainer, textParams);
 
         TextView titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         titleView.setTextColor(c(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.setTypeface(AndroidUtilities.bold());
         titleView.setText(title);
         textContainer.addView(titleView);
 
