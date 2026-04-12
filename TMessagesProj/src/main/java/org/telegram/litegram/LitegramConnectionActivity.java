@@ -76,6 +76,8 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     private boolean pendingConnected;
     private RLottieDrawable preloadedArrow;
     private RLottieDrawable preloadedCheckmark;
+    private String lastAnimatedProxyHost;
+    private int lastAnimatedProxyPort;
 
     @Override
     public boolean onFragmentCreate() {
@@ -633,6 +635,11 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
     }
 
     private void updateUI() {
+        boolean proxyChanged = detectProxyTargetChange();
+        if (proxyChanged) {
+            resetAnimState();
+        }
+
         int connectionState = ConnectionsManager.getInstance(currentAccount).getConnectionState();
         boolean proxyEnabled = LitegramConfig.isProxyEnabled();
         connected = proxyEnabled
@@ -687,6 +694,28 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
         rebuildServersList();
         updateHeaderLottie();
+    }
+
+    private boolean detectProxyTargetChange() {
+        if (!LitegramConfig.isProxyEnabled()) {
+            boolean hadPrevious = lastAnimatedProxyHost != null;
+            lastAnimatedProxyHost = null;
+            lastAnimatedProxyPort = 0;
+            return hadPrevious;
+        }
+        String host = LitegramConfig.getProxyHost();
+        int port = LitegramConfig.getProxyPort();
+        if (lastAnimatedProxyHost == null) {
+            lastAnimatedProxyHost = host;
+            lastAnimatedProxyPort = port;
+            return false;
+        }
+        boolean changed = !lastAnimatedProxyHost.equals(host) || lastAnimatedProxyPort != port;
+        if (changed) {
+            lastAnimatedProxyHost = host;
+            lastAnimatedProxyPort = port;
+        }
+        return changed;
     }
 
     private void resetAnimState() {
@@ -787,6 +816,7 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
     private void applyDrawable(RLottieDrawable drawable, boolean loop) {
         lottieView.setOnAnimationEndListener(null);
+        lottieView.setScaleType(ImageView.ScaleType.FIT_CENTER);
         lottieView.setAutoRepeat(loop);
         lottieView.setAnimation(drawable);
         if (loop) {
@@ -797,6 +827,12 @@ public class LitegramConnectionActivity extends BaseFragment implements Notifica
 
     private void setLottie(int resId, boolean loop) {
         lottieView.setOnAnimationEndListener(null);
+        if (resId == R.raw.litegram_disconnected) {
+            // Disconnected source has non-square canvas (4263x2873), use crop to match visual size.
+            lottieView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        } else {
+            lottieView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        }
         lottieView.setAutoRepeat(loop);
         lottieView.setAnimation(resId, 100, 100);
         if (loop && lottieView.getAnimatedDrawable() != null) {
