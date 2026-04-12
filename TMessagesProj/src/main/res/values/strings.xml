@@ -10363,6 +10363,7 @@
     <string name="FeedMediaAttachment">Attachment</string>
     <string name="FeedExpandText">Read more</string>
     <string name="FeedCollapseText">Collapse</string>
+    <string name="FeedNoDescription">no description</string>
     <plurals name="FeedUnreadPosts">
         <item quantity="one">%d unread post</item>
         <item quantity="other">%d unread posts</item>

@@ -18,11 +18,18 @@ public class FeedDataProvider {
     @NonNull
     static String getPreview(MessageObject source) {
         if (source == null) return "";
+        boolean hasMedia = source.isPhoto() || source.isVideo() || source.isRoundVideo()
+                || source.isSticker() || source.isGif()
+                || (source.messageOwner != null && source.messageOwner.media != null
+                    && !(source.messageOwner.media instanceof org.telegram.tgnet.TLRPC.TL_messageMediaEmpty));
+        if (hasMedia) {
+            if (source.caption != null && !TextUtils.isEmpty(source.caption)) {
+                return source.caption.toString();
+            }
+            return "";
+        }
         if (!TextUtils.isEmpty(source.messageText)) {
             return source.messageText.toString();
-        }
-        if (source.caption != null && !TextUtils.isEmpty(source.caption)) {
-            return source.caption.toString();
         }
         return "";
     }

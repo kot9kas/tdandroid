@@ -432,4 +432,14 @@
     <string name="LitegramSessionExportError">Не удалось прочитать ключ сессии в приложении</string>
     <string name="LitegramSessionImportJsonOnly">Нужен полный ZIP из экспорта или файл .session — одного JSON недостаточно</string>
     <string name="LitegramSessionImportEmptyFile">файл пуст или не открылся (сохраните ZIP снова или выберите архив из Загрузок)</string>
+
+    <string name="FeedLike">Лайк</string>
+    <string name="FeedComment">Коммент</string>
+    <string name="FeedForward">Переслать</string>
+    <string name="FeedLikeDone">Лайк отправлен</string>
+    <string name="FeedEmptyTitle">В ленте пока пусто</string>
+    <string name="FeedEmptyDesc">Подпишитесь на каналы, чтобы заполнить ленту.</string>
+    <string name="FeedExpandText">Читать далее</string>
+    <string name="FeedCollapseText">Свернуть</string>
+    <string name="FeedNoDescription">нет описания</string>
 </resources>
