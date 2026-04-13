@@ -93,6 +93,7 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
     private Runnable markReadRunnable;
     private GestureDetector gestureDetector;
 
+    private FrameLayout rootView;
     private FrameLayout postCard;
     private LinearLayout emptyStateView;
 
@@ -107,6 +108,7 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
     private android.view.TextureView videoTextureView;
     private android.view.TextureView roundVideoTextureView;
     private ImageView pauseOverlay;
+    private View mediaTapOverlay;
     private boolean isVideoPlaying = false;
 
     private BackupImageView channelAvatarView;
@@ -202,18 +204,20 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
                         && ty >= loc[1] && ty <= loc[1] + view.getHeight();
             }
 
+            private boolean isTouchInScrollableZone(MotionEvent ev) {
+                if (isTouchInsideView(ev, expandToggleView)) return true;
+                if (isTouchInsideView(ev, msgExpandToggle)) return true;
+                if (isTouchInsideView(ev, msgTextScroll)) return true;
+                if (expandedText && textScrollView != null
+                        && textScrollView.getVisibility() == View.VISIBLE
+                        && isTouchInsideView(ev, textScrollView)) return true;
+                return false;
+            }
+
             @Override
             public boolean onInterceptTouchEvent(MotionEvent ev) {
-                if (isTouchInsideView(ev, expandToggleView)
-                        || isTouchInsideView(ev, msgExpandToggle)
-                        || isTouchInsideView(ev, msgTextScroll)
-                        || isTouchInsideView(ev, messageCard)) {
+                if (isTouchInScrollableZone(ev)) {
                     return false;
-                }
-                if (textScrollView != null && textScrollView.getVisibility() == View.VISIBLE && expandedText) {
-                    if (isTouchInsideView(ev, textScrollView)) {
-                        return false;
-                    }
                 }
                 gestureDetector.onTouchEvent(ev);
                 if (ev.getAction() == MotionEvent.ACTION_MOVE && ev.getHistorySize() > 0) {
@@ -225,15 +229,14 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
 
             @Override
             public boolean onTouchEvent(MotionEvent ev) {
-                if (!isTouchInsideView(ev, expandToggleView)
-                        && !isTouchInsideView(ev, msgExpandToggle)
-                        && !isTouchInsideView(ev, messageCard)) {
+                if (!isTouchInScrollableZone(ev)) {
                     gestureDetector.onTouchEvent(ev);
                 }
                 return true;
             }
         };
         root.setBackgroundColor(0xFF000000);
+        rootView = root;
 
         int tabBarPx = AndroidUtilities.dp(TAB_BAR_TOTAL_DP) + AndroidUtilities.navigationBarHeight;
 
@@ -336,6 +339,11 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
                 Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, 0, 0, 0, 180));
 
+        mediaTapOverlay = new View(context);
+        mediaTapOverlay.setOnClickListener(v -> onMediaClick());
+        postCard.addView(mediaTapOverlay, LayoutHelper.createFrame(
+                LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
         // -- Bottom gradient --
         bottomGradientView = new View(context);
         PaintDrawable grad = new PaintDrawable();
@@ -416,7 +424,7 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         expandToggleView.setTypeface(AndroidUtilities.bold());
         expandToggleView.setShadowLayer(6, 0, 1, 0xCC000000);
         expandToggleView.setVisibility(View.GONE);
-        expandToggleView.setPadding(0, AndroidUtilities.dp(4), 0, 0);
+        expandToggleView.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(10), AndroidUtilities.dp(16), AndroidUtilities.dp(10));
         expandToggleView.setOnClickListener(v -> toggleExpandedText());
         bottomInfo.addView(expandToggleView, LayoutHelper.createLinear(
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
@@ -444,39 +452,6 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         postCard.addView(bottomInfo, LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT,
                 Gravity.BOTTOM | Gravity.START));
-
-        // -- Right actions --
-        LinearLayout actionsCol = new LinearLayout(context);
-        actionsCol.setOrientation(LinearLayout.VERTICAL);
-        actionsCol.setGravity(Gravity.CENTER_HORIZONTAL);
-
-        likeAction = buildActionButton(context, R.drawable.feed_heart);
-        likeIcon = (ImageView) likeAction.getChildAt(0);
-        likeLabel = (TextView) likeAction.getChildAt(1);
-        likeIcon.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
-        likeAction.setOnClickListener(v -> onLike());
-        actionsCol.addView(likeAction, LayoutHelper.createLinear(
-                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
-
-        commentAction = buildActionButton(context, R.drawable.feed_comment);
-        commentIcon = (ImageView) commentAction.getChildAt(0);
-        commentLabel = (TextView) commentAction.getChildAt(1);
-        commentIcon.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
-        commentAction.setOnClickListener(v -> onComment());
-        actionsCol.addView(commentAction, LayoutHelper.createLinear(
-                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
-
-        forwardAction = buildActionButton(context, R.drawable.feed_forward);
-        forwardIcon = (ImageView) forwardAction.getChildAt(0);
-        forwardLabel = (TextView) forwardAction.getChildAt(1);
-        forwardIcon.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
-        forwardAction.setOnClickListener(v -> onForward());
-        actionsCol.addView(forwardAction, LayoutHelper.createLinear(
-                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
-
-        postCard.addView(actionsCol, LayoutHelper.createFrame(
-                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
-                Gravity.END | Gravity.BOTTOM, 0, 0, 4, 100));
 
         // -- Message card (for text-only posts, fills entire postCard area) --
         messageCard = new LinearLayout(context);
@@ -575,7 +550,41 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         messageCard.addView(msgViews, mvLp);
 
         postCard.addView(messageCard, LayoutHelper.createFrame(
-                LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+                LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT,
+                Gravity.NO_GRAVITY, 0, 0, 60, 0));
+
+        // -- Right actions (added AFTER messageCard so they're on top) --
+        LinearLayout actionsCol = new LinearLayout(context);
+        actionsCol.setOrientation(LinearLayout.VERTICAL);
+        actionsCol.setGravity(Gravity.CENTER_HORIZONTAL);
+
+        likeAction = buildActionButton(context, R.drawable.feed_heart);
+        likeIcon = (ImageView) likeAction.getChildAt(0);
+        likeLabel = (TextView) likeAction.getChildAt(1);
+        likeIcon.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
+        likeAction.setOnClickListener(v -> onLike());
+        actionsCol.addView(likeAction, LayoutHelper.createLinear(
+                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        commentAction = buildActionButton(context, R.drawable.feed_comment);
+        commentIcon = (ImageView) commentAction.getChildAt(0);
+        commentLabel = (TextView) commentAction.getChildAt(1);
+        commentIcon.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
+        commentAction.setOnClickListener(v -> onComment());
+        actionsCol.addView(commentAction, LayoutHelper.createLinear(
+                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        forwardAction = buildActionButton(context, R.drawable.feed_forward);
+        forwardIcon = (ImageView) forwardAction.getChildAt(0);
+        forwardLabel = (TextView) forwardAction.getChildAt(1);
+        forwardIcon.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
+        forwardAction.setOnClickListener(v -> onForward());
+        actionsCol.addView(forwardAction, LayoutHelper.createLinear(
+                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+        postCard.addView(actionsCol, LayoutHelper.createFrame(
+                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+                Gravity.END | Gravity.BOTTOM, 0, 0, 4, 100));
 
         // -- Empty state --
         emptyStateView = new LinearLayout(context);
@@ -713,7 +722,9 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
                 @Override public void onError(VideoPlayer player, Exception e) {
                     FileLog.e("FeedActivity video error", e);
                 }
-                @Override public void onVideoSizeChanged(int w, int h, int rot, float pix) {}
+                @Override public void onVideoSizeChanged(int videoW, int videoH, int rot, float pix) {
+                    AndroidUtilities.runOnUIThread(() -> applyVideoAspectFit(targetTexture, videoW, videoH, rot));
+                }
                 @Override public void onRenderedFirstFrame() {
                     AndroidUtilities.runOnUIThread(() -> targetTexture.setAlpha(1f));
                 }
@@ -731,6 +742,34 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
             FileLog.e("FeedActivity tryAutoPlay", e);
             releaseVideoPlayer();
         }
+    }
+
+    private void applyVideoAspectFit(android.view.TextureView textureView, int videoW, int videoH, int rotation) {
+        if (videoW <= 0 || videoH <= 0) return;
+        if (rotation == 90 || rotation == 270) {
+            int tmp = videoW;
+            videoW = videoH;
+            videoH = tmp;
+        }
+        int viewW = textureView.getWidth();
+        int viewH = textureView.getHeight();
+        if (viewW <= 0 || viewH <= 0) return;
+
+        float videoAspect = (float) videoW / videoH;
+        float viewAspect = (float) viewW / viewH;
+
+        float scaleX, scaleY;
+        if (videoAspect > viewAspect) {
+            scaleX = 1f;
+            scaleY = viewAspect / videoAspect;
+        } else {
+            scaleX = videoAspect / viewAspect;
+            scaleY = 1f;
+        }
+
+        android.graphics.Matrix transform = new android.graphics.Matrix();
+        transform.setScale(scaleX, scaleY, viewW / 2f, viewH / 2f);
+        textureView.setTransform(transform);
     }
 
     private Uri buildVideoUri(MessageObject messageObject) {
@@ -794,10 +833,12 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         isVideoPlaying = false;
         if (videoTextureView != null) {
             videoTextureView.setAlpha(0f);
+            videoTextureView.setTransform(new android.graphics.Matrix());
             videoTextureView.setSurfaceTextureListener(null);
         }
         if (roundVideoTextureView != null) {
             roundVideoTextureView.setAlpha(0f);
+            roundVideoTextureView.setTransform(new android.graphics.Matrix());
             roundVideoTextureView.setSurfaceTextureListener(null);
         }
         if (pauseOverlay != null) pauseOverlay.setAlpha(0f);
@@ -926,7 +967,9 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
 
     private void renderTikTokMode(FeedItem item, ActionAvailabilityResolver.ActionAvailability av) {
         messageCard.setVisibility(View.GONE);
+        mediaTapOverlay.setVisibility(View.VISIBLE);
         postCard.setBackgroundColor(0xFF0A0A0A);
+        if (rootView != null) rootView.setBackgroundColor(0xFF000000);
         mediaContainer.setVisibility(View.VISIBLE);
         bottomGradientView.setVisibility(View.VISIBLE);
         bottomInfo.setVisibility(View.VISIBLE);
@@ -966,10 +1009,12 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         mediaContainer.setVisibility(View.GONE);
         roundContainer.setVisibility(View.GONE);
         dotsContainer.setVisibility(View.GONE);
+        mediaTapOverlay.setVisibility(View.GONE);
         bottomGradientView.setVisibility(View.GONE);
         bottomInfo.setVisibility(View.GONE);
         messageCard.setVisibility(View.VISIBLE);
         postCard.setBackgroundColor(0xFF1E1E2E);
+        if (rootView != null) rootView.setBackgroundColor(0xFF1E1E2E);
 
         msgChannelName.setText(item.channelTitle);
         TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(item.chatId);
@@ -1225,16 +1270,90 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
     private void onLike() {
         if (items.isEmpty()) return;
         FeedItem item = items.get(currentIndex);
-        if (item.messageObject == null) return;
-        ArrayList<ReactionsLayoutInBubble.VisibleReaction> r = new ArrayList<>();
+        if (item.messageObject == null || item.messageObject.messageOwner == null) return;
+
+        TLRPC.Message msg = item.messageObject.messageOwner;
+        boolean alreadyLiked = false;
+        if (msg.reactions != null && msg.reactions.results != null) {
+            for (TLRPC.ReactionCount rc : msg.reactions.results) {
+                if (rc.chosen && rc.reaction instanceof TLRPC.TL_reactionEmoji
+                        && "\u2764".equals(((TLRPC.TL_reactionEmoji) rc.reaction).emoticon)) {
+                    alreadyLiked = true;
+                    break;
+                }
+            }
+        }
+
+        ArrayList<ReactionsLayoutInBubble.VisibleReaction> reactions = new ArrayList<>();
         ReactionsLayoutInBubble.VisibleReaction heart = ReactionsLayoutInBubble.VisibleReaction.fromEmojicon("\u2764");
-        r.add(heart);
-        SendMessagesHelper.getInstance(currentAccount).sendReaction(
-                item.messageObject, r, heart, false, true, this,
-                () -> AndroidUtilities.runOnUIThread(() -> {
-                    likeIcon.setColorFilter(null);
-                    Toast.makeText(getContext(), LocaleController.getString(R.string.FeedLikeDone), Toast.LENGTH_SHORT).show();
-                }));
+
+        if (alreadyLiked) {
+            if (msg.reactions != null && msg.reactions.results != null) {
+                for (TLRPC.ReactionCount rc : msg.reactions.results) {
+                    if (rc.chosen) {
+                        if (rc.reaction instanceof TLRPC.TL_reactionEmoji
+                                && "\u2764".equals(((TLRPC.TL_reactionEmoji) rc.reaction).emoticon)) {
+                            continue;
+                        }
+                        reactions.add(ReactionsLayoutInBubble.VisibleReaction.fromTL(rc.reaction));
+                    }
+                }
+            }
+            SendMessagesHelper.getInstance(currentAccount).sendReaction(
+                    item.messageObject, reactions, null, false, false, this,
+                    () -> AndroidUtilities.runOnUIThread(() -> {
+                        if (msg.reactions != null && msg.reactions.results != null) {
+                            for (int i = msg.reactions.results.size() - 1; i >= 0; i--) {
+                                TLRPC.ReactionCount rc = msg.reactions.results.get(i);
+                                if (rc.reaction instanceof TLRPC.TL_reactionEmoji
+                                        && "\u2764".equals(((TLRPC.TL_reactionEmoji) rc.reaction).emoticon)) {
+                                    rc.count = Math.max(0, rc.count - 1);
+                                    rc.chosen = false;
+                                    if (rc.count == 0) msg.reactions.results.remove(i);
+                                    break;
+                                }
+                            }
+                        }
+                        updateReactionState(item);
+                    }));
+        } else {
+            if (msg.reactions != null && msg.reactions.results != null) {
+                for (TLRPC.ReactionCount rc : msg.reactions.results) {
+                    if (rc.chosen) {
+                        reactions.add(ReactionsLayoutInBubble.VisibleReaction.fromTL(rc.reaction));
+                    }
+                }
+            }
+            reactions.add(heart);
+            SendMessagesHelper.getInstance(currentAccount).sendReaction(
+                    item.messageObject, reactions, heart, false, true, this,
+                    () -> AndroidUtilities.runOnUIThread(() -> {
+                        if (msg.reactions == null) {
+                            msg.reactions = new TLRPC.TL_messageReactions();
+                            msg.reactions.results = new ArrayList<>();
+                        }
+                        boolean found = false;
+                        for (TLRPC.ReactionCount rc : msg.reactions.results) {
+                            if (rc.reaction instanceof TLRPC.TL_reactionEmoji
+                                    && "\u2764".equals(((TLRPC.TL_reactionEmoji) rc.reaction).emoticon)) {
+                                rc.chosen = true;
+                                rc.count++;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            TLRPC.TL_reactionCount newRc = new TLRPC.TL_reactionCount();
+                            TLRPC.TL_reactionEmoji re = new TLRPC.TL_reactionEmoji();
+                            re.emoticon = "\u2764";
+                            newRc.reaction = re;
+                            newRc.count = 1;
+                            newRc.chosen = true;
+                            msg.reactions.results.add(0, newRc);
+                        }
+                        updateReactionState(item);
+                    }));
+        }
     }
 
     private void onComment() {
@@ -1369,15 +1488,6 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
     private class FeedGestureListener extends GestureDetector.SimpleOnGestureListener {
         @Override
         public boolean onDown(@NonNull MotionEvent e) { return true; }
-
-        @Override
-        public boolean onSingleTapConfirmed(@NonNull MotionEvent e) {
-            if (items.isEmpty()) return false;
-            if (e.getX() > postCard.getWidth() - AndroidUtilities.dp(64)) return false;
-            FeedItem item = items.get(currentIndex);
-            if (!item.mediaItems.isEmpty()) { onMediaClick(); return true; }
-            return false;
-        }
 
         @Override
         public boolean onFling(@NonNull MotionEvent e1, @NonNull MotionEvent e2,
