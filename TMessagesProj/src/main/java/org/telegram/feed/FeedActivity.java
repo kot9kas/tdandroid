@@ -204,19 +204,9 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
                         && ty >= loc[1] && ty <= loc[1] + view.getHeight();
             }
 
-            private boolean isViewScrollable(View v) {
-                return v != null && (v.canScrollVertically(1) || v.canScrollVertically(-1));
-            }
-
             private boolean isTouchInScrollableZone(MotionEvent ev) {
                 if (isTouchInsideView(ev, expandToggleView)) return true;
                 if (isTouchInsideView(ev, msgExpandToggle)) return true;
-                if (msgTextScroll != null && msgTextScroll.getVisibility() == View.VISIBLE
-                        && isViewScrollable(msgTextScroll)
-                        && isTouchInsideView(ev, msgTextScroll)) return true;
-                if (expandedText && textScrollView != null
-                        && textScrollView.getVisibility() == View.VISIBLE
-                        && isTouchInsideView(ev, textScrollView)) return true;
                 return false;
             }
 
@@ -409,6 +399,14 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         textScrollView = new ScrollView(context);
         textScrollView.setVerticalScrollBarEnabled(false);
         textScrollView.setFillViewport(false);
+        textScrollView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN && expandedText) {
+                if (v.canScrollVertically(1) || v.canScrollVertically(-1)) {
+                    v.getParent().requestDisallowInterceptTouchEvent(true);
+                }
+            }
+            return false;
+        });
 
         bodyView = new TextView(context);
         bodyView.setTextColor(Color.WHITE);
@@ -506,6 +504,14 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         msgTextScroll = new ScrollView(context);
         msgTextScroll.setVerticalScrollBarEnabled(false);
         msgTextScroll.setFillViewport(false);
+        msgTextScroll.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                if (v.canScrollVertically(1) || v.canScrollVertically(-1)) {
+                    v.getParent().requestDisallowInterceptTouchEvent(true);
+                }
+            }
+            return false;
+        });
         msgBody = new TextView(context);
         msgBody.setTextColor(0xFFF0F0F5);
         msgBody.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
