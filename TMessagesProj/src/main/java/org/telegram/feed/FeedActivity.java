@@ -140,6 +140,7 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
     private TextView msgBody;
     private TextView msgExpandToggle;
     private boolean msgExpandedText = false;
+    private boolean msgContentScrollable = false;
     private ScrollView msgTextScroll;
     private LinearLayout msgReactionsRow;
     private TextView msgViews;
@@ -204,6 +205,8 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
                         && ty >= loc[1] && ty <= loc[1] + view.getHeight();
             }
 
+            private boolean textScrollActive = false;
+
             private boolean isTouchInScrollableZone(MotionEvent ev) {
                 if (isTouchInsideView(ev, expandToggleView)) return true;
                 if (isTouchInsideView(ev, msgExpandToggle)) return true;
@@ -212,7 +215,21 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
 
             @Override
             public boolean onInterceptTouchEvent(MotionEvent ev) {
-                if (isTouchInScrollableZone(ev)) {
+                if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+                    textScrollActive = false;
+                    if (messageCard != null && messageCard.getVisibility() == View.VISIBLE
+                            && msgTextScroll != null && msgTextScroll.getVisibility() == View.VISIBLE
+                            && msgContentScrollable
+                            && isTouchInsideView(ev, msgTextScroll)) {
+                        textScrollActive = true;
+                    }
+                    if (expandedText && textScrollView != null
+                            && textScrollView.getVisibility() == View.VISIBLE
+                            && isTouchInsideView(ev, textScrollView)) {
+                        textScrollActive = true;
+                    }
+                }
+                if (textScrollActive || isTouchInScrollableZone(ev)) {
                     return false;
                 }
                 gestureDetector.onTouchEvent(ev);
@@ -225,7 +242,7 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
 
             @Override
             public boolean onTouchEvent(MotionEvent ev) {
-                if (!isTouchInScrollableZone(ev)) {
+                if (!textScrollActive && !isTouchInScrollableZone(ev)) {
                     gestureDetector.onTouchEvent(ev);
                 }
                 return true;
@@ -399,14 +416,6 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         textScrollView = new ScrollView(context);
         textScrollView.setVerticalScrollBarEnabled(false);
         textScrollView.setFillViewport(false);
-        textScrollView.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_DOWN && expandedText) {
-                if (v.canScrollVertically(1) || v.canScrollVertically(-1)) {
-                    v.getParent().requestDisallowInterceptTouchEvent(true);
-                }
-            }
-            return false;
-        });
 
         bodyView = new TextView(context);
         bodyView.setTextColor(Color.WHITE);
@@ -504,14 +513,6 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         msgTextScroll = new ScrollView(context);
         msgTextScroll.setVerticalScrollBarEnabled(false);
         msgTextScroll.setFillViewport(false);
-        msgTextScroll.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                if (v.canScrollVertically(1) || v.canScrollVertically(-1)) {
-                    v.getParent().requestDisallowInterceptTouchEvent(true);
-                }
-            }
-            return false;
-        });
         msgBody = new TextView(context);
         msgBody.setTextColor(0xFFF0F0F5);
         msgBody.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
@@ -996,6 +997,7 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
 
     private void renderTikTokMode(FeedItem item, ActionAvailabilityResolver.ActionAvailability av) {
         messageCard.setVisibility(View.GONE);
+        msgContentScrollable = false;
         mediaTapOverlay.setVisibility(View.VISIBLE);
         postCard.setBackgroundColor(0xFF0A0A0A);
         if (rootView != null) rootView.setBackgroundColor(0xFF000000);
@@ -1067,10 +1069,14 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         msgTextScroll.setVisibility(hasText ? View.VISIBLE : View.GONE);
         msgExpandToggle.setVisibility(View.GONE);
         msgExpandedText = false;
+        msgContentScrollable = false;
         if (hasText) {
             msgBody.setText(item.previewText);
             msgBody.setMaxLines(Integer.MAX_VALUE);
             msgTextScroll.scrollTo(0, 0);
+            msgTextScroll.post(() -> {
+                msgContentScrollable = msgTextScroll.canScrollVertically(1);
+            });
         }
 
         if (item.messageObject != null && item.messageObject.messageOwner != null) {
