@@ -897,12 +897,18 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
     }
 
     private void buildFeedFromLoadedMessages() {
+        Set<String> existingKeys = new HashSet<>();
+        for (FeedItem it : items) {
+            existingKeys.add(it.dialogId + "_" + it.messageId);
+        }
+
         String savedKey = "";
         if (!firstLoad && !items.isEmpty() && currentIndex < items.size()) {
             FeedItem cur = items.get(currentIndex);
             savedKey = cur.dialogId + "_" + cur.messageId;
         }
-        items.clear();
+
+        boolean wasEmpty = items.isEmpty();
         MessagesController c = MessagesController.getInstance(currentAccount);
         for (Long dialogId : pendingChannelIds) {
             TLRPC.Chat chat = c.getChat(-dialogId);
@@ -927,9 +933,12 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
                 if (g != 0) { if (grp.contains(g)) continue; grp.add(g); }
                 else if (ids.contains(m.getId())) continue;
                 ids.add(m.getId());
+                String key = dialogId + "_" + m.getId();
+                if (existingKeys.contains(key)) continue;
                 items.add(new FeedItem(dialogId, -dialogId, m.getId(), chat.title,
                         FeedDataProvider.getPreview(m), m, unread,
                         FeedDataProvider.collectMedia(msgs, m)));
+                existingKeys.add(key);
             }
         }
         Collections.sort(items, (a, b) -> {
@@ -946,7 +955,7 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         for (FeedItem it : items)
             if (!unreadLeftByDialog.containsKey(it.dialogId))
                 unreadLeftByDialog.put(it.dialogId, it.unreadCount);
-        if (firstLoad) {
+        if (firstLoad || wasEmpty) {
             currentIndex = 0;
         } else {
             boolean found = false;
@@ -957,7 +966,7 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
                     }
                 }
             }
-            if (!found) currentIndex = 0;
+            if (!found) currentIndex = Math.min(currentIndex, Math.max(0, items.size() - 1));
         }
         if (items.isEmpty()) currentIndex = 0;
         else currentIndex = Math.min(currentIndex, items.size() - 1);
