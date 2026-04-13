@@ -618,8 +618,16 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         root.addView(emptyStateView, LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
 
-        firstLoad = true;
-        requestChannelMessages();
+        List<FeedItem> cached = FeedCache.get(currentAccount);
+        if (!cached.isEmpty()) {
+            items.clear();
+            items.addAll(cached);
+            currentIndex = Math.min(currentIndex, items.size() - 1);
+            firstLoad = false;
+        } else {
+            firstLoad = true;
+            requestChannelMessages();
+        }
         renderItem(false);
 
         fragmentView = root;
@@ -680,6 +688,14 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
     }
 
     // ==================== VIDEO PLAYBACK (MediaController pattern) ====================
+
+    private void tryAutoPlayCurrentVideo() {
+        if (items.isEmpty() || currentIndex >= items.size()) return;
+        FeedItem item = items.get(currentIndex);
+        if (!item.mediaItems.isEmpty()) {
+            tryAutoPlayVideo(item);
+        }
+    }
 
     private void tryAutoPlayVideo(FeedItem item) {
         releaseVideoPlayer();
@@ -934,6 +950,7 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         else currentIndex = Math.min(currentIndex, items.size() - 1);
         currentMediaIndex = 0;
         expandedText = false;
+        FeedCache.put(currentAccount, items);
     }
 
     // ==================== RENDERING ====================
@@ -1468,10 +1485,13 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
     public void onBecomeFullyVisible() {
         super.onBecomeFullyVisible();
         canMarkAsRead = true;
-        firstLoad = true;
-        loadedChannelMessages.clear();
-        requestChannelMessages();
+        if (items.isEmpty()) {
+            firstLoad = true;
+            loadedChannelMessages.clear();
+            requestChannelMessages();
+        }
         renderItem(false);
+        tryAutoPlayCurrentVideo();
         scheduleMarkCurrentAsRead();
     }
 
