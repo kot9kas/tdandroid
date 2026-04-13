@@ -204,10 +204,17 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
                         && ty >= loc[1] && ty <= loc[1] + view.getHeight();
             }
 
+            private boolean isScrollViewScrollable(ScrollView sv) {
+                if (sv == null || sv.getChildCount() == 0) return false;
+                return sv.getChildAt(0).getHeight() > sv.getHeight();
+            }
+
             private boolean isTouchInScrollableZone(MotionEvent ev) {
                 if (isTouchInsideView(ev, expandToggleView)) return true;
                 if (isTouchInsideView(ev, msgExpandToggle)) return true;
-                if (isTouchInsideView(ev, msgTextScroll)) return true;
+                if (msgTextScroll != null && msgTextScroll.getVisibility() == View.VISIBLE
+                        && isScrollViewScrollable(msgTextScroll)
+                        && isTouchInsideView(ev, msgTextScroll)) return true;
                 if (expandedText && textScrollView != null
                         && textScrollView.getVisibility() == View.VISIBLE
                         && isTouchInsideView(ev, textScrollView)) return true;
