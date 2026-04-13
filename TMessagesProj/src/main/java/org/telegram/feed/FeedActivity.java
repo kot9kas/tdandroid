@@ -401,13 +401,13 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         channelRow.addView(channelNameView, cnLp);
 
         dateView = new TextView(context);
-        dateView.setTextColor(0xBBFFFFFF);
+        dateView.setTextColor(0x99FFFFFF);
         dateView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         dateView.setSingleLine(true);
         dateView.setShadowLayer(6, 0, 1, 0xCC000000);
         LinearLayout.LayoutParams dtLp = LayoutHelper.createLinear(
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
-        dtLp.leftMargin = AndroidUtilities.dp(8);
+        dtLp.leftMargin = AndroidUtilities.dp(6);
         channelRow.addView(dateView, dtLp);
 
         bottomInfo.addView(channelRow, LayoutHelper.createLinear(
@@ -469,59 +469,67 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         // -- Message card (for text-only posts, fills entire postCard area) --
         messageCard = new LinearLayout(context);
         messageCard.setOrientation(LinearLayout.VERTICAL);
-        messageCard.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14),
-                AndroidUtilities.dp(16), AndroidUtilities.dp(14));
+        messageCard.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(18),
+                AndroidUtilities.dp(18), AndroidUtilities.dp(18));
         messageCard.setVisibility(View.GONE);
+        GradientDrawable mcBg = new GradientDrawable();
+        mcBg.setColor(0xFF252540);
+        mcBg.setCornerRadius(AndroidUtilities.dp(20));
+        messageCard.setBackground(mcBg);
 
         LinearLayout mcHeader = new LinearLayout(context);
         mcHeader.setOrientation(LinearLayout.HORIZONTAL);
         mcHeader.setGravity(Gravity.CENTER_VERTICAL);
 
         msgAvatar = new BackupImageView(context);
-        msgAvatar.setRoundRadius(AndroidUtilities.dp(18));
+        msgAvatar.setRoundRadius(AndroidUtilities.dp(20));
         msgAvatar.setOnClickListener(v -> openCurrentChannelPost());
-        mcHeader.addView(msgAvatar, LayoutHelper.createLinear(36, 36));
+        mcHeader.addView(msgAvatar, LayoutHelper.createLinear(40, 40));
 
         msgChannelName = new TextView(context);
         msgChannelName.setTextColor(Color.WHITE);
-        msgChannelName.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        msgChannelName.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         msgChannelName.setTypeface(AndroidUtilities.bold());
         msgChannelName.setSingleLine(true);
+        msgChannelName.setEllipsize(android.text.TextUtils.TruncateAt.END);
         msgChannelName.setOnClickListener(v -> openCurrentChannelPost());
         LinearLayout.LayoutParams mcnLp = LayoutHelper.createLinear(
                 0, LayoutHelper.WRAP_CONTENT, 1f);
-        mcnLp.leftMargin = AndroidUtilities.dp(10);
+        mcnLp.leftMargin = AndroidUtilities.dp(12);
         mcHeader.addView(msgChannelName, mcnLp);
 
         msgDate = new TextView(context);
-        msgDate.setTextColor(0x99FFFFFF);
+        msgDate.setTextColor(0x77FFFFFF);
         msgDate.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         msgDate.setSingleLine(true);
-        mcHeader.addView(msgDate, LayoutHelper.createLinear(
-                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+        msgDate.setGravity(Gravity.END);
+        LinearLayout.LayoutParams mdLp = LayoutHelper.createLinear(
+                LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
+        mdLp.leftMargin = AndroidUtilities.dp(8);
+        mcHeader.addView(msgDate, mdLp);
 
         messageCard.addView(mcHeader, LayoutHelper.createLinear(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         View mcDivider = new View(context);
-        mcDivider.setBackgroundColor(0x22FFFFFF);
+        mcDivider.setBackgroundColor(0x15FFFFFF);
         LinearLayout.LayoutParams divLp = LayoutHelper.createLinear(
                 LayoutHelper.MATCH_PARENT, 1);
-        divLp.topMargin = AndroidUtilities.dp(12);
+        divLp.topMargin = AndroidUtilities.dp(14);
         messageCard.addView(mcDivider, divLp);
 
         msgTextScroll = new ScrollView(context);
         msgTextScroll.setVerticalScrollBarEnabled(false);
         msgTextScroll.setFillViewport(false);
         msgBody = new TextView(context);
-        msgBody.setTextColor(0xFFF0F0F5);
+        msgBody.setTextColor(0xFFE8E8F0);
         msgBody.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        msgBody.setLineSpacing(AndroidUtilities.dp(4), 1f);
+        msgBody.setLineSpacing(AndroidUtilities.dp(5), 1f);
         msgTextScroll.addView(msgBody, new ScrollView.LayoutParams(
                 ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT));
         LinearLayout.LayoutParams mtLp = LayoutHelper.createLinear(
                 LayoutHelper.MATCH_PARENT, 0, 1f);
-        mtLp.topMargin = AndroidUtilities.dp(12);
+        mtLp.topMargin = AndroidUtilities.dp(16);
         messageCard.addView(msgTextScroll, mtLp);
 
         msgExpandToggle = new TextView(context);
@@ -553,18 +561,18 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         messageCard.addView(msgReactionsRow, mrrLp);
 
         msgViews = new TextView(context);
-        msgViews.setTextColor(0x77FFFFFF);
+        msgViews.setTextColor(0x66FFFFFF);
         msgViews.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         msgViews.setSingleLine(true);
         msgViews.setVisibility(View.GONE);
         LinearLayout.LayoutParams mvLp = LayoutHelper.createLinear(
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
-        mvLp.topMargin = AndroidUtilities.dp(6);
+        mvLp.topMargin = AndroidUtilities.dp(8);
         messageCard.addView(msgViews, mvLp);
 
         postCard.addView(messageCard, LayoutHelper.createFrame(
                 LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT,
-                Gravity.NO_GRAVITY, 0, 0, 60, 0));
+                Gravity.NO_GRAVITY, 12, 8, 64, 8));
 
         // -- Right actions (added AFTER messageCard so they're on top) --
         LinearLayout actionsCol = new LinearLayout(context);
@@ -597,7 +605,7 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
 
         postCard.addView(actionsCol, LayoutHelper.createFrame(
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
-                Gravity.END | Gravity.BOTTOM, 0, 0, 4, 100));
+                Gravity.END | Gravity.CENTER_VERTICAL, 0, 0, 2, 0));
 
         // -- Empty state --
         emptyStateView = new LinearLayout(context);
@@ -651,8 +659,8 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         LinearLayout wrap = new LinearLayout(ctx);
         wrap.setOrientation(LinearLayout.VERTICAL);
         wrap.setGravity(Gravity.CENTER_HORIZONTAL);
-        wrap.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(10),
-                AndroidUtilities.dp(6), AndroidUtilities.dp(4));
+        wrap.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(12),
+                AndroidUtilities.dp(8), AndroidUtilities.dp(6));
         ImageView icon = new ImageView(ctx);
         icon.setImageResource(iconRes);
         icon.setElevation(AndroidUtilities.dp(4));
@@ -660,11 +668,11 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
                 AndroidUtilities.dp(ICON_SIZE_DP), AndroidUtilities.dp(ICON_SIZE_DP)));
         TextView lbl = new TextView(ctx);
         lbl.setTextColor(Color.WHITE);
-        lbl.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+        lbl.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
         lbl.setTypeface(AndroidUtilities.bold());
         lbl.setGravity(Gravity.CENTER);
         lbl.setShadowLayer(6, 0, 1, 0xCC000000);
-        lbl.setPadding(0, AndroidUtilities.dp(2), 0, 0);
+        lbl.setPadding(0, AndroidUtilities.dp(3), 0, 0);
         wrap.addView(lbl, LayoutHelper.createLinear(
                 LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
         return wrap;
