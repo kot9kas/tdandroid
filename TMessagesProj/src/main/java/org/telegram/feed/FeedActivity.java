@@ -204,16 +204,15 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
                         && ty >= loc[1] && ty <= loc[1] + view.getHeight();
             }
 
-            private boolean isScrollViewScrollable(ScrollView sv) {
-                if (sv == null || sv.getChildCount() == 0) return false;
-                return sv.getChildAt(0).getHeight() > sv.getHeight();
+            private boolean isViewScrollable(View v) {
+                return v != null && (v.canScrollVertically(1) || v.canScrollVertically(-1));
             }
 
             private boolean isTouchInScrollableZone(MotionEvent ev) {
                 if (isTouchInsideView(ev, expandToggleView)) return true;
                 if (isTouchInsideView(ev, msgExpandToggle)) return true;
                 if (msgTextScroll != null && msgTextScroll.getVisibility() == View.VISIBLE
-                        && isScrollViewScrollable(msgTextScroll)
+                        && isViewScrollable(msgTextScroll)
                         && isTouchInsideView(ev, msgTextScroll)) return true;
                 if (expandedText && textScrollView != null
                         && textScrollView.getVisibility() == View.VISIBLE
@@ -1495,8 +1494,8 @@ public class FeedActivity extends BaseFragment implements MainTabsActivity.TabFr
         if (items.isEmpty()) {
             firstLoad = true;
             loadedChannelMessages.clear();
-            requestChannelMessages();
         }
+        requestChannelMessages();
         renderItem(false);
         tryAutoPlayCurrentVideo();
         scheduleMarkCurrentAsRead();
