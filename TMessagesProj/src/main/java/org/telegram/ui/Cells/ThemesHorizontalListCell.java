@@ -580,7 +580,7 @@ public class ThemesHorizontalListCell extends RecyclerListView implements Notifi
                 button.setColor(0x66ffffff, 0xffffffff);
 
                 if (themeInfo.accentBaseColor != 0) {
-                    if ("Purple Breeze".equals(themeInfo.name)) {
+                    if ("Amethyst Glow".equals(themeInfo.name) || "Rose Cream".equals(themeInfo.name) || "Peachy Dark".equals(themeInfo.name) || "Peachy White".equals(themeInfo.name)) {
                         button.setColor(0xffb3b3b3, blend(oldCheckColor, checkColor));
                         Theme.chat_instantViewRectPaint.setColor(0x2bb0b5ba);
                         canvas.drawRoundRect(rect, AndroidUtilities.dp(6), AndroidUtilities.dp(6), Theme.chat_instantViewRectPaint);

@@ -629,10 +629,6 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         Collections.sort(defaultThemes, (o1, o2) -> Integer.compare(o1.sortIndex, o2.sortIndex));
 
         if (currentType == THEME_TYPE_THEMES_BROWSER) {
-            selectThemeHeaderRow = rowCount++;
-            themeListRow2 = rowCount++;
-            chatListInfoRow = rowCount++;
-
             themePreviewRow = rowCount++;
             themeHeaderRow = rowCount++;
             themeListRow = rowCount++;
@@ -660,7 +656,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             newThemeInfoRow = rowCount++;
             themeHeaderRow = rowCount++;
 
-            themeListRow2 = rowCount++;
+            themeListRow = rowCount++;
             themeInfoRow = rowCount++;
 
             bubbleRadiusHeaderRow = rowCount++;
@@ -1012,7 +1008,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                             listAdapter.notifyItemChanged(bubbleRadiusRow, new Object());
                         }
                         if (themesHorizontalListCell != null) {
-                            Theme.ThemeInfo themeInfo = Theme.getTheme("Purple Breeze");
+                            Theme.ThemeInfo themeInfo = Theme.getTheme("Amethyst Glow");
                             Theme.ThemeInfo currentTheme = Theme.getCurrentTheme();
                             Theme.ThemeAccent accent = themeInfo != null ? themeInfo.themeAccentsMap.get(0) : null;
                             if (accent != null) {
@@ -1045,20 +1041,20 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                     }
                 } else if (id == day_night_switch) {
                     SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-                    String dayThemeName = preferences.getString("lastDayTheme", "Purple Breeze");
+                    String dayThemeName = preferences.getString("lastDayTheme", "Amethyst Glow");
                     if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                        dayThemeName = "Purple Breeze";
+                        dayThemeName = "Amethyst Glow";
                     }
-                    String nightThemeName = preferences.getString("lastDarkTheme", "Purple Breeze");
+                    String nightThemeName = preferences.getString("lastDarkTheme", "Amethyst Glow");
                     if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                        nightThemeName = "Purple Breeze";
+                        nightThemeName = "Amethyst Glow";
                     }
                     Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
                     if (dayThemeName.equals(nightThemeName)) {
-                        if (themeInfo.isDark() || dayThemeName.equals("Purple Breeze")) {
-                            dayThemeName = "Purple Breeze";
+                        if (themeInfo.isDark() || dayThemeName.equals("Amethyst Glow")) {
+                            dayThemeName = "Amethyst Glow";
                         } else {
-                            nightThemeName = "Purple Breeze";
+                            nightThemeName = "Amethyst Glow";
                         }
                     }
 

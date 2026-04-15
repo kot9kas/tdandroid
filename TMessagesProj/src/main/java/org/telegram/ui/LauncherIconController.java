@@ -43,13 +43,10 @@ public class LauncherIconController {
     }
 
     public enum LauncherIcon {
-        DEFAULT("DefaultIcon", R.drawable.icon_background_sa, R.mipmap.icon_foreground_sa, R.string.AppIconDefault, false, 0xFF5B2D8E),
-        VINTAGE("VintageIcon", R.drawable.icon_6_background_sa, R.mipmap.icon_6_foreground_sa, R.string.AppIconVintage, false, 0xFF2AABDA),
-        AQUA("AquaIcon", R.drawable.icon_4_background_sa, R.mipmap.icon_foreground_sa, R.string.AppIconAqua, false, 0xFF02A3CC),
-        DARK("DarkIcon", R.drawable.icon_dark_background_sa, R.drawable.icon_foreground_empty, R.string.AppIconDark, false, 0xFF333333),
-        PREMIUM("PremiumIcon", R.drawable.icon_3_background_sa, R.mipmap.icon_3_foreground_sa, R.string.AppIconPremium, true, 0xFFB06EFF),
-        TURBO("TurboIcon", R.drawable.icon_5_background_sa, R.mipmap.icon_5_foreground_sa, R.string.AppIconTurbo, true, 0xFF6A5AFF),
-        NOX("NoxIcon", R.mipmap.icon_2_background_sa, R.mipmap.icon_foreground_sa, R.string.AppIconNox, true, 0xFF5B2D8E);
+        DEFAULT("DefaultIcon", R.drawable.icon_litegram_default_bg, R.mipmap.icon_litegram_default, R.string.AppIconDefault, false, 0xFF7B5EA7),
+        DEFAULT_X("DefaultXIcon", R.drawable.icon_litegram_x_bg, R.mipmap.icon_litegram_x, R.string.AppIconDefaultX, false, 0xFF2A2438),
+        BLACK("BlackIcon", R.drawable.icon_litegram_black_bg, R.mipmap.icon_litegram_black, R.string.AppIconBlack, false, 0xFF000000),
+        WHITE("WhiteIcon", R.drawable.icon_litegram_white_bg, R.mipmap.icon_litegram_white, R.string.AppIconWhite, false, 0xFF5B2D8E);
 
         public final String key;
         public final int background;

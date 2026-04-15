@@ -182,20 +182,20 @@ public class DefaultThemesPreviewCell extends LinearLayout {
                     int navBarOldColor = Theme.getColor(Theme.key_windowBackgroundGray);
                     DialogsActivity.switchingTheme = true;
                     SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-                    String dayThemeName = preferences.getString("lastDayTheme", "Purple Breeze");
+                    String dayThemeName = preferences.getString("lastDayTheme", "Amethyst Glow");
                     if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                        dayThemeName = "Purple Breeze";
+                        dayThemeName = "Amethyst Glow";
                     }
-                    String nightThemeName = preferences.getString("lastDarkTheme", "Purple Breeze");
+                    String nightThemeName = preferences.getString("lastDarkTheme", "Amethyst Glow");
                     if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                        nightThemeName = "Purple Breeze";
+                        nightThemeName = "Amethyst Glow";
                     }
                     Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
                     if (dayThemeName.equals(nightThemeName)) {
-                        if (themeInfo.isDark() || dayThemeName.equals("Purple Breeze")) {
-                            dayThemeName = "Purple Breeze";
+                        if (themeInfo.isDark() || dayThemeName.equals("Amethyst Glow")) {
+                            dayThemeName = "Amethyst Glow";
                         } else {
-                            nightThemeName = "Purple Breeze";
+                            nightThemeName = "Amethyst Glow";
                         }
                     }
 
@@ -358,7 +358,8 @@ public class DefaultThemesPreviewCell extends LinearLayout {
         if (currentType == ThemeActivity.THEME_TYPE_BASIC || currentType == TYPE_CUSTOM_LIST) {
             themeIndex = !Theme.isCurrentThemeDay() ? 2 : 0;
         } else {
-            if (Theme.getActiveTheme().getKey().equals("Purple Breeze")) {
+            String activeKey = Theme.getActiveTheme().getKey();
+            if ("Amethyst Glow".equals(activeKey) || "Rose Cream".equals(activeKey) || "Peachy Dark".equals(activeKey) || "Peachy White".equals(activeKey)) {
                 themeIndex = 0;
             } else {
                 if (Theme.isCurrentThemeDay() && (themeIndex == 2 || themeIndex == 3)) {

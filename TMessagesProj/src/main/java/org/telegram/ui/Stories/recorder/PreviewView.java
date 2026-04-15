@@ -1867,20 +1867,20 @@ public class PreviewView extends FrameLayout {
         }
 
         SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-        String dayThemeName = preferences.getString("lastDayTheme", "Purple Breeze");
+        String dayThemeName = preferences.getString("lastDayTheme", "Amethyst Glow");
         if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-            dayThemeName = "Purple Breeze";
+            dayThemeName = "Amethyst Glow";
         }
-        String nightThemeName = preferences.getString("lastDarkTheme", "Purple Breeze");
+        String nightThemeName = preferences.getString("lastDarkTheme", "Amethyst Glow");
         if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-            nightThemeName = "Purple Breeze";
+            nightThemeName = "Amethyst Glow";
         }
         Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
         if (dayThemeName.equals(nightThemeName)) {
-            if (themeInfo.isDark() || dayThemeName.equals("Purple Breeze")) {
-                dayThemeName = "Purple Breeze";
+            if (themeInfo.isDark() || dayThemeName.equals("Amethyst Glow")) {
+                dayThemeName = "Amethyst Glow";
             } else {
-                nightThemeName = "Purple Breeze";
+                nightThemeName = "Amethyst Glow";
             }
         }
         if (isDark) {

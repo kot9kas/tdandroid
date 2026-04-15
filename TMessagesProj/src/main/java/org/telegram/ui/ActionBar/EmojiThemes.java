@@ -174,10 +174,10 @@ public class EmojiThemes {
         String lastDayCustomTheme = preferences.getString("lastDayCustomTheme", null);
         int dayAccentId = preferences.getInt("lastDayCustomThemeAccentId", -1);
         if (lastDayCustomTheme == null || Theme.getTheme(lastDayCustomTheme) == null) {
-            lastDayCustomTheme = preferences.getString("lastDayTheme", "Purple Breeze");
+            lastDayCustomTheme = preferences.getString("lastDayTheme", "Amethyst Glow");
             Theme.ThemeInfo themeInfo = Theme.getTheme(lastDayCustomTheme);
             if (themeInfo == null) {
-                lastDayCustomTheme = "Purple Breeze";
+                lastDayCustomTheme = "Amethyst Glow";
                 dayAccentId = 0;
             } else {
                 dayAccentId = themeInfo.currentAccentId;
@@ -191,17 +191,17 @@ public class EmojiThemes {
         }
 
         if (dayAccentId == -1) {
-            lastDayCustomTheme = "Purple Breeze";
+            lastDayCustomTheme = "Amethyst Glow";
             dayAccentId = 0;
         }
 
         String lastDarkCustomTheme = preferences.getString("lastDarkCustomTheme", null);
         int darkAccentId = preferences.getInt("lastDarkCustomThemeAccentId", -1);
         if (lastDarkCustomTheme == null || Theme.getTheme(lastDarkCustomTheme) == null) {
-            lastDarkCustomTheme = preferences.getString("lastDarkTheme", "Purple Breeze");
+            lastDarkCustomTheme = preferences.getString("lastDarkTheme", "Amethyst Glow");
             Theme.ThemeInfo themeInfo = Theme.getTheme(lastDarkCustomTheme);
             if (themeInfo == null) {
-                lastDarkCustomTheme = "Purple Breeze";
+                lastDarkCustomTheme = "Amethyst Glow";
                 darkAccentId = 0;
             } else {
                 darkAccentId = themeInfo.currentAccentId;
@@ -214,7 +214,7 @@ public class EmojiThemes {
         }
 
         if (darkAccentId == -1) {
-            lastDarkCustomTheme = "Purple Breeze";
+            lastDarkCustomTheme = "Amethyst Glow";
             darkAccentId = 0;
         }
 
@@ -249,7 +249,7 @@ public class EmojiThemes {
 
         for (int i = 0; i < 4; i++) {
             ThemeItem item = new ThemeItem();
-            item.themeInfo = Theme.getTheme("Purple Breeze");
+            item.themeInfo = Theme.getTheme("Amethyst Glow");
             item.accentId = 0;
             themeItem.items.add(item);
         }
@@ -265,7 +265,7 @@ public class EmojiThemes {
 
         for (int i = 0; i < 4; i++) {
             ThemeItem item = new ThemeItem();
-            item.themeInfo = Theme.getTheme("Purple Breeze");
+            item.themeInfo = Theme.getTheme("Amethyst Glow");
             item.accentId = 0;
             themeItem.items.add(item);
         }
@@ -346,7 +346,7 @@ public class EmojiThemes {
             if (iTheme != null) {
                 baseTheme = Theme.getTheme(Theme.getBaseThemeKey(iTheme.getThemeSettings(settingsIndex)));
             } else {
-                baseTheme = Theme.getTheme("Purple Breeze");
+                baseTheme = Theme.getTheme("Amethyst Glow");
             }
             if (baseTheme != null) {
                 themeInfo = new Theme.ThemeInfo(baseTheme);
@@ -646,11 +646,11 @@ public class EmojiThemes {
         if (isDark != themeInfo.isDark()) {
             SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
             String lastThemeName = isDark
-                    ? preferences.getString("lastDarkTheme", "Purple Breeze")
-                    : preferences.getString("lastDayTheme", "Purple Breeze");
+                    ? preferences.getString("lastDarkTheme", "Amethyst Glow")
+                    : preferences.getString("lastDayTheme", "Amethyst Glow");
             themeInfo = Theme.getTheme(lastThemeName);
             if (themeInfo == null) {
-                themeInfo = Theme.getTheme("Purple Breeze");
+                themeInfo = Theme.getTheme("Amethyst Glow");
             }
         }
         return new Theme.ThemeInfo(themeInfo);
@@ -698,7 +698,7 @@ public class EmojiThemes {
             items.get(i).patternBgGradientColor3 = colorsMap.get(Theme.key_chat_wallpaper_gradient_to3, 0);
             items.get(i).patternBgRotation = colorsMap.get(Theme.key_chat_wallpaper_gradient_rotation, 0);
 
-            if (items.get(i).themeInfo != null && items.get(i).themeInfo.getKey().equals("Purple Breeze")) {
+            if (items.get(i).themeInfo != null && items.get(i).themeInfo.getKey().equals("Amethyst Glow")) {
                 int accentId = items.get(i).accentId >= 0 ? items.get(i).accentId : items.get(i).themeInfo.currentAccentId;
                 if (accentId == 0) {
                     items.get(i).patternBgColor = 0xff0f0f0f;
@@ -737,7 +737,7 @@ public class EmojiThemes {
                 return;
             }
         }
-        if (themeInfo.getKey().equals("Purple Breeze") && accentId == 0) {
+        if (themeInfo.getKey().equals("Amethyst Glow") && accentId == 0) {
             return;
         }
 
